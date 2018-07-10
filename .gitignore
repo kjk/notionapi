@@ -1,2 +1,4 @@
 tohtml
 *.log.txt
+www/*.html
+

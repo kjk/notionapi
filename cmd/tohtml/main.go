@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
+	"path/filepath"
 
 	"github.com/kjk/notion"
 )
 
 func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
-	path := fmt.Sprintf("%s.go.log.txt", pageID)
+	name := fmt.Sprintf("%s.go.log.txt", pageID)
+	path := filepath.Join("log", name)
 	f, err := os.Create(path)
 	if err != nil {
 		fmt.Printf("os.Create('%s') failed with %s\n", path, err)
@@ -94,6 +97,11 @@ func genBlockSurroudedHTML(f io.Writer, block *notion.Block, start, close string
 		return err
 	}
 
+	err = genBlocksHTML(f, block.Content, level+1)
+	if err != nil {
+		return err
+	}
+
 	_, err = io.WriteString(f, close+"\n")
 	if err != nil {
 		return err
@@ -107,6 +115,7 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
 	if level > 0 {
 		levelCls = fmt.Sprintf(" lvl%d", level)
 	}
+
 	switch block.Type {
 	case notion.TypeText:
 		start := fmt.Sprintf(`<div class="text%s">`, levelCls)
@@ -133,14 +142,15 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
 		start := fmt.Sprintf(`<div class="toggle%s">`, levelCls)
 		close := `</div>`
 		err = genBlockSurroudedHTML(f, block, start, close, level)
+	case notion.TypeBulletedList:
+		start := fmt.Sprintf(`<div class="bullet%s">`, levelCls)
+		close := `</div>`
+		err = genBlockSurroudedHTML(f, block, start, close, level)
 	default:
 		fmt.Printf("Unsupported block type '%s'\n", block.Type)
 		return fmt.Errorf("Unsupported block type '%s'", block.Type)
 	}
-	if err != nil {
-		return err
-	}
-	return genBlocksHTML(f, block.Content, level+1)
+	return err
 }
 
 func genBlocksHTML(f io.Writer, blocks []*notion.Block, level int) error {
@@ -154,7 +164,7 @@ func genBlocksHTML(f io.Writer, blocks []*notion.Block, level int) error {
 }
 
 func genHTML(pageID string, pageInfo *notion.PageInfo) error {
-	path := pageID + ".html"
+	path := path.Join("www", pageID+".html")
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -189,7 +199,7 @@ func genHTML(pageID string, pageInfo *notion.PageInfo) error {
 }
 
 func toHTML(pageID string) error {
-	fmt.Printf("pageID: %s\n", pageID)
+	fmt.Printf("toHTML: pageID=%s\n", pageID)
 	lf, _ := openLogFileForPageID(pageID)
 	if lf != nil {
 		defer lf.Close()
@@ -210,14 +220,14 @@ func main() {
 		//"f97ffca91f8949b48004999df34ab1f7", // text not simple
 		//"6682351e44bb4f9ca0e149b703265bdb", // header
 		//"fd9338a719a24f02993fcfbcf3d00bb0", // todo list
-		"484919a1647144c29234447ce408ff6b", // toggle and bullet list
+		//"484919a1647144c29234447ce408ff6b", // toggle and bullet list
+		"c969c9455d7c4dd79c7f860f3ace6429" //
 	}
 	for _, pageID := range ids {
 		err := toHTML(pageID)
 		if err != nil {
 			fmt.Printf("toHTML() failed with %s\n", err)
 		}
-
 	}
 }
 

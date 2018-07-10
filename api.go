@@ -172,28 +172,44 @@ func apiGetRecordValues(ids []string) (*getRecordValuesResponse, error) {
 	return rsp, nil
 }
 
-func findMissingBlocks(startIDS []string, idToBlock map[string]*Block) ([]string, error) {
-	return []string{}, nil
+func findMissingBlocks(startIds []string, idToBlock map[string]*Block) []string {
+	var missing []string
+	seen := map[string]struct{}{}
+	toCheck := append([]string{}, startIds...)
+	for len(toCheck) > 0 {
+		id := toCheck[0]
+		toCheck = toCheck[1:]
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		block := idToBlock[id]
+		if block == nil {
+			missing = append(missing, id)
+		} else {
+			toCheck = append(toCheck, block.ContentIDs...)
+		}
+	}
+
+	return missing
 }
 
 // GetPageInfo returns Noion page data given its id
 func GetPageInfo(pageID string) (*PageInfo, error) {
 	// TODO: validate pageID
-	var res PageInfo
-	//fmt.Printf("%#v\n", rsp)
-	// change to cannonical version of page id
 
+	var pageInfo PageInfo
 	{
 		recVals, err := apiGetRecordValues([]string{pageID})
 		if err != nil {
 			return nil, err
 		}
 		pageID = recVals.Results[0].Value.ID
-		res.ID = pageID
-		res.Page = recVals.Results[0].Value
+		pageInfo.ID = pageID
+		pageInfo.Page = recVals.Results[0].Value
 	}
 
-	var idToBlock map[string]*Block
+	idToBlock := map[string]*Block{}
 	for {
 		rsp, err := apiLoadPageChunk(pageID, nil)
 		if err != nil {
@@ -207,17 +223,25 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 	}
 
 	// get blocks that are not already loaded, 30 per request
-	missing, err := findMissingBlocks(res.Page.ContentIDs, idToBlock)
-	if err != nil {
-		return nil, err
-	}
-	dbg("There are %d missing blocks\n", len(missing))
+	missing := findMissingBlocks(pageInfo.Page.ContentIDs, idToBlock)
+	//dbg("There are %d missing blocks, %#v\n", len(missing), missing)
 	for len(missing) > 0 {
+		// TODO: in smaller chunks
+		recVals, err := apiGetRecordValues(missing)
+		missing = nil
+		if err != nil {
+			return nil, err
+		}
+		for _, blockWithRole := range recVals.Results {
+			block := blockWithRole.Value
+			id := block.ID
+			idToBlock[id] = block
+		}
 	}
 
-	err = resolveBlocks(res.Page, idToBlock)
+	err := resolveBlocks(pageInfo.Page, idToBlock)
 	if err != nil {
 		return nil, err
 	}
-	return &res, nil
+	return &pageInfo, nil
 }

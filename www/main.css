@@ -22,6 +22,30 @@ li > p {
   line-height: 1.5em;
 }
 
+.lvl1 {
+  margin-left: 16px;
+}
+
+.lvl2 {
+  margin-left: 32px;
+}
+
+.lvl3 {
+  margin-left: 48px;
+}
+
+.lvl4 {
+  margin-left: 64px;
+}
+
+.lvl5 {
+  margin-left: 80px;
+}
+
+.lvl6 {
+  margin-left: 96px;
+}
+
 h1,
 h2,
 h3 {
