@@ -100,6 +100,73 @@ func apiLoadPageChunk(pageID string, cur *cursor) (*loadPageChunkResponse, error
 	return rsp, nil
 }
 
+func getFirstInlineBlock(v interface{}) (string, error) {
+	inline, err := parseInlineBlocks(v)
+	if err != nil {
+		return "", err
+	}
+	if len(inline) > 0 {
+		return inline[0].Text, nil
+	}
+	return "", nil
+}
+
+func parseProperties(block *Block) error {
+	// has already parsed properties. Not sure if this can happen
+	var err error
+	if len(block.InlineContent) > 0 {
+		return nil
+	}
+	props := block.Properties
+	if title, ok := props["title"]; ok {
+		block.InlineContent, err = parseInlineBlocks(title)
+		if err != nil {
+			return err
+		}
+		if block.Type == TypePage {
+			if len(block.InlineContent) > 0 {
+				block.Title = block.InlineContent[0].Text
+			}
+		}
+	}
+	if description, ok := props["description"]; ok {
+		// for TypeBookmark
+		block.Description, err = getFirstInlineBlock(description)
+		if err != nil {
+			return err
+		}
+	}
+
+	if link, ok := props["link"]; ok {
+		// for TypeBookmark
+		block.Link, err = getFirstInlineBlock(link)
+		if err != nil {
+			return err
+		}
+	}
+
+	if source, ok := props["source"]; ok {
+		// for TypeBookmark, TypeImage
+		block.Source, err = getFirstInlineBlock(source)
+		if err != nil {
+			return err
+		}
+		// TODO: for TypeImage convert block.Source to proxy via www.notion.so/image/${source}
+		// https://www.notion.so/image/https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2F02c1738b-49c7-4a77-b69a-87a280ea759b%2Fthumbnail_ff8ef2e53954fcac40ddec79c761f4266d6ab5a5_EBOK_portrait.jpg?width=320
+		// This is because some images in s3 are protected. also,
+		// this supports resizing
+	}
+
+	// for TypeCode
+	/*
+		"language": [
+			[
+			  "Javascript"
+			]
+	*/
+	return nil
+}
+
 func resolveBlocks(block *Block, blockMap map[string]*Block) error {
 	/*
 		if block.isResolved {
@@ -108,19 +175,9 @@ func resolveBlocks(block *Block, blockMap map[string]*Block) error {
 		block.isResolved = true
 	*/
 
-	if len(block.InlineContent) == 0 && IsTypeWithBlocks(block.Type) {
-		if len(block.Properties) == 0 {
-			return fmt.Errorf("block with type '%s' has no Properties", block.Type)
-		}
-		title, ok := block.Properties["title"]
-		if !ok {
-			return fmt.Errorf("block with type '%s' is missing Properties['title'] property. Properties: %#v", block.Type, block.Properties)
-		}
-		var err error
-		block.InlineContent, err = parseInlineBlocks(title)
-		if err != nil {
-			return err
-		}
+	err := parseProperties(block)
+	if err != nil {
+		return err
 	}
 
 	if TypeTodo == block.Type {

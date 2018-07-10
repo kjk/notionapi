@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/kjk/notion"
 )
@@ -143,11 +144,37 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
 		close := `</div>`
 		err = genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeBulletedList:
-		start := fmt.Sprintf(`<div class="bullet%s">`, levelCls)
+		start := fmt.Sprintf(`<div class="bullet_list%s">`, levelCls)
 		close := `</div>`
 		err = genBlockSurroudedHTML(f, block, start, close, level)
+	case notion.TypeNumberedList:
+		start := fmt.Sprintf(`<div class="numbered_list%s">`, levelCls)
+		close := `</div>`
+		err = genBlockSurroudedHTML(f, block, start, close, level)
+	case notion.TypeQuote:
+		start := fmt.Sprintf(`<quote class="%s">`, levelCls)
+		close := `</quote>`
+		err = genBlockSurroudedHTML(f, block, start, close, level)
+	case notion.TypeDivider:
+		_, err = fmt.Fprintf(f, `<hr class="%s"/>`+"\n", levelCls)
+	case notion.TypePage:
+		id := strings.TrimSpace(block.ID)
+		_, err = fmt.Fprintf(f, `<div class="%s">Link to a page %s, title: %s, parent table: '%s'</div>`+"\n", levelCls, id, block.Title, block.ParentTable)
+	case notion.TypeCode:
+		start := fmt.Sprintf(`<pre class="%s">`, levelCls)
+		close := `</pre>`
+		err = genBlockSurroudedHTML(f, block, start, close, level)
+	case notion.TypeBookmark:
+		_, err = fmt.Fprintf(f, `<div class="bookmark %s">Bookmark to %s</div>`+"\n", levelCls, block.Link)
+	case notion.TypeGist:
+		_, err = fmt.Fprintf(f, `<div class="gist %s">Gist for %s</div>`+"\n", levelCls, block.Source)
+	case notion.TypeImage:
+		link := block.Source
+		_, err = fmt.Fprintf(f, `<img class="%s" src="%s" />`+"\n", levelCls, link)
+	case notion.TypeCollectionView:
+		// TODO: implement me
 	default:
-		fmt.Printf("Unsupported block type '%s'\n", block.Type)
+		fmt.Printf("Unsupported block type '%s', id: %s\n", block.Type, block.ID)
 		return fmt.Errorf("Unsupported block type '%s'", block.Type)
 	}
 	return err
@@ -221,7 +248,7 @@ func main() {
 		//"6682351e44bb4f9ca0e149b703265bdb", // header
 		//"fd9338a719a24f02993fcfbcf3d00bb0", // todo list
 		//"484919a1647144c29234447ce408ff6b", // toggle and bullet list
-		"c969c9455d7c4dd79c7f860f3ace6429" //
+		"c969c9455d7c4dd79c7f860f3ace6429", //
 	}
 	for _, pageID := range ids {
 		err := toHTML(pageID)
@@ -230,8 +257,3 @@ func main() {
 		}
 	}
 }
-
-/*
-TODO:
-* handle bullet list
-*/

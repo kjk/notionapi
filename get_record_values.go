@@ -51,8 +51,17 @@ type Block struct {
 	// this is for some types like TypePage, TypeText, TypeHeader etc.
 	InlineContent []*InlineBlock `json:"inline_content"`
 
+	// for TypePage
+	Title string `json:"title"`
 	// For TypeTodo, a checked state
 	IsChecked bool `json:"is_checked"`
+
+	// for TypeBookmark
+	Description string `json:"description"`
+	Link        string `json:"link"`
+
+	// for TypeGist
+	Source string `json:"source"`
 
 	// we resolve blocks, possilby multiple times, so we mark them
 	// as resolved to avoid duplicate work
