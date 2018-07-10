@@ -29,7 +29,7 @@ type loadPageChunkResponse struct {
 }
 
 type recordMap struct {
-	Blocks map[string]*BlockInfo      `json:"block"`
+	Blocks map[string]*BlockWithRole  `json:"block"`
 	Space  map[string]interface{}     `json:"space"` // TODO: figure out the type
 	Users  map[string]*notionUserInfo `json:"notion_user"`
 	// TDOO: there might be more records types

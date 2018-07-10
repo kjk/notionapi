@@ -15,17 +15,17 @@ type getRecordValuesRequestInner struct {
 // /api/v3/getRecordValues response
 // Note: it depends on Table type in request
 type getRecordValuesResponse struct {
-	Results []*BlockInfo `json:"results"`
+	Results []*BlockWithRole `json:"results"`
 }
 
-// BlockInfo describes a block info
-type BlockInfo struct {
-	Role  string      `json:"role"`
-	Value *BlockValue `json:"value"`
+// BlockWithRole describes a block info
+type BlockWithRole struct {
+	Role  string `json:"role"`
+	Value *Block `json:"value"`
 }
 
-// BlockValue describes a block
-type BlockValue struct {
+// Block describes a block
+type Block struct {
 	// values that come from JSON
 	Alive       bool     `json:"alive"`
 	ContentIDs  []string `json:"content"`
@@ -46,12 +46,13 @@ type BlockValue struct {
 	Version     int64                  `json:"version"`
 
 	// Values calculated by us
-	Content []*BlockValue // maps ContentIDs array
+	// maps ContentIDs array
+	Content []*Block `json:"content_resolved"`
 	// this is for some types like TypePage, TypeText, TypeHeader etc.
-	Blocks []*InlineBlock
+	InlineContent []*InlineBlock `json:"inline_content"`
 
 	// For TypeTodo, a checked state
-	IsChecked bool
+	IsChecked bool `json:"is_checked"`
 
 	// we resolve blocks, possilby multiple times, so we mark them
 	// as resolved to avoid duplicate work

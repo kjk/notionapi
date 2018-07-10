@@ -19,10 +19,10 @@ func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
 	return f, nil
 }
 
-func genHTMLTitle(f io.Writer, pageBlock *notion.BlockValue) error {
+func genHTMLTitle(f io.Writer, pageBlock *notion.Block) error {
 	title := ""
-	if len(pageBlock.Blocks) > 0 {
-		title = pageBlock.Blocks[0].Text
+	if len(pageBlock.InlineContent) > 0 {
+		title = pageBlock.InlineContent[0].Text
 	}
 
 	s := fmt.Sprintf(`  <div class="title">%s</div>%s`, title, "\n")
@@ -83,13 +83,13 @@ func genInlineBlocksHTML(f io.Writer, blocks []*notion.InlineBlock) error {
 	return nil
 }
 
-func genBlockSurroudedHTML(f io.Writer, block *notion.BlockValue, start, close string, level int) error {
+func genBlockSurroudedHTML(f io.Writer, block *notion.Block, start, close string, level int) error {
 	_, err := io.WriteString(f, start+"\n")
 	if err != nil {
 		return err
 	}
 
-	err = genInlineBlocksHTML(f, block.Blocks)
+	err = genInlineBlocksHTML(f, block.InlineContent)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func genBlockSurroudedHTML(f io.Writer, block *notion.BlockValue, start, close s
 	return nil
 }
 
-func genBlockHTML(f io.Writer, block *notion.BlockValue, level int) error {
+func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
 	var err error
 	levelCls := ""
 	if level > 0 {
@@ -143,7 +143,7 @@ func genBlockHTML(f io.Writer, block *notion.BlockValue, level int) error {
 	return genBlocksHTML(f, block.Content, level+1)
 }
 
-func genBlocksHTML(f io.Writer, blocks []*notion.BlockValue, level int) error {
+func genBlocksHTML(f io.Writer, blocks []*notion.Block, level int) error {
 	for _, block := range blocks {
 		err := genBlockHTML(f, block, level)
 		if err != nil {

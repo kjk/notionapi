@@ -26,7 +26,7 @@ var (
 // PageInfo describes a single Notion page
 type PageInfo struct {
 	ID   string
-	Page *BlockValue
+	Page *Block
 }
 
 // pretty-print if valid JSON. If not, return unchanged
@@ -131,7 +131,7 @@ func apiLoadPageChunk(pageID string, cur *cursor) (*loadPageChunkResponse, error
 	return rsp, nil
 }
 
-func resolveBlocks(block *BlockValue, blockMap map[string]*BlockInfo) error {
+func resolveBlocks(block *Block, blockMap map[string]*BlockWithRole) error {
 	/*
 		if block.isResolved {
 			return nil
@@ -139,7 +139,7 @@ func resolveBlocks(block *BlockValue, blockMap map[string]*BlockInfo) error {
 		block.isResolved = true
 	*/
 
-	if len(block.Blocks) == 0 && IsTypeWithBlocks(block.Type) {
+	if len(block.InlineContent) == 0 && IsTypeWithBlocks(block.Type) {
 		if len(block.Properties) == 0 {
 			return fmt.Errorf("block with type '%s' has no Properties", block.Type)
 		}
@@ -148,7 +148,7 @@ func resolveBlocks(block *BlockValue, blockMap map[string]*BlockInfo) error {
 			return fmt.Errorf("block with type '%s' is missing Properties['title'] property. Properties: %#v", block.Type, block.Properties)
 		}
 		var err error
-		block.Blocks, err = parseInlineBlocks(title)
+		block.InlineContent, err = parseInlineBlocks(title)
 		if err != nil {
 			return err
 		}
@@ -166,7 +166,7 @@ func resolveBlocks(block *BlockValue, blockMap map[string]*BlockInfo) error {
 		return nil
 	}
 	n := len(block.ContentIDs)
-	block.Content = make([]*BlockValue, n, n)
+	block.Content = make([]*Block, n, n)
 	for i, id := range block.ContentIDs {
 		resolved := blockMap[id]
 		if resolved == nil {
@@ -178,17 +178,17 @@ func resolveBlocks(block *BlockValue, blockMap map[string]*BlockInfo) error {
 	return nil
 }
 
-// GetPageInfo returns Noion page data given its id
-func GetPageInfo(pageID string) (*PageInfo, error) {
-	// TODO: validate pageID
-	req := &getRecordValuesRequest{
-		Requests: []getRecordValuesRequestInner{
-			{
-				Table: TableBlock,
-				ID:    pageID,
-			},
-		},
+func apiGetRecordValues(ids []string) (*getRecordValuesResponse, error) {
+	req := &getRecordValuesRequest{}
+
+	for _, id := range ids {
+		v := getRecordValuesRequestInner{
+			Table: TableBlock,
+			ID:    id,
+		}
+		req.Requests = append(req.Requests, v)
 	}
+
 	apiURL := "/api/v3/getRecordValues"
 	var rsp *getRecordValuesResponse
 	parse1 := func(d []byte) error {
@@ -200,9 +200,16 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	return rsp, nil
+}
+
+// GetPageInfo returns Noion page data given its id
+func GetPageInfo(pageID string) (*PageInfo, error) {
+	// TODO: validate pageID
 	var res PageInfo
 	//fmt.Printf("%#v\n", rsp)
 	// change to cannonical version of page id
+	rsp, err := apiGetRecordValues([]string{pageID})
 	pageID = rsp.Results[0].Value.ID
 	res.ID = pageID
 	res.Page = rsp.Results[0].Value
