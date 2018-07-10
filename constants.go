@@ -1,4 +1,4 @@
-package main
+package notion
 
 const (
 	// PermissionTypeUser describes permissions for a user

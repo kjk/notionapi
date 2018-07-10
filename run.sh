@@ -1,6 +1,6 @@
 #!/bin/bash
+set -u -e -o pipefail -o verbose
 
-#node main.js
-go build -o spider_notion
-./spider_notion
-
+go build github.com/kjk/notion/cmd/tohtml
+./tohtml || true
+rm -rf ./tohtml

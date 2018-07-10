@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/kjk/notion"
 )
 
 func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
@@ -13,53 +15,49 @@ func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
 		fmt.Printf("os.Create('%s') failed with %s\n", path, err)
 		return nil, err
 	}
-	Logger = f
+	notion.Logger = f
 	return f, nil
 }
 
-func genHTMLTitle(f io.Writer, pageBlock *BlockValue) error {
-	titleRaw, ok := pageBlock.Properties["title"]
-	if !ok {
-		return fmt.Errorf("page has not 'title' property. Properties: %#v", pageBlock.Properties)
+func genHTMLTitle(f io.Writer, pageBlock *notion.BlockValue) error {
+	title := ""
+	if len(pageBlock.Blocks) > 0 {
+		title = pageBlock.Blocks[0].Text
 	}
-	blocks, err := parseInlineBlocks(titleRaw)
-	if err != nil {
-		return err
-	}
-	title := blocks[0].Text
+
 	s := fmt.Sprintf(`  <div class="title">%s</div>%s`, title, "\n")
-	_, err = io.WriteString(f, s)
+	_, err := io.WriteString(f, s)
 	return err
 }
 
-func genInlineBlockHTML(f io.Writer, b *InlineBlock) error {
+func genInlineBlockHTML(f io.Writer, b *notion.InlineBlock) error {
 	var start, close string
-	if b.AttrFlags&AttrBold != 0 {
+	if b.AttrFlags&notion.AttrBold != 0 {
 		start += "<b>"
 		close += "</b>"
 	}
-	if b.AttrFlags&AttrItalic != 0 {
+	if b.AttrFlags&notion.AttrItalic != 0 {
 		start += "<i>"
 		close += "</i>"
 	}
-	if b.AttrFlags&AttrStrikeThrought != 0 {
+	if b.AttrFlags&notion.AttrStrikeThrought != 0 {
 		start += "<strike>"
 		close += "</strike>"
 	}
-	if b.AttrFlags&AttrCode != 0 {
+	if b.AttrFlags&notion.AttrCode != 0 {
 		start += "<code>"
 		close += "</code>"
 	}
 	skipText := false
 	for _, attrRaw := range b.Attrs {
 		switch attr := attrRaw.(type) {
-		case *AttrLink:
+		case *notion.AttrLink:
 			start += fmt.Sprintf(`<a href="%s">%s</a>`, attr.Link, b.Text)
 			skipText = true
-		case *AttrUser:
+		case *notion.AttrUser:
 			start += fmt.Sprintf(`<span class="user">@%s</span>`, attr.UserID)
 			skipText = true
-		case *AttrDate:
+		case *notion.AttrDate:
 			// TODO: serialize date properly
 			start += fmt.Sprintf(`<span class="date">@TODO: date</span>`)
 			skipText = true
@@ -75,7 +73,7 @@ func genInlineBlockHTML(f io.Writer, b *InlineBlock) error {
 	return nil
 }
 
-func genInlineBlocksHTML(f io.Writer, blocks []*InlineBlock) error {
+func genInlineBlocksHTML(f io.Writer, blocks []*notion.InlineBlock) error {
 	for _, block := range blocks {
 		err := genInlineBlockHTML(f, block)
 		if err != nil {
@@ -85,7 +83,7 @@ func genInlineBlocksHTML(f io.Writer, blocks []*InlineBlock) error {
 	return nil
 }
 
-func genBlockSurroudedHTML(f io.Writer, block *BlockValue, start, close string, level int) error {
+func genBlockSurroudedHTML(f io.Writer, block *notion.BlockValue, start, close string, level int) error {
 	_, err := io.WriteString(f, start+"\n")
 	if err != nil {
 		return err
@@ -103,26 +101,26 @@ func genBlockSurroudedHTML(f io.Writer, block *BlockValue, start, close string, 
 	return nil
 }
 
-func genBlockHTML(f io.Writer, block *BlockValue, level int) error {
+func genBlockHTML(f io.Writer, block *notion.BlockValue, level int) error {
 	var err error
 	levelCls := ""
 	if level > 0 {
 		levelCls = fmt.Sprintf(" lvl%d", level)
 	}
 	switch block.Type {
-	case TypeText:
+	case notion.TypeText:
 		start := fmt.Sprintf(`<div class="text%s">`, levelCls)
 		close := `</div>`
 		err = genBlockSurroudedHTML(f, block, start, close, level)
-	case TypeHeader:
+	case notion.TypeHeader:
 		start := fmt.Sprintf(`<h1 class="hdr%s">`, levelCls)
 		close := `</h1>`
 		err = genBlockSurroudedHTML(f, block, start, close, level)
-	case TypeSubHeader:
+	case notion.TypeSubHeader:
 		start := fmt.Sprintf(`<h2 class="hdr%s">`, levelCls)
 		close := `</h2>`
 		err = genBlockSurroudedHTML(f, block, start, close, level)
-	case TypeTodo:
+	case notion.TypeTodo:
 		// TODO: add checked
 		clsChecked := ""
 		if block.IsChecked {
@@ -131,7 +129,7 @@ func genBlockHTML(f io.Writer, block *BlockValue, level int) error {
 		start := fmt.Sprintf(`<div class="todo%s%s">`, levelCls, clsChecked)
 		close := `</div>`
 		err = genBlockSurroudedHTML(f, block, start, close, level)
-	case TypeToggle:
+	case notion.TypeToggle:
 		start := fmt.Sprintf(`<div class="toggle%s">`, levelCls)
 		close := `</div>`
 		err = genBlockSurroudedHTML(f, block, start, close, level)
@@ -145,7 +143,7 @@ func genBlockHTML(f io.Writer, block *BlockValue, level int) error {
 	return genBlocksHTML(f, block.Content, level+1)
 }
 
-func genBlocksHTML(f io.Writer, blocks []*BlockValue, level int) error {
+func genBlocksHTML(f io.Writer, blocks []*notion.BlockValue, level int) error {
 	for _, block := range blocks {
 		err := genBlockHTML(f, block, level)
 		if err != nil {
@@ -155,7 +153,7 @@ func genBlocksHTML(f io.Writer, blocks []*BlockValue, level int) error {
 	return nil
 }
 
-func genHTML(pageID string, pageInfo *PageInfo) error {
+func genHTML(pageID string, pageInfo *notion.PageInfo) error {
 	path := pageID + ".html"
 	f, err := os.Create(path)
 	if err != nil {
@@ -196,7 +194,7 @@ func toHTML(pageID string) error {
 	if lf != nil {
 		defer lf.Close()
 	}
-	pageInfo, err := GetPageInfo(pageID)
+	pageInfo, err := notion.GetPageInfo(pageID)
 	if err != nil {
 		fmt.Printf("GetPageInfo('%s') failed with %s\n", pageID, err)
 		return err
