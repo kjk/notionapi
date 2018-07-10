@@ -7,7 +7,7 @@ import (
 // /api/v3/loadPageChunk request
 type loadPageChunkRequest struct {
 	PageID          string `json:"pageId"`
-	Limit           int64  `json:"limit"`
+	Limit           int    `json:"limit"`
 	Cursor          cursor `json:"cursor"`
 	VerticalColumns bool   `json:"verticalColumns"`
 }
@@ -19,7 +19,7 @@ type cursor struct {
 type stack struct {
 	Table string `json:"table"`
 	ID    string `json:"id"`
-	Index int64  `json:"index"`
+	Index int    `json:"index"`
 }
 
 // /api/v3/loadPageChunk response

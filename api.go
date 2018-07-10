@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -17,30 +16,10 @@ const (
 	acceptLang = "en-US,en;q=0.9"
 )
 
-var (
-	// Logger is used to log requests and responses for debugging.
-	// By default is not set.
-	Logger io.Writer
-)
-
 // PageInfo describes a single Notion page
 type PageInfo struct {
 	ID   string
 	Page *Block
-}
-
-// pretty-print if valid JSON. If not, return unchanged
-func ppJSON(js []byte) []byte {
-	var m map[string]interface{}
-	err := json.Unmarshal(js, &m)
-	if err != nil {
-		return js
-	}
-	d, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		return js
-	}
-	return d
 }
 
 func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) error) error {
@@ -54,12 +33,9 @@ func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) 
 	}
 	uri := notionHost + apiURL
 	body := bytes.NewBuffer(js)
-	if Logger != nil {
-		_, _ = fmt.Fprintf(Logger, "POST %s\n", uri)
-		if len(js) > 0 {
-			Logger.Write(js)
-			io.WriteString(Logger, "\n")
-		}
+	log("POST %s\n", uri)
+	if len(js) > 0 {
+		log("%s\n", string(js))
 	}
 
 	req, err := http.NewRequest("POST", uri, body)
@@ -72,49 +48,42 @@ func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) 
 
 	rsp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		if Logger != nil {
-			fmt.Fprintf(Logger, "Error: failed with %s\n", err)
-		}
+		log("Error: failed with %s\n", err)
 		return err
 	}
 	if rsp.StatusCode != 200 {
-		if Logger != nil {
-			fmt.Fprintf(Logger, "Error: status code %d\n", rsp.StatusCode)
-		}
+		log("Error: status code %d\n", rsp.StatusCode)
 		return fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
 	}
 	defer rsp.Body.Close()
 	d, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		if Logger != nil {
-			fmt.Fprintf(Logger, "Error: ioutil.ReadAll() failed with %s\n", err)
-		}
+		log("Error: ioutil.ReadAll() failed with %s\n", err)
 		return err
 	}
-	if Logger != nil {
-		Logger.Write(ppJSON(d))
-		io.WriteString(Logger, "\n")
-	}
+	logJSON(d)
 	err = parseFn(d)
 	if err != nil {
-		if Logger != nil {
-			fmt.Fprintf(Logger, "Error: json.Unmarshal() failed with %s\n", err)
-		}
+		log("Error: json.Unmarshal() failed with %s\n", err)
 	}
 	return err
 }
 
 func apiLoadPageChunk(pageID string, cur *cursor) (*loadPageChunkResponse, error) {
+	// emulating notion's website api usage: 50 items on first request,
+	// 30 on subsequent requests
+	limit := 30
 	apiURL := "/api/v3/loadPageChunk"
 	if cur == nil {
 		cur = &cursor{
 			// to mimic browser api which sends empty array for this argment
 			Stack: make([][]stack, 0),
 		}
+		limit = 50
 	}
 	req := &loadPageChunkRequest{
 		PageID:          pageID,
-		Limit:           50,
+		Limit:           limit,
 		Cursor:          *cur,
 		VerticalColumns: false,
 	}
@@ -131,7 +100,7 @@ func apiLoadPageChunk(pageID string, cur *cursor) (*loadPageChunkResponse, error
 	return rsp, nil
 }
 
-func resolveBlocks(block *Block, blockMap map[string]*BlockWithRole) error {
+func resolveBlocks(block *Block, blockMap map[string]*Block) error {
 	/*
 		if block.isResolved {
 			return nil
@@ -172,8 +141,8 @@ func resolveBlocks(block *Block, blockMap map[string]*BlockWithRole) error {
 		if resolved == nil {
 			return fmt.Errorf("Couldn't resolve block with id '%s'", id)
 		}
-		block.Content[i] = resolved.Value
-		resolveBlocks(resolved.Value, blockMap)
+		block.Content[i] = resolved
+		resolveBlocks(resolved, blockMap)
 	}
 	return nil
 }
@@ -203,22 +172,50 @@ func apiGetRecordValues(ids []string) (*getRecordValuesResponse, error) {
 	return rsp, nil
 }
 
+func findMissingBlocks(startIDS []string, idToBlock map[string]*Block) ([]string, error) {
+	return []string{}, nil
+}
+
 // GetPageInfo returns Noion page data given its id
 func GetPageInfo(pageID string) (*PageInfo, error) {
 	// TODO: validate pageID
 	var res PageInfo
 	//fmt.Printf("%#v\n", rsp)
 	// change to cannonical version of page id
-	rsp, err := apiGetRecordValues([]string{pageID})
-	pageID = rsp.Results[0].Value.ID
-	res.ID = pageID
-	res.Page = rsp.Results[0].Value
-	rsp2, err := apiLoadPageChunk(pageID, nil)
+
+	{
+		recVals, err := apiGetRecordValues([]string{pageID})
+		if err != nil {
+			return nil, err
+		}
+		pageID = recVals.Results[0].Value.ID
+		res.ID = pageID
+		res.Page = recVals.Results[0].Value
+	}
+
+	var idToBlock map[string]*Block
+	for {
+		rsp, err := apiLoadPageChunk(pageID, nil)
+		if err != nil {
+			return nil, err
+		}
+		for id, blockWithRole := range rsp.RecordMap.Blocks {
+			idToBlock[id] = blockWithRole.Value
+		}
+		// TODO: handle stack
+		break
+	}
+
+	// get blocks that are not already loaded, 30 per request
+	missing, err := findMissingBlocks(res.Page.ContentIDs, idToBlock)
 	if err != nil {
 		return nil, err
 	}
-	// TODO: handle limit
-	err = resolveBlocks(res.Page, rsp2.RecordMap.Blocks)
+	dbg("There are %d missing blocks\n", len(missing))
+	for len(missing) > 0 {
+	}
+
+	err = resolveBlocks(res.Page, idToBlock)
 	if err != nil {
 		return nil, err
 	}
