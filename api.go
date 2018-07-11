@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -182,24 +183,28 @@ func parseProperties(block *Block) error {
 	}
 
 	if source, ok := props["source"]; ok {
-		// for TypeBookmark, TypeImage
+		// for TypeBookmark, TypeImage, TypeGist
 		block.Source, err = getFirstInlineBlock(source)
 		if err != nil {
 			return err
 		}
-		// TODO: for TypeImage convert block.Source to proxy via www.notion.so/image/${source}
-		// https://www.notion.so/image/https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2F02c1738b-49c7-4a77-b69a-87a280ea759b%2Fthumbnail_ff8ef2e53954fcac40ddec79c761f4266d6ab5a5_EBOK_portrait.jpg?width=320
-		// This is because some images in s3 are protected. also,
-		// this supports resizing
+
+		if block.IsImage() {
+			// sometimes image url in "source" is not accessible but can
+			// be accessed when proxied via notion server as
+			// www.notion.so/image/${source}
+			// This also allows resizing via ?width=${n} arguments
+			block.ImageURL = "https://www.notion.so/image/" + url.PathEscape(block.Source)
+		}
 	}
 
-	// for TypeCode
-	/*
-		"language": [
-			[
-			  "Javascript"
-			]
-	*/
+	if language, ok := props["language"]; ok {
+		inline, _ := parseInlineBlocks(language)
+		if len(inline) > 0 {
+			block.CodeLanguage = inline[0].Text
+		}
+	}
+
 	return nil
 }
 
@@ -272,17 +277,25 @@ func findMissingBlocks(startIds []string, idToBlock map[string]*Block) []string 
 		block := idToBlock[id]
 		if block == nil {
 			missing = append(missing, id)
-		} else {
+			continue
+		}
+
+		// we don't have the content of this block.
+		// get it unless this is a page block becuase this is only
+		// a link to a page
+		switch block.Type {
+		case TypePage:
+		// skip those blocks
+		default:
 			toCheck = append(toCheck, block.ContentIDs...)
 		}
 	}
-
 	return missing
 }
 
 // GetPageInfo returns Noion page data given its id
 func GetPageInfo(pageID string) (*PageInfo, error) {
-	// TODO: validate pageID
+	// TODO: validate pageID?
 
 	var pageInfo PageInfo
 	{
@@ -313,13 +326,22 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 		cur = &rsp.Cursor
 	}
 
-	// get blocks that are not already loaded, 30 per request
+	// get blocks that are not already loaded
 	missing := findMissingBlocks(pageInfo.Page.ContentIDs, idToBlock)
+	// the API worked even with 6k items, but I'll split it into many
+	// smaller requrests anyway
+	maxToGet := 128
 	for len(missing) > 0 {
-		dbg("GetPageInfo: there are %d missing blocks, %#v\n", len(missing), missing)
-		// TODO: in smaller chunks
-		recVals, err := apiGetRecordValues(missing)
-		missing = nil
+		//dbg("GetPageInfo: there are %d missing blocks\n", len(missing))
+		toGet := missing
+		if len(toGet) > maxToGet {
+			toGet = missing[:maxToGet]
+			missing = missing[maxToGet:]
+		} else {
+			missing = nil
+		}
+
+		recVals, err := apiGetRecordValues(toGet)
 		if err != nil {
 			return nil, err
 		}

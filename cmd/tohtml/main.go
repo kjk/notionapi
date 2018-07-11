@@ -242,7 +242,7 @@ func genHTML(pageID string, pageInfo *notion.PageInfo) error {
 	return nil
 }
 
-func toHTML(pageID string) error {
+func toHTML(pageID string) (*notion.PageInfo, error) {
 	fmt.Printf("toHTML: pageID=%s\n", pageID)
 	lf, _ := openLogFileForPageID(pageID)
 	if lf != nil {
@@ -251,28 +251,57 @@ func toHTML(pageID string) error {
 	pageInfo, err := notion.GetPageInfo(pageID)
 	if err != nil {
 		fmt.Printf("GetPageInfo('%s') failed with %s\n", pageID, err)
-		return err
+		return nil, err
 	}
-	return genHTML(pageID, pageInfo)
+	return pageInfo, genHTML(pageID, pageInfo)
 }
+
+func findSubPageIDs(blocks []*notion.Block) []string {
+	var res []string
+	for _, block := range blocks {
+		if block.Type == notion.TypePage {
+			res = append(res, block.ID)
+		}
+	}
+	return res
+}
+
+var (
+	recursive = false
+)
 
 // https://www.notion.so/kjkpublic/Test-page-c969c9455d7c4dd79c7f860f3ace6429
 // https://www.notion.so/kjkpublic/Test-page-text-4c6a54c68b3e4ea2af9cfaabcc88d58d
 // https://www.notion.so/kjkpublic/Test-page-text-not-simple-f97ffca91f8949b48004999df34ab1f7
 // https://www.notion.so/kjkpublic/blog-300db9dc27c84958a08b8d0c37f4cfe5
 func main() {
-	ids := []string{
+	os.MkdirAll("log", 755)
+	os.MkdirAll("cache", 755)
+	toVisit := []string{
 		//"f97ffca91f8949b48004999df34ab1f7", // text not simple
 		//"6682351e44bb4f9ca0e149b703265bdb", // header
 		//"fd9338a719a24f02993fcfbcf3d00bb0", // todo list
 		//"484919a1647144c29234447ce408ff6b", // toggle and bullet list
-		//"c969c9455d7c4dd79c7f860f3ace6429", //
-		"300db9dc27c84958a08b8d0c37f4cfe5", // very long page
+		//"c969c9455d7c4dd79c7f860f3ace6429",
+		"300db9dc27c84958a08b8d0c37f4cfe5", // large page (my blog)
+		//"0367c2db381a4f8b9ce360f388a6b2e3", // index page for test pages
 	}
-	for _, pageID := range ids {
-		err := toHTML(pageID)
+	seen := map[string]struct{}{}
+	for len(toVisit) > 0 {
+		pageID := toVisit[0]
+		toVisit = toVisit[1:]
+		id := normalizeID(pageID)
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		pageInfo, err := toHTML(id)
 		if err != nil {
-			fmt.Printf("toHTML() failed with %s\n", err)
+			fmt.Printf("toHTML('%s') failed with %s\n", id, err)
+		}
+		if recursive {
+			subPages := findSubPageIDs(pageInfo.Page.Content)
+			toVisit = append(toVisit, subPages...)
 		}
 	}
 }

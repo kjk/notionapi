@@ -68,8 +68,17 @@ type Block struct {
 	Description string `json:"description"`
 	Link        string `json:"link"`
 
-	// for TypeGist
+	// for TypeGist it's the url for the gist
+	// for TypeBookmark it's the url of the page
+	// fot TypeImage it's url of the image, but use ImageURL instead
+	// because Source is sometimes not accessible
 	Source string `json:"source"`
+
+	// for TypeImage it's
+	ImageURL string `json:"image_url"`
+
+	// for TypeCode
+	CodeLanguage string `json:"code_language"`
 }
 
 // IsLinkToPage returns true if block element is a link to existing page
@@ -79,6 +88,22 @@ func (b *Block) IsLinkToPage() bool {
 		return false
 	}
 	return b.ParentTable == TableSpace
+}
+
+// IsPage returns true if block represents a page (either a sub-page or
+// a link to a page)
+func (b *Block) IsPage() bool {
+	return b.Type == TypePage
+}
+
+// IsImage returns true if block represents an image
+func (b *Block) IsImage() bool {
+	return b.Type == TypeImage
+}
+
+// IsCode returns true if block represents a code block
+func (b *Block) IsCode() bool {
+	return b.Type == TypeCode
 }
 
 /* TODO: not sure if I need this
