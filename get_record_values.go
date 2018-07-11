@@ -27,23 +27,31 @@ type BlockWithRole struct {
 // Block describes a block
 type Block struct {
 	// values that come from JSON
-	Alive       bool     `json:"alive"`
-	ContentIDs  []string `json:"content"`
-	CreatedBy   string   `json:"created_by"`
-	CreatedTime int64    `json:"created_time"`
+	Alive bool `json:"alive"`
+	// List of block ids for that make up content of this block
+	// Use Content to get corresponding block (they are in the same order)
+	ContentIDs []string `json:"content"`
+	// ID of the user who created this block
+	CreatedBy   string `json:"created_by"`
+	CreatedTime int64  `json:"created_time"`
 	// only available when different than default?
 	// TODO: this is different for different types
-	Format         *format `json:"format,omitempty"`
-	ID             string  `json:"id"`
-	LastEditedBy   string  `json:"last_edited_by"`
-	LastEditedTime int64   `json:"last_edited_time"`
-	ParentID       string  `json:"parent_id"`
-	ParentTable    string  `json:"parent_table"`
+	Format *format `json:"format,omitempty"`
+	// a unique ID of the block
+	ID string `json:"id"`
+	// ID of the user who last edited this block
+	LastEditedBy   string `json:"last_edited_by"`
+	LastEditedTime int64  `json:"last_edited_time"`
+	// ID of parent Block
+	ParentID    string `json:"parent_id"`
+	ParentTable string `json:"parent_table"`
 	// not always available
 	Permissions *[]permission          `json:"permissions,omitempty"`
 	Properties  map[string]interface{} `json:"properties"`
-	Type        string                 `json:"type"`
-	Version     int64                  `json:"version"`
+	// type of the block e.g. TypeText, TypePage etc.
+	Type string `json:"type"`
+	// blocks are versioned
+	Version int64 `json:"version"`
 
 	// Values calculated by us
 	// maps ContentIDs array
@@ -62,12 +70,9 @@ type Block struct {
 
 	// for TypeGist
 	Source string `json:"source"`
-
-	// we resolve blocks, possilby multiple times, so we mark them
-	// as resolved to avoid duplicate work
-	isResolved bool
 }
 
+/* TODO: not sure if I need this
 // IsTypeWithBlocks returns true if BlockValue contains Blocks value
 // extracted from Properties["title"]
 func IsTypeWithBlocks(blockType string) bool {
@@ -78,6 +83,7 @@ func IsTypeWithBlocks(blockType string) bool {
 	}
 	return false
 }
+*/
 
 type format struct {
 	PageFullWidth bool `json:"page_full_width"`

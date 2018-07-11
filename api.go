@@ -16,10 +16,33 @@ const (
 	acceptLang = "en-US,en;q=0.9"
 )
 
+// HTTPInterceptor allows intercepting HTTP request so that a client
+// of this library can provide e.g. a caching system for requests
+// instead
+type HTTPInterceptor interface {
+	// OnRequest is called before http request is sent tot he server
+	// If it returns non-nil response, it'll be used instead of sending
+	// a request to the server
+	OnReqeust(*http.Request) *http.Response
+	// OnResponse is called after getting a response from the server
+	// to allow e.g. caching of responses
+	// Only called if the request was sent to the server (i.e. doesn't come
+	// from OnRequest)
+	OnResponse(*http.Response)
+}
+
+var (
+	// HTTPIntercept allows intercepting http requests
+	// e.g. to implement caching
+	HTTPIntercept HTTPInterceptor
+)
+
 // PageInfo describes a single Notion page
 type PageInfo struct {
 	ID   string
 	Page *Block
+	// Users allows to find users that Page refers to by their ID
+	Users *NotionUser
 }
 
 func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) error) error {
@@ -46,10 +69,23 @@ func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) 
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept-Language", acceptLang)
 
-	rsp, err := http.DefaultClient.Do(req)
+	var rsp *http.Response
+	if HTTPIntercept != nil {
+		rsp = HTTPIntercept.OnReqeust(req)
+	}
+
+	realHTTPRequest := false
+	if rsp == nil {
+		realHTTPRequest = true
+		rsp, err = http.DefaultClient.Do(req)
+	}
+
 	if err != nil {
-		log("Error: failed with %s\n", err)
+		log("http.DefaultClient.Do() failed with %s\n", err)
 		return err
+	}
+	if HTTPIntercept != nil && realHTTPRequest {
+		HTTPIntercept.OnResponse(rsp)
 	}
 	if rsp.StatusCode != 200 {
 		log("Error: status code %d\n", rsp.StatusCode)
@@ -168,13 +204,6 @@ func parseProperties(block *Block) error {
 }
 
 func resolveBlocks(block *Block, blockMap map[string]*Block) error {
-	/*
-		if block.isResolved {
-			return nil
-		}
-		block.isResolved = true
-	*/
-
 	err := parseProperties(block)
 	if err != nil {
 		return err

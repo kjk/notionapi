@@ -37,10 +37,11 @@ type recordMap struct {
 
 type notionUserInfo struct {
 	Role  string      `json:"role"`
-	Value *notionUser `json:"value"`
+	Value *NotionUser `json:"value"`
 }
 
-type notionUser struct {
+// NotionUser describes a user
+type NotionUser struct {
 	Email                     string `json:"email"`
 	FamilyName                string `json:"family_name"`
 	GivenName                 string `json:"given_name"`
