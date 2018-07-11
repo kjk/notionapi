@@ -296,22 +296,27 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 	}
 
 	idToBlock := map[string]*Block{}
+	var cur *cursor
 	for {
-		rsp, err := apiLoadPageChunk(pageID, nil)
+		rsp, err := apiLoadPageChunk(pageID, cur)
 		if err != nil {
 			return nil, err
 		}
 		for id, blockWithRole := range rsp.RecordMap.Blocks {
 			idToBlock[id] = blockWithRole.Value
 		}
-		// TODO: handle stack
-		break
+		cursor := rsp.Cursor
+		//dbg("GetPageInfo: len(cursor.Stack)=%d\n", len(cursor.Stack))
+		if len(cursor.Stack) == 0 {
+			break
+		}
+		cur = &rsp.Cursor
 	}
 
 	// get blocks that are not already loaded, 30 per request
 	missing := findMissingBlocks(pageInfo.Page.ContentIDs, idToBlock)
-	//dbg("There are %d missing blocks, %#v\n", len(missing), missing)
 	for len(missing) > 0 {
+		dbg("GetPageInfo: there are %d missing blocks, %#v\n", len(missing), missing)
 		// TODO: in smaller chunks
 		recVals, err := apiGetRecordValues(missing)
 		missing = nil

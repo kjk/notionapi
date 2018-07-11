@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"os"
 	"path"
@@ -27,6 +28,7 @@ func genHTMLTitle(f io.Writer, pageBlock *notion.Block) error {
 	title := ""
 	if len(pageBlock.InlineContent) > 0 {
 		title = pageBlock.InlineContent[0].Text
+		title = template.HTMLEscapeString(title)
 	}
 
 	s := fmt.Sprintf(`  <div class="title">%s</div>%s`, title, "\n")
@@ -159,7 +161,14 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
 		_, err = fmt.Fprintf(f, `<hr class="%s"/>`+"\n", levelCls)
 	case notion.TypePage:
 		id := strings.TrimSpace(block.ID)
-		_, err = fmt.Fprintf(f, `<div class="%s">Link to a page %s, title: %s, parent table: '%s'</div>`+"\n", levelCls, id, block.Title, block.ParentTable)
+		cls := "page"
+		if block.IsLinkToPage() {
+			cls = "page_link"
+		}
+		title := template.HTMLEscapeString(block.Title)
+		url := normalizeID(id) + ".html"
+		html := fmt.Sprintf(`<div class="%s%s"><a href="%s">%s</a></div>`, cls, levelCls, url, title)
+		_, err = fmt.Fprintf(f, "%s\n", html)
 	case notion.TypeCode:
 		start := fmt.Sprintf(`<pre class="%s">`, levelCls)
 		close := `</pre>`
@@ -180,6 +189,11 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
 	return err
 }
 
+// convert 2131b10c-ebf6-4938-a127-7089ff02dbe4 to 2131b10cebf64938a1277089ff02dbe4
+func normalizeID(s string) string {
+	return strings.Replace(s, "-", "", -1)
+}
+
 func genBlocksHTML(f io.Writer, blocks []*notion.Block, level int) error {
 	for _, block := range blocks {
 		err := genBlockHTML(f, block, level)
@@ -191,20 +205,23 @@ func genBlocksHTML(f io.Writer, blocks []*notion.Block, level int) error {
 }
 
 func genHTML(pageID string, pageInfo *notion.PageInfo) error {
-	path := path.Join("www", pageID+".html")
+	path := path.Join("www", normalizeID(pageID)+".html")
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
+	title := pageInfo.Page.Title
+	title = template.HTMLEscapeString(title)
 	_, err = fmt.Fprintf(f, `<!doctype html>
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link href="/main.css" rel="stylesheet">
+		<title>%s</title>
 	</head>
-	<body>`)
+	<body>`, title)
 
 	if err != nil {
 		return err
@@ -242,13 +259,15 @@ func toHTML(pageID string) error {
 // https://www.notion.so/kjkpublic/Test-page-c969c9455d7c4dd79c7f860f3ace6429
 // https://www.notion.so/kjkpublic/Test-page-text-4c6a54c68b3e4ea2af9cfaabcc88d58d
 // https://www.notion.so/kjkpublic/Test-page-text-not-simple-f97ffca91f8949b48004999df34ab1f7
+// https://www.notion.so/kjkpublic/blog-300db9dc27c84958a08b8d0c37f4cfe5
 func main() {
 	ids := []string{
 		//"f97ffca91f8949b48004999df34ab1f7", // text not simple
 		//"6682351e44bb4f9ca0e149b703265bdb", // header
 		//"fd9338a719a24f02993fcfbcf3d00bb0", // todo list
 		//"484919a1647144c29234447ce408ff6b", // toggle and bullet list
-		"c969c9455d7c4dd79c7f860f3ace6429", //
+		//"c969c9455d7c4dd79c7f860f3ace6429", //
+		"300db9dc27c84958a08b8d0c37f4cfe5", // very long page
 	}
 	for _, pageID := range ids {
 		err := toHTML(pageID)

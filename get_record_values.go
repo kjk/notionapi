@@ -72,6 +72,15 @@ type Block struct {
 	Source string `json:"source"`
 }
 
+// IsLinkToPage returns true if block element is a link to existing page
+// (as opposed to )
+func (b *Block) IsLinkToPage() bool {
+	if b.Type != TypePage {
+		return false
+	}
+	return b.ParentTable == TableSpace
+}
+
 /* TODO: not sure if I need this
 // IsTypeWithBlocks returns true if BlockValue contains Blocks value
 // extracted from Properties["title"]
