@@ -78,6 +78,7 @@ type Block struct {
 	ImageURL string `json:"image_url"`
 
 	// for TypeCode
+	Code         string `json:"code"`
 	CodeLanguage string `json:"code_language"`
 }
 

@@ -137,33 +137,35 @@ func apiLoadPageChunk(pageID string, cur *cursor) (*loadPageChunkResponse, error
 	return rsp, nil
 }
 
+func getFirstInline(inline []*InlineBlock) string {
+	if len(inline) == 0 {
+		return ""
+	}
+	return inline[0].Text
+}
+
 func getFirstInlineBlock(v interface{}) (string, error) {
 	inline, err := parseInlineBlocks(v)
 	if err != nil {
 		return "", err
 	}
-	if len(inline) > 0 {
-		return inline[0].Text, nil
-	}
-	return "", nil
+	return getFirstInline(inline), nil
 }
 
 func parseProperties(block *Block) error {
-	// has already parsed properties. Not sure if this can happen
 	var err error
-	if len(block.InlineContent) > 0 {
-		return nil
-	}
 	props := block.Properties
+
 	if title, ok := props["title"]; ok {
-		block.InlineContent, err = parseInlineBlocks(title)
+		if block.Type == TypePage {
+			block.Title, err = getFirstInlineBlock(title)
+		} else if block.Type == TypeCode {
+			block.Code, err = getFirstInlineBlock(title)
+		} else {
+			block.InlineContent, err = parseInlineBlocks(title)
+		}
 		if err != nil {
 			return err
-		}
-		if block.Type == TypePage {
-			if len(block.InlineContent) > 0 {
-				block.Title = block.InlineContent[0].Text
-			}
 		}
 	}
 
@@ -208,9 +210,9 @@ func parseProperties(block *Block) error {
 	}
 
 	if language, ok := props["language"]; ok {
-		inline, _ := parseInlineBlocks(language)
-		if len(inline) > 0 {
-			block.CodeLanguage = inline[0].Text
+		block.CodeLanguage, err = getFirstInlineBlock(language)
+		if err != nil {
+			return err
 		}
 	}
 

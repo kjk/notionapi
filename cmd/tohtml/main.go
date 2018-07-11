@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -24,7 +27,7 @@ func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
 	return f, nil
 }
 
-func genHTMLTitle(f io.Writer, pageBlock *notion.Block) error {
+func genHTMLTitle(f io.Writer, pageBlock *notion.Block) {
 	title := ""
 	if len(pageBlock.InlineContent) > 0 {
 		title = pageBlock.InlineContent[0].Text
@@ -32,8 +35,7 @@ func genHTMLTitle(f io.Writer, pageBlock *notion.Block) error {
 	}
 
 	s := fmt.Sprintf(`  <div class="title">%s</div>%s`, title, "\n")
-	_, err := io.WriteString(f, s)
-	return err
+	io.WriteString(f, s)
 }
 
 func genInlineBlockHTML(f io.Writer, b *notion.InlineBlock) error {
@@ -89,31 +91,14 @@ func genInlineBlocksHTML(f io.Writer, blocks []*notion.InlineBlock) error {
 	return nil
 }
 
-func genBlockSurroudedHTML(f io.Writer, block *notion.Block, start, close string, level int) error {
-	_, err := io.WriteString(f, start+"\n")
-	if err != nil {
-		return err
-	}
-
-	err = genInlineBlocksHTML(f, block.InlineContent)
-	if err != nil {
-		return err
-	}
-
-	err = genBlocksHTML(f, block.Content, level+1)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.WriteString(f, close+"\n")
-	if err != nil {
-		return err
-	}
-	return nil
+func genBlockSurroudedHTML(f io.Writer, block *notion.Block, start, close string, level int) {
+	io.WriteString(f, start+"\n")
+	genInlineBlocksHTML(f, block.InlineContent)
+	genBlocksHTML(f, block.Content, level+1)
+	io.WriteString(f, close+"\n")
 }
 
-func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
-	var err error
+func genBlockHTML(f io.Writer, block *notion.Block, level int) {
 	levelCls := ""
 	if level > 0 {
 		levelCls = fmt.Sprintf(" lvl%d", level)
@@ -123,15 +108,15 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
 	case notion.TypeText:
 		start := fmt.Sprintf(`<div class="text%s">`, levelCls)
 		close := `</div>`
-		err = genBlockSurroudedHTML(f, block, start, close, level)
+		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeHeader:
 		start := fmt.Sprintf(`<h1 class="hdr%s">`, levelCls)
 		close := `</h1>`
-		err = genBlockSurroudedHTML(f, block, start, close, level)
+		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeSubHeader:
 		start := fmt.Sprintf(`<h2 class="hdr%s">`, levelCls)
 		close := `</h2>`
-		err = genBlockSurroudedHTML(f, block, start, close, level)
+		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeTodo:
 		// TODO: add checked
 		clsChecked := ""
@@ -140,25 +125,25 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
 		}
 		start := fmt.Sprintf(`<div class="todo%s%s">`, levelCls, clsChecked)
 		close := `</div>`
-		err = genBlockSurroudedHTML(f, block, start, close, level)
+		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeToggle:
 		start := fmt.Sprintf(`<div class="toggle%s">`, levelCls)
 		close := `</div>`
-		err = genBlockSurroudedHTML(f, block, start, close, level)
+		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeBulletedList:
 		start := fmt.Sprintf(`<div class="bullet_list%s">`, levelCls)
 		close := `</div>`
-		err = genBlockSurroudedHTML(f, block, start, close, level)
+		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeNumberedList:
 		start := fmt.Sprintf(`<div class="numbered_list%s">`, levelCls)
 		close := `</div>`
-		err = genBlockSurroudedHTML(f, block, start, close, level)
+		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeQuote:
 		start := fmt.Sprintf(`<quote class="%s">`, levelCls)
 		close := `</quote>`
-		err = genBlockSurroudedHTML(f, block, start, close, level)
+		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeDivider:
-		_, err = fmt.Fprintf(f, `<hr class="%s"/>`+"\n", levelCls)
+		fmt.Fprintf(f, `<hr class="%s"/>`+"\n", levelCls)
 	case notion.TypePage:
 		id := strings.TrimSpace(block.ID)
 		cls := "page"
@@ -168,25 +153,26 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) error {
 		title := template.HTMLEscapeString(block.Title)
 		url := normalizeID(id) + ".html"
 		html := fmt.Sprintf(`<div class="%s%s"><a href="%s">%s</a></div>`, cls, levelCls, url, title)
-		_, err = fmt.Fprintf(f, "%s\n", html)
+		fmt.Fprintf(f, "%s\n", html)
 	case notion.TypeCode:
-		start := fmt.Sprintf(`<pre class="%s">`, levelCls)
-		close := `</pre>`
-		err = genBlockSurroudedHTML(f, block, start, close, level)
+		code := template.HTMLEscapeString(block.Code)
+		fmt.Fprintf(f, `<div class="%s">Lang for code: %s</div>
+<pre class="%s">
+%s
+</pre>`, levelCls, block.CodeLanguage, levelCls, code)
 	case notion.TypeBookmark:
-		_, err = fmt.Fprintf(f, `<div class="bookmark %s">Bookmark to %s</div>`+"\n", levelCls, block.Link)
+		fmt.Fprintf(f, `<div class="bookmark %s">Bookmark to %s</div>`+"\n", levelCls, block.Link)
 	case notion.TypeGist:
-		_, err = fmt.Fprintf(f, `<div class="gist %s">Gist for %s</div>`+"\n", levelCls, block.Source)
+		fmt.Fprintf(f, `<div class="gist %s">Gist for %s</div>`+"\n", levelCls, block.Source)
 	case notion.TypeImage:
 		link := block.Source
-		_, err = fmt.Fprintf(f, `<img class="%s" src="%s" />`+"\n", levelCls, link)
+		fmt.Fprintf(f, `<img class="%s" src="%s" />`+"\n", levelCls, link)
 	case notion.TypeCollectionView:
 		// TODO: implement me
 	default:
 		fmt.Printf("Unsupported block type '%s', id: %s\n", block.Type, block.ID)
-		return fmt.Errorf("Unsupported block type '%s'", block.Type)
+		panic(fmt.Sprintf("Unsupported block type '%s'", block.Type))
 	}
-	return err
 }
 
 // convert 2131b10c-ebf6-4938-a127-7089ff02dbe4 to 2131b10cebf64938a1277089ff02dbe4
@@ -194,26 +180,17 @@ func normalizeID(s string) string {
 	return strings.Replace(s, "-", "", -1)
 }
 
-func genBlocksHTML(f io.Writer, blocks []*notion.Block, level int) error {
+func genBlocksHTML(f io.Writer, blocks []*notion.Block, level int) {
 	for _, block := range blocks {
-		err := genBlockHTML(f, block, level)
-		if err != nil {
-			return err
-		}
+		genBlockHTML(f, block, level)
 	}
-	return nil
 }
 
-func genHTML(pageID string, pageInfo *notion.PageInfo) error {
-	path := path.Join("www", normalizeID(pageID)+".html")
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+func genHTML(pageID string, pageInfo *notion.PageInfo) []byte {
+	f := &bytes.Buffer{}
 	title := pageInfo.Page.Title
 	title = template.HTMLEscapeString(title)
-	_, err = fmt.Fprintf(f, `<!doctype html>
+	fmt.Fprintf(f, `<!doctype html>
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -223,37 +200,60 @@ func genHTML(pageID string, pageInfo *notion.PageInfo) error {
 	</head>
 	<body>`, title)
 
-	if err != nil {
-		return err
-	}
-
 	page := pageInfo.Page
-	err = genHTMLTitle(f, page)
-	if err != nil {
-		return err
-	}
-
-	err = genBlocksHTML(f, page.Content, 0)
-
-	_, err = fmt.Fprintf(f, "</body>\n</html>\n")
-	if err != nil {
-		return err
-	}
-	return nil
+	genHTMLTitle(f, page)
+	genBlocksHTML(f, page.Content, 0)
+	fmt.Fprintf(f, "</body>\n</html>\n")
+	return f.Bytes()
 }
 
-func toHTML(pageID string) (*notion.PageInfo, error) {
-	fmt.Printf("toHTML: pageID=%s\n", pageID)
+func getPageInfoCached(pageID string) (*notion.PageInfo, error) {
+	var pageInfo notion.PageInfo
+	cachedPath := filepath.Join("cache", pageID+".json")
+	if useCache {
+		d, err := ioutil.ReadFile(cachedPath)
+		if err == nil {
+			err = json.Unmarshal(d, &pageInfo)
+			if err == nil {
+				fmt.Printf("Got data for pageID %s from cache file %s\n", pageID, cachedPath)
+				return &pageInfo, nil
+			}
+			// not a fatal error, just a warning
+			fmt.Printf("json.Unmarshal() on '%s' failed with %s\n", cachedPath, err)
+		}
+	}
+	res, err := notion.GetPageInfo(pageID)
+	if err != nil {
+		return nil, err
+	}
+	d, err := json.Marshal(res)
+	if err == nil {
+		err = ioutil.WriteFile(cachedPath, d, 0644)
+		if err != nil {
+			// not a fatal error, just a warning
+			fmt.Printf("ioutil.WriteFile(%s) failed with %s\n", cachedPath, err)
+		}
+	} else {
+		// not a fatal error, just a warning
+		fmt.Printf("json.Marshal() on pageID '%s' failed with %s\n", pageID, err)
+	}
+	return res, nil
+}
+
+func toHTML(pageID, path string) (*notion.PageInfo, error) {
+	fmt.Printf("toHTML: pageID=%s, path=%s\n", pageID, path)
 	lf, _ := openLogFileForPageID(pageID)
 	if lf != nil {
 		defer lf.Close()
 	}
-	pageInfo, err := notion.GetPageInfo(pageID)
+	pageInfo, err := getPageInfoCached(pageID)
 	if err != nil {
 		fmt.Printf("GetPageInfo('%s') failed with %s\n", pageID, err)
 		return nil, err
 	}
-	return pageInfo, genHTML(pageID, pageInfo)
+	d := genHTML(pageID, pageInfo)
+	err = ioutil.WriteFile(path, d, 0644)
+	return pageInfo, err
 }
 
 func findSubPageIDs(blocks []*notion.Block) []string {
@@ -267,26 +267,80 @@ func findSubPageIDs(blocks []*notion.Block) []string {
 }
 
 var (
-	recursive = false
+	flgRecursive bool
+	flgNoCache   bool
+	useCache     bool // !flgNoCache, reads better
+	toVisit      []string
 )
 
-// https://www.notion.so/kjkpublic/Test-page-c969c9455d7c4dd79c7f860f3ace6429
-// https://www.notion.so/kjkpublic/Test-page-text-4c6a54c68b3e4ea2af9cfaabcc88d58d
-// https://www.notion.so/kjkpublic/Test-page-text-not-simple-f97ffca91f8949b48004999df34ab1f7
-// https://www.notion.so/kjkpublic/blog-300db9dc27c84958a08b8d0c37f4cfe5
+func usageAndExit() {
+	cmd := filepath.Base(os.Args[0])
+	fmt.Printf(`Usage:
+%s [-recursive] [-no-cache] urlOrId ...
+urlOrId can be a Notion page URL like:
+https://www.notion.so/kjkpublic/Test-page-text-4c6a54c68b3e4ea2af9cfaabcc88d58d
+or a notion page id:
+4c6a54c68b3e4ea2af9cfaabcc88d58d
+Pages must be publicly visible.
+`, cmd)
+	os.Exit(1)
+}
+
+func parseCmdFlags() {
+	flag.BoolVar(&flgRecursive, "recursive", false, "if true, recursively download page")
+	flag.BoolVar(&flgNoCache, "no-cache", false, "if true, use cached responses, if available from previous runs")
+	flag.Parse()
+	args := flag.Args()
+	if len(args) == 0 {
+		fmt.Printf("Must provide Notion public page url or id\n")
+		usageAndExit()
+	}
+
+	useCache = !flgNoCache
+
+	// handle:
+	// https://www.notion.so/kjkpublic/Test-page-c969c9455d7c4dd79c7f860f3ace6429
+	// or
+	// 300db9dc27c84958a08b8d0c37f4cfe5
+	for _, arg := range args {
+		parts := strings.Split(arg, "-")
+		n := len(parts)
+		id := parts[0]
+		if n > 1 {
+			id = parts[n-1]
+		}
+		id = normalizeID(id)
+		if len(id) != 32 {
+			fmt.Printf("Id '%s' extracted from '%s' doesn't look like a valid Notion page id\n", id, arg)
+			usageAndExit()
+		}
+		toVisit = append(toVisit, id)
+	}
+}
+
+func copyFile(dst, src string) error {
+	d, err := ioutil.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(dst, d, 0644)
+}
+
+func copyCSS() {
+	src := filepath.Join("cmd", "tohatml", "main.css")
+	dst := filepath.Join("www", "main.css")
+	copyFile(dst, src)
+}
+
 func main() {
+	parseCmdFlags()
+
 	os.MkdirAll("log", 755)
 	os.MkdirAll("cache", 755)
-	toVisit := []string{
-		//"f97ffca91f8949b48004999df34ab1f7", // text not simple
-		//"6682351e44bb4f9ca0e149b703265bdb", // header
-		//"fd9338a719a24f02993fcfbcf3d00bb0", // todo list
-		//"484919a1647144c29234447ce408ff6b", // toggle and bullet list
-		//"c969c9455d7c4dd79c7f860f3ace6429",
-		"300db9dc27c84958a08b8d0c37f4cfe5", // large page (my blog)
-		//"0367c2db381a4f8b9ce360f388a6b2e3", // index page for test pages
-	}
+	os.MkdirAll("www", 755)
+
 	seen := map[string]struct{}{}
+	firstPage := true
 	for len(toVisit) > 0 {
 		pageID := toVisit[0]
 		toVisit = toVisit[1:]
@@ -295,13 +349,20 @@ func main() {
 			continue
 		}
 		seen[id] = struct{}{}
-		pageInfo, err := toHTML(id)
+		name := id + ".html"
+		if firstPage {
+			name = "index.html"
+		}
+		path := filepath.Join("www", name)
+		pageInfo, err := toHTML(id, path)
 		if err != nil {
 			fmt.Printf("toHTML('%s') failed with %s\n", id, err)
 		}
-		if recursive {
+		if flgRecursive {
 			subPages := findSubPageIDs(pageInfo.Page.Content)
 			toVisit = append(toVisit, subPages...)
 		}
+		firstPage = false
 	}
+	copyCSS()
 }
