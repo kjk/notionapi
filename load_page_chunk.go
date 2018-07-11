@@ -39,8 +39,8 @@ type recordMap struct {
 
 // CollectionViewWithRole describes a role and a collection view
 type CollectionViewWithRole struct {
-	Role  string         `json:"role"`
-	Value CollectionView `json:"value"`
+	Role  string          `json:"role"`
+	Value *CollectionView `json:"value"`
 }
 
 // CollectionView describes a collection
@@ -86,8 +86,8 @@ type AggregateQuery struct {
 
 // CollectionWithRole describes a collection
 type CollectionWithRole struct {
-	Role  string              `json:"role"`
-	Value *CollectionWithRole `json:"value"`
+	Role  string      `json:"role"`
+	Value *Collection `json:"value"`
 }
 
 // Collection describes a collection

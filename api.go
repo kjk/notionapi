@@ -43,7 +43,9 @@ type PageInfo struct {
 	ID   string
 	Page *Block
 	// Users allows to find users that Page refers to by their ID
-	Users *User
+	Users           []*User
+	Collections     []*Collection
+	CollectionViews []*CollectionView
 }
 
 func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) error) error {
@@ -398,15 +400,28 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 	}
 
 	idToBlock := map[string]*Block{}
+	idToCollection := map[string]*Collection{}
+	idToCollectionView := map[string]*CollectionView{}
+	idToUser := map[string]*User{}
 	var cur *cursor
 	for {
 		rsp, err := apiLoadPageChunk(pageID, cur)
 		if err != nil {
 			return nil, err
 		}
-		for id, blockWithRole := range rsp.RecordMap.Blocks {
-			idToBlock[id] = blockWithRole.Value
+		for id, v := range rsp.RecordMap.Blocks {
+			idToBlock[id] = v.Value
 		}
+		for id, v := range rsp.RecordMap.Collections {
+			idToCollection[id] = v.Value
+		}
+		for id, v := range rsp.RecordMap.CollectionViews {
+			idToCollectionView[id] = v.Value
+		}
+		for id, v := range rsp.RecordMap.Users {
+			idToUser[id] = v.Value
+		}
+
 		cursor := rsp.Cursor
 		//dbg("GetPageInfo: len(cursor.Stack)=%d\n", len(cursor.Stack))
 		if len(cursor.Stack) == 0 {
@@ -439,6 +454,16 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 			id := block.ID
 			idToBlock[id] = block
 		}
+	}
+
+	for _, v := range idToCollection {
+		pageInfo.Collections = append(pageInfo.Collections, v)
+	}
+	for _, v := range idToCollectionView {
+		pageInfo.CollectionViews = append(pageInfo.CollectionViews, v)
+	}
+	for _, v := range idToUser {
+		pageInfo.Users = append(pageInfo.Users, v)
 	}
 
 	err := resolveBlocks(pageInfo.Page, idToBlock)

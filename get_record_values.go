@@ -30,11 +30,11 @@ type Block struct {
 	Alive bool `json:"alive"`
 	// List of block ids for that make up content of this block
 	// Use Content to get corresponding block (they are in the same order)
-	ContentIDs []string `json:"content"`
+	ContentIDs []string `json:"content,omitempty"`
 	// ID of the user who created this block
 	CreatedBy   string          `json:"created_by"`
 	CreatedTime int64           `json:"created_time"`
-	FormatRaw   json.RawMessage `json:"format"`
+	FormatRaw   json.RawMessage `json:"format,omitempty"`
 	// a unique ID of the block
 	ID string `json:"id"`
 	// ID of the user who last edited this block
@@ -53,35 +53,35 @@ type Block struct {
 
 	// Values calculated by us
 	// maps ContentIDs array
-	Content []*Block `json:"content_resolved"`
+	Content []*Block `json:"content_resolved,omitempty"`
 	// this is for some types like TypePage, TypeText, TypeHeader etc.
-	InlineContent []*InlineBlock `json:"inline_content"`
+	InlineContent []*InlineBlock `json:"inline_content,omitempty"`
 
 	// for TypePage
-	Title string `json:"title"`
+	Title string `json:"title,omitempty"`
 	// For TypeTodo, a checked state
 	IsChecked bool `json:"is_checked"`
 
 	// for TypeBookmark
-	Description string `json:"description"`
-	Link        string `json:"link"`
+	Description string `json:"description,omitempty"`
+	Link        string `json:"link,omitempty"`
 
 	// for TypeGist it's the url for the gist
 	// for TypeBookmark it's the url of the page
 	// fot TypeImage it's url of the image, but use ImageURL instead
 	// because Source is sometimes not accessible
-	Source string `json:"source"`
+	Source string `json:"source,omitempty"`
 
 	// for TypeImage it's
-	ImageURL string `json:"image_url"`
+	ImageURL string `json:"image_url,omitempty"`
 
 	// for TypeCode
-	Code         string `json:"code"`
-	CodeLanguage string `json:"code_language"`
+	Code         string `json:"code,omitempty"`
+	CodeLanguage string `json:"code_language,omitempty"`
 
-	FormatPage     *FormatPage     `json:"format_page"`
-	FormatBookmark *FormatBookmark `json:"format_bookmark"`
-	FormatImage    *FormatImage    `json:"format_image"`
+	FormatPage     *FormatPage     `json:"format_page,omitempty"`
+	FormatBookmark *FormatBookmark `json:"format_bookmark,omitempty"`
+	FormatImage    *FormatImage    `json:"format_image,omitempty"`
 }
 
 // IsLinkToPage returns true if block element is a link to existing page

@@ -164,7 +164,7 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) {
 	case notion.TypeGist:
 		fmt.Fprintf(f, `<div class="gist %s">Gist for %s</div>`+"\n", levelCls, block.Source)
 	case notion.TypeImage:
-		link := block.Source
+		link := block.ImageURL
 		fmt.Fprintf(f, `<img class="%s" src="%s" />`+"\n", levelCls, link)
 	case notion.TypeCollectionView:
 		// TODO: implement me
@@ -225,7 +225,7 @@ func getPageInfoCached(pageID string) (*notion.PageInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	d, err := json.Marshal(res)
+	d, err := json.MarshalIndent(res, "", "  ")
 	if err == nil {
 		err = ioutil.WriteFile(cachedPath, d, 0644)
 		if err != nil {
@@ -337,9 +337,9 @@ func copyCSS() {
 func main() {
 	parseCmdFlags()
 
-	os.MkdirAll("log", 755)
-	os.MkdirAll("cache", 755)
-	os.MkdirAll("www", 755)
+	os.MkdirAll("log", 0755)
+	os.MkdirAll("cache", 0755)
+	os.MkdirAll("www", 0755)
 
 	seen := map[string]struct{}{}
 	firstPage := true
