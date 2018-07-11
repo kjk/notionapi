@@ -166,6 +166,15 @@ func parseProperties(block *Block) error {
 			}
 		}
 	}
+
+	if TypeTodo == block.Type {
+		if v, ok := block.Properties["checked"]; ok {
+			if s, ok := v.(string); ok {
+				block.IsChecked = strings.EqualFold(s, "Yes")
+			}
+		}
+	}
+
 	if description, ok := props["description"]; ok {
 		// for TypeBookmark
 		block.Description, err = getFirstInlineBlock(description)
@@ -208,18 +217,59 @@ func parseProperties(block *Block) error {
 	return nil
 }
 
-func resolveBlocks(block *Block, blockMap map[string]*Block) error {
+// convert 2131b10c-ebf6-4938-a127-7089ff02dbe4 to 2131b10cebf64938a1277089ff02dbe4
+func normalizeID(s string) string {
+	return strings.Replace(s, "-", "", -1)
+}
+
+// TODO: non-recusrive version of revolveBlocks but doesn't work?
+func resolveBlocks2(block *Block, idToBlock map[string]*Block) error {
+	resolved := map[string]struct{}{}
+
+	toResolve := []*Block{block}
+
+	for len(toResolve) > 0 {
+		block := toResolve[0]
+		toResolve = toResolve[1:]
+		id := normalizeID(block.ID)
+		if _, ok := resolved[id]; ok {
+			continue
+		}
+		resolved[id] = struct{}{}
+
+		err := parseProperties(block)
+		if err != nil {
+			return err
+		}
+
+		n := len(block.ContentIDs)
+		if n == 0 {
+			continue
+		}
+		block.Content = make([]*Block, n, n)
+		for i, id := range block.ContentIDs {
+			b := idToBlock[id]
+			if b == nil {
+				return fmt.Errorf("Couldn't resolve block with id '%s'", id)
+			}
+			block.Content[i] = b
+			skip := false
+			switch b.Type {
+			case TypePage:
+				skip = true
+			}
+			if !skip {
+				toResolve = append(toResolve, b)
+			}
+		}
+	}
+	return nil
+}
+
+func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
 	err := parseProperties(block)
 	if err != nil {
 		return err
-	}
-
-	if TypeTodo == block.Type {
-		if v, ok := block.Properties["checked"]; ok {
-			if s, ok := v.(string); ok {
-				block.IsChecked = strings.EqualFold(s, "Yes")
-			}
-		}
 	}
 
 	if block.Content != nil || len(block.ContentIDs) == 0 {
@@ -228,12 +278,12 @@ func resolveBlocks(block *Block, blockMap map[string]*Block) error {
 	n := len(block.ContentIDs)
 	block.Content = make([]*Block, n, n)
 	for i, id := range block.ContentIDs {
-		resolved := blockMap[id]
+		resolved := idToBlock[id]
 		if resolved == nil {
 			return fmt.Errorf("Couldn't resolve block with id '%s'", id)
 		}
 		block.Content[i] = resolved
-		resolveBlocks(resolved, blockMap)
+		resolveBlocks(resolved, idToBlock)
 	}
 	return nil
 }
