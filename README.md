@@ -4,10 +4,7 @@ Unofficial Go API for notion.so
 
 TODO:
 
-for type bookmark:
-"format": {
-    "bookmark_icon": "https://blog.kowalczyk.info/favicon.ico"
-},
+handle all formats
 
 handle image format (id 6619cb73-9359-44a2-bc36-9aeedaabc41c)
 
@@ -17,4 +14,4 @@ in html rendering, properly represent bullet list, numbered list, toggle list, t
 
 render various kinds of dates
 
-for type code, set Block.Code to "title" property.
+move parsing of format and properties from api.go to parsing function

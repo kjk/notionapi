@@ -79,7 +79,9 @@ type Block struct {
 	Code         string `json:"code"`
 	CodeLanguage string `json:"code_language"`
 
-	FormatPage *FormatPage `json:"format_page"`
+	FormatPage     *FormatPage     `json:"format_page"`
+	FormatBookmark *FormatBookmark `json:"format_bookmark"`
+	FormatImage    *FormatImage    `json:"format_image"`
 }
 
 // IsLinkToPage returns true if block element is a link to existing page
@@ -107,23 +109,25 @@ func (b *Block) IsCode() bool {
 	return b.Type == TypeCode
 }
 
-/* TODO: not sure if I need this
-// IsTypeWithBlocks returns true if BlockValue contains Blocks value
-// extracted from Properties["title"]
-func IsTypeWithBlocks(blockType string) bool {
-	switch blockType {
-	case TypePage, TypeText, TypeBulletedList, TypeNumberedList,
-		TypeToggle, TypeTodo, TypeHeader, TypeSubHeader, TypeQuote:
-		return true
-	}
-	return false
-}
-*/
-
 // FormatPage describes format for TypePage
 type FormatPage struct {
 	PageFullWidth bool `json:"page_full_width"`
 	PageSmallText bool `json:"page_small_text"`
+}
+
+// FormatBookmark describes format for TypeBookmark
+type FormatBookmark struct {
+	BookmarkIcon string `json:"bookmark_icon"`
+}
+
+// FormatImage describes format for TypeImage
+type FormatImage struct {
+	BlockAspectRatio   float64 `json:"block_aspect_ratio"`
+	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockPageWidth     bool    `json:"block_page_width"`
+	BlockPreserveScale bool    `json:"block_preserve_scale"`
+	BlockWidth         int64   `json:"block_width"`
+	DisplaySource      string  `json:"display_source"`
 }
 
 // Permission describes user permissions

@@ -43,7 +43,7 @@ type PageInfo struct {
 	ID   string
 	Page *Block
 	// Users allows to find users that Page refers to by their ID
-	Users *NotionUser
+	Users *User
 }
 
 func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) error) error {
@@ -220,20 +220,34 @@ func parseProperties(block *Block) error {
 }
 
 func parseFormat(block *Block) error {
+	if len(block.FormatRaw) == 0 {
+		// TODO: maybe if TypePage, set to default &FormatPage{}
+		return nil
+	}
+	var err error
 	switch block.Type {
 	case TypePage:
-		// it's only present when different than defaults
-		if len(block.FormatRaw) == 0 {
-			block.FormatPage = &FormatPage{}
-			return nil
-		}
 		var format FormatPage
-		err := json.Unmarshal(block.FormatRaw, &format)
-		if err != nil {
-			fmt.Printf("parseFormat: json.Unamrshal() failed with '%s', format: '%s'\n", err, string(block.FormatRaw))
-			return err
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatPage = &format
 		}
-		block.FormatPage = &format
+	case TypeBookmark:
+		var format FormatBookmark
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatBookmark = &format
+		}
+	case TypeImage:
+		var format FormatImage
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatImage = &format
+		}
+	}
+	if err != nil {
+		fmt.Printf("parseFormat: json.Unamrshal() failed with '%s', format: '%s'\n", err, string(block.FormatRaw))
+		return err
 	}
 	return nil
 }

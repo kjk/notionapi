@@ -8,6 +8,7 @@ go build github.com/kjk/notion/cmd/tohtml
 # https://www.notion.so/kjkpublic/Test-page-text-not-simple-f97ffca91f8949b48004999df34ab1f7
 # https://www.notion.so/kjkpublic/blog-300db9dc27c84958a08b8d0c37f4cfe5
 
+# c969c9455d7c4dd79c7f860f3ace6429   test all
 # f97ffca91f8949b48004999df34ab1f7   test text not simple
 # 6682351e44bb4f9ca0e149b703265bdb   test header
 # fd9338a719a24f02993fcfbcf3d00bb0   test todo list
@@ -19,5 +20,5 @@ go build github.com/kjk/notion/cmd/tohtml
 # 70ecbf1f5abc41d48a4e4320aeb38d10   test todo
 
 # -recursive -no-cache
-./tohtml -no-cache 70ecbf1f5abc41d48a4e4320aeb38d10 || true
+./tohtml -no-cache c969c9455d7c4dd79c7f860f3ace6429 || true
 rm -rf ./tohtml
