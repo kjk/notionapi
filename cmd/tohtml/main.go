@@ -118,10 +118,9 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) {
 		close := `</h2>`
 		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeTodo:
-		// TODO: add checked
 		clsChecked := ""
 		if block.IsChecked {
-			clsChecked = " is_checked"
+			clsChecked = " todo-checked"
 		}
 		start := fmt.Sprintf(`<div class="todo%s%s">`, levelCls, clsChecked)
 		close := `</div>`
@@ -131,11 +130,11 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) {
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeBulletedList:
-		start := fmt.Sprintf(`<div class="bullet_list%s">`, levelCls)
+		start := fmt.Sprintf(`<div class="bullet-list%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeNumberedList:
-		start := fmt.Sprintf(`<div class="numbered_list%s">`, levelCls)
+		start := fmt.Sprintf(`<div class="numbered-list%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
 	case notion.TypeQuote:
@@ -148,7 +147,7 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) {
 		id := strings.TrimSpace(block.ID)
 		cls := "page"
 		if block.IsLinkToPage() {
-			cls = "page_link"
+			cls = "page-link"
 		}
 		title := template.HTMLEscapeString(block.Title)
 		url := normalizeID(id) + ".html"
@@ -248,7 +247,7 @@ func toHTML(pageID, path string) (*notion.PageInfo, error) {
 	}
 	pageInfo, err := getPageInfoCached(pageID)
 	if err != nil {
-		fmt.Printf("GetPageInfo('%s') failed with %s\n", pageID, err)
+		fmt.Printf("getPageInfoCached('%s') failed with %s\n", pageID, err)
 		return nil, err
 	}
 	d := genHTML(pageID, pageInfo)
@@ -327,9 +326,12 @@ func copyFile(dst, src string) error {
 }
 
 func copyCSS() {
-	src := filepath.Join("cmd", "tohatml", "main.css")
+	src := filepath.Join("cmd", "tohtml", "main.css")
 	dst := filepath.Join("www", "main.css")
-	copyFile(dst, src)
+	err := copyFile(dst, src)
+	if err != nil {
+		panic(err.Error())
+	}
 }
 
 func main() {

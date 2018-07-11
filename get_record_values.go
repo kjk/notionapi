@@ -32,11 +32,9 @@ type Block struct {
 	// Use Content to get corresponding block (they are in the same order)
 	ContentIDs []string `json:"content"`
 	// ID of the user who created this block
-	CreatedBy   string `json:"created_by"`
-	CreatedTime int64  `json:"created_time"`
-	// only available when different than default?
-	// TODO: this is different for different types
-	Format *format `json:"format,omitempty"`
+	CreatedBy   string          `json:"created_by"`
+	CreatedTime int64           `json:"created_time"`
+	FormatRaw   json.RawMessage `json:"format"`
 	// a unique ID of the block
 	ID string `json:"id"`
 	// ID of the user who last edited this block
@@ -46,7 +44,7 @@ type Block struct {
 	ParentID    string `json:"parent_id"`
 	ParentTable string `json:"parent_table"`
 	// not always available
-	Permissions *[]permission          `json:"permissions,omitempty"`
+	Permissions *[]Permission          `json:"permissions,omitempty"`
 	Properties  map[string]interface{} `json:"properties"`
 	// type of the block e.g. TypeText, TypePage etc.
 	Type string `json:"type"`
@@ -80,6 +78,8 @@ type Block struct {
 	// for TypeCode
 	Code         string `json:"code"`
 	CodeLanguage string `json:"code_language"`
+
+	FormatPage *FormatPage `json:"format_page"`
 }
 
 // IsLinkToPage returns true if block element is a link to existing page
@@ -120,12 +120,14 @@ func IsTypeWithBlocks(blockType string) bool {
 }
 */
 
-type format struct {
+// FormatPage describes format for TypePage
+type FormatPage struct {
 	PageFullWidth bool `json:"page_full_width"`
 	PageSmallText bool `json:"page_small_text"`
 }
 
-type permission struct {
+// Permission describes user permissions
+type Permission struct {
 	Role   string  `json:"role"`
 	Type   string  `json:"type"`
 	UserID *string `json:"user_id,omitempty"`
@@ -135,6 +137,7 @@ func parseGetRecordValues(d []byte) (*getRecordValuesResponse, error) {
 	var rec getRecordValuesResponse
 	err := json.Unmarshal(d, &rec)
 	if err != nil {
+		dbg("parseGetRecordValues: json.Unmarshal() failed with '%s'\n", err)
 		return nil, err
 	}
 	return &rec, nil

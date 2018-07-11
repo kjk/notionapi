@@ -58,6 +58,7 @@ func parseLoadPageChunk(d []byte) (*loadPageChunkResponse, error) {
 	var rsp loadPageChunkResponse
 	err := json.Unmarshal(d, &rsp)
 	if err != nil {
+		dbg("parseLoadPageChunk: json.Unmarshal() failed with '%s'\n", err)
 		return nil, err
 	}
 	return &rsp, nil

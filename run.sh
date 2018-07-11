@@ -16,7 +16,8 @@ go build github.com/kjk/notion/cmd/tohtml
 # 300db9dc27c84958a08b8d0c37f4cfe5   large page (my blog)
 # 0367c2db381a4f8b9ce360f388a6b2e3   index page for test pages
 # 25b6ac21d67744f18a4dc071b21a86fe   test code
+# 70ecbf1f5abc41d48a4e4320aeb38d10   test todo
 
 # -recursive -no-cache
-./tohtml -no-cache 25b6ac21d67744f18a4dc071b21a86fe || true
+./tohtml -no-cache 70ecbf1f5abc41d48a4e4320aeb38d10 || true
 rm -rf ./tohtml

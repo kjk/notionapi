@@ -170,10 +170,10 @@ func parseProperties(block *Block) error {
 	}
 
 	if TypeTodo == block.Type {
-		if v, ok := block.Properties["checked"]; ok {
-			if s, ok := v.(string); ok {
-				block.IsChecked = strings.EqualFold(s, "Yes")
-			}
+		if checked, ok := props["checked"]; ok {
+			s, _ := getFirstInlineBlock(checked)
+			// fmt.Printf("checked: '%s'\n", s)
+			block.IsChecked = strings.EqualFold(s, "Yes")
 		}
 	}
 
@@ -216,6 +216,25 @@ func parseProperties(block *Block) error {
 		}
 	}
 
+	return nil
+}
+
+func parseFormat(block *Block) error {
+	switch block.Type {
+	case TypePage:
+		// it's only present when different than defaults
+		if len(block.FormatRaw) == 0 {
+			block.FormatPage = &FormatPage{}
+			return nil
+		}
+		var format FormatPage
+		err := json.Unmarshal(block.FormatRaw, &format)
+		if err != nil {
+			fmt.Printf("parseFormat: json.Unamrshal() failed with '%s', format: '%s'\n", err, string(block.FormatRaw))
+			return err
+		}
+		block.FormatPage = &format
+	}
 	return nil
 }
 
@@ -270,6 +289,10 @@ func resolveBlocks2(block *Block, idToBlock map[string]*Block) error {
 
 func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
 	err := parseProperties(block)
+	if err != nil {
+		return err
+	}
+	err = parseFormat(block)
 	if err != nil {
 		return err
 	}

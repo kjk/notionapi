@@ -22,6 +22,10 @@ li > p {
   line-height: 1.5em;
 }
 
+.todo-checked {
+  background: lightblue;
+}
+
 .lvl1 {
   margin-left: 16px;
 }
