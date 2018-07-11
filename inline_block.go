@@ -1,6 +1,9 @@
 package notion
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 const (
 	// InlineAt is a text used for inline blocks representing
@@ -38,7 +41,7 @@ type AttrUser struct {
 
 // AttrDate represents @date attribute
 type AttrDate struct {
-	Data map[string]interface{}
+	Date *Date
 }
 
 // InlineBlock describes a nested inline block
@@ -97,12 +100,19 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 		}
 		b.Attrs = append(b.Attrs, attr)
 	case "d":
-		data, ok := a[1].(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("value for 'd' attribute is not map[string]interface{}. Type: %T, value: %#v", data, data)
+		v := a[1].(map[string]interface{})
+		js, err := json.MarshalIndent(v, "", "  ")
+		if err != nil {
+			panic(err.Error())
+		}
+		//dbg("date in js:\n%s\n", string(js))
+		var d Date
+		err = json.Unmarshal(js, &d)
+		if err != nil {
+			panic(err.Error())
 		}
 		attr := &AttrDate{
-			Data: data,
+			Date: &d,
 		}
 		b.Attrs = append(b.Attrs, attr)
 	default:

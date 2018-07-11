@@ -27,14 +27,20 @@ type BlockWithRole struct {
 // Block describes a block
 type Block struct {
 	// values that come from JSON
+	// if false, the page is deleted
 	Alive bool `json:"alive"`
 	// List of block ids for that make up content of this block
 	// Use Content to get corresponding block (they are in the same order)
 	ContentIDs []string `json:"content,omitempty"`
 	// ID of the user who created this block
-	CreatedBy   string          `json:"created_by"`
-	CreatedTime int64           `json:"created_time"`
-	FormatRaw   json.RawMessage `json:"format,omitempty"`
+	CreatedBy   string `json:"created_by"`
+	CreatedTime int64  `json:"created_time"`
+	// List of block ids with discussion content
+	DiscussionIDs []string `json:"discussion,omitempty"`
+	// those ids seem to map to storage in s3
+	// https://s3-us-west-2.amazonaws.com/secure.notion-static.com/${id}/${name}
+	FileIDs   []string        `json:"file_ids,omitempty"`
+	FormatRaw json.RawMessage `json:"format,omitempty"`
 	// a unique ID of the block
 	ID string `json:"id"`
 	// ID of the user who last edited this block
@@ -113,6 +119,13 @@ func (b *Block) IsCode() bool {
 type FormatPage struct {
 	PageFullWidth bool `json:"page_full_width"`
 	PageSmallText bool `json:"page_small_text"`
+	// /images/page-cover/gradients_11.jpg
+	PageCoverRelativeURL string `json:"page_cover"`
+	// e.g. 0.6
+	PageCoverPosition float64 `json:"page_cover_position"`
+	// it's url like https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8b3930e3-9dfe-4ba7-a845-a8ff69154f2a/favicon-256.png
+	// or emoji like "✉️"
+	PageIcon string `json:"page_icon"`
 }
 
 // FormatBookmark describes format for TypeBookmark

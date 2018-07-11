@@ -16,9 +16,13 @@ go build github.com/kjk/notion/cmd/tohtml
 # c969c9455d7c4dd79c7f860f3ace6429
 # 300db9dc27c84958a08b8d0c37f4cfe5   large page (my blog)
 # 0367c2db381a4f8b9ce360f388a6b2e3   index page for test pages
-# 25b6ac21d67744f18a4dc071b21a86fe   test code
+# 25b6ac21d67744f18a4dc071b21a86fe   test code and favorite
 # 70ecbf1f5abc41d48a4e4320aeb38d10   test todo
+# 97100f9c17324fd7ba3d3c5f1832104d   test dates
+# 0fa8d15a16134f0c9fad1aa0a7232374   test comments, icon, cover
+# 57cb49183ee44eb9a4fcc37817473b54   test deleted page
 
+# available args:
 # -recursive -no-cache
-./tohtml -no-cache c969c9455d7c4dd79c7f860f3ace6429 || true
+./tohtml -no-cache 25b6ac21d67744f18a4dc071b21a86fe || true
 rm -rf ./tohtml

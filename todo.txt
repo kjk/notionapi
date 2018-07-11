@@ -1,0 +1,5 @@
+TODO:
+
+* in html rendering, properly represent bullet list, numbered list, toggle list, todo.
+* move parsing of format and properties from api.go to parsing function
+* use getPublicPageData ?

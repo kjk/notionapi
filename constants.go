@@ -57,3 +57,10 @@ const (
 	// RoleEditor represents an editor
 	RoleEditor = "editor"
 )
+
+const (
+	// DateTypeDate represents a date in Date.Type
+	DateTypeDate = "date"
+	// DateTypeDateTime represents a datetime in Date.Type
+	DateTypeDateTime = "datetime"
+)

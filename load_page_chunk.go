@@ -146,6 +146,30 @@ type User struct {
 	Version                   int    `json:"version"`
 }
 
+// Date describes a date
+type Date struct {
+	// "MMM DD, YYYY", "MM/DD/YYYY", "DD/MM/YYYY", "YYYY/MM/DD", "relative"
+	DateFormat string    `json:"date_format"`
+	Reminder   *Reminder `json:"reminder,omitempty"`
+	// "2018-07-12"
+	StartDate string `json:"start_date"`
+	// "09:00"
+	StartTime *string `json:"start_time,omitempty"`
+	// "America/Los_Angeles"
+	TimeZone *string `json:"time_zone,omitempty"`
+	// "H:mm" for 24hr, not given for 12hr
+	TimeFormat *string `json:"time_format,omitempty"`
+	// "date", "datetime"
+	Type string `json:"type"`
+}
+
+// Reminder describes date reminder
+type Reminder struct {
+	Time  string `json:"time"` // e.g. "09:00"
+	Unit  string `json:"unit"` // e.g. "day"
+	Value int64  `json:"value"`
+}
+
 func parseLoadPageChunk(d []byte) (*loadPageChunkResponse, error) {
 	var rsp loadPageChunkResponse
 	err := json.Unmarshal(d, &rsp)
