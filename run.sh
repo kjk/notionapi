@@ -11,7 +11,7 @@ go build github.com/kjk/notion/cmd/tohtml
 # c969c9455d7c4dd79c7f860f3ace6429   test all
 # f97ffca91f8949b48004999df34ab1f7   test text not simple
 # 6682351e44bb4f9ca0e149b703265bdb   test header
-# fd9338a719a24f02993fcfbcf3d00bb0   test todo list
+# fd9338a719a24f02993fcfbcf3d00bb0   test todo list and page style
 # 484919a1647144c29234447ce408ff6b   test toggle and bullet list
 # c969c9455d7c4dd79c7f860f3ace6429
 # 300db9dc27c84958a08b8d0c37f4cfe5   large page (my blog)

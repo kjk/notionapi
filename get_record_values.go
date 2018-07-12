@@ -123,6 +123,7 @@ type FormatPage struct {
 	PageCoverRelativeURL string `json:"page_cover"`
 	// e.g. 0.6
 	PageCoverPosition float64 `json:"page_cover_position"`
+	PageFont          string  `json:"page_font"`
 	PageFullWidth     bool    `json:"page_full_width"`
 	// it's url like https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8b3930e3-9dfe-4ba7-a845-a8ff69154f2a/favicon-256.png
 	// or emoji like "✉️"
