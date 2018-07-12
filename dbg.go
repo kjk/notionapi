@@ -9,12 +9,13 @@ import (
 var (
 	// Logger is used to log requests and responses for debugging.
 	// By default is not set.
-	Logger     io.Writer
-	dbgVerbose = true
+	Logger io.Writer
+	// DebugLog enables debug logging
+	DebugLog = false
 )
 
 func dbg(format string, args ...interface{}) {
-	if !dbgVerbose {
+	if !DebugLog {
 		return
 	}
 	fmt.Printf(format, args...)

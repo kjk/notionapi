@@ -38,6 +38,11 @@ const (
 	TypeComment = "comment"
 	// TypeCode is a code block
 	TypeCode = "code"
+	// TypeColumnList is for multi-column. Number of columns is
+	// number of content blocks of type TypeColumn
+	TypeColumnList = "column_list"
+	// TypeColumn is a child of TypeColumnList
+	TypeColumn = "column"
 	// TypeTable is a table block
 	TypeTable = "table"
 	// TypeCollectionView is a collection view block

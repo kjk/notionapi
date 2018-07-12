@@ -88,6 +88,8 @@ type Block struct {
 	FormatPage     *FormatPage     `json:"format_page,omitempty"`
 	FormatBookmark *FormatBookmark `json:"format_bookmark,omitempty"`
 	FormatImage    *FormatImage    `json:"format_image,omitempty"`
+	FormatColumn   *FormatColumn   `json:"format_column,omitempty"`
+	FormatText     *FormatText     `json:"format_text,omitempty"`
 }
 
 // IsLinkToPage returns true if block element is a link to existing page
@@ -117,15 +119,15 @@ func (b *Block) IsCode() bool {
 
 // FormatPage describes format for TypePage
 type FormatPage struct {
-	PageFullWidth bool `json:"page_full_width"`
-	PageSmallText bool `json:"page_small_text"`
 	// /images/page-cover/gradients_11.jpg
 	PageCoverRelativeURL string `json:"page_cover"`
 	// e.g. 0.6
 	PageCoverPosition float64 `json:"page_cover_position"`
+	PageFullWidth     bool    `json:"page_full_width"`
 	// it's url like https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8b3930e3-9dfe-4ba7-a845-a8ff69154f2a/favicon-256.png
 	// or emoji like "✉️"
-	PageIcon string `json:"page_icon"`
+	PageIcon      string `json:"page_icon"`
+	PageSmallText bool   `json:"page_small_text"`
 }
 
 // FormatBookmark describes format for TypeBookmark
@@ -139,8 +141,19 @@ type FormatImage struct {
 	BlockFullWidth     bool    `json:"block_full_width"`
 	BlockPageWidth     bool    `json:"block_page_width"`
 	BlockPreserveScale bool    `json:"block_preserve_scale"`
-	BlockWidth         int64   `json:"block_width"`
+	BlockWidth         float64 `json:"block_width"`
 	DisplaySource      string  `json:"display_source"`
+}
+
+// FormatText describes format for TypeText
+// TODO: possibly more?
+type FormatText struct {
+	BlockColor *string `json:"block_color,omitempty"`
+}
+
+// FormatColumn describes format for TypeColumn
+type FormatColumn struct {
+	ColumnRation float64 `json:"column_ratio"` // e.g. 0.5 for half-sized column
 }
 
 // Permission describes user permissions

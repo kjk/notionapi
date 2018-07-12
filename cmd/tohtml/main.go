@@ -94,7 +94,7 @@ func genInlineBlocksHTML(f io.Writer, blocks []*notion.InlineBlock) error {
 func genBlockSurroudedHTML(f io.Writer, block *notion.Block, start, close string, level int) {
 	io.WriteString(f, start+"\n")
 	genInlineBlocksHTML(f, block.InlineContent)
-	genBlocksHTML(f, block.Content, level+1)
+	genBlocksHTML(f, block, level+1)
 	io.WriteString(f, close+"\n")
 }
 
@@ -166,6 +166,8 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) {
 	case notion.TypeImage:
 		link := block.ImageURL
 		fmt.Fprintf(f, `<img class="%s" src="%s" />`+"\n", levelCls, link)
+	case notion.TypeColumnList:
+		// TODO: implement me
 	case notion.TypeCollectionView:
 		// TODO: implement me
 	default:
@@ -179,8 +181,13 @@ func normalizeID(s string) string {
 	return strings.Replace(s, "-", "", -1)
 }
 
-func genBlocksHTML(f io.Writer, blocks []*notion.Block, level int) {
-	for _, block := range blocks {
+func genBlocksHTML(f io.Writer, parent *notion.Block, level int) {
+	blocks := parent.Content
+	for i, block := range blocks {
+		if block == nil {
+			id := parent.ContentIDs[i]
+			fmt.Printf("No block at index %d with id=%s. Parent block %s of type %s\n", i, id, parent.ID, parent.Type)
+		}
 		genBlockHTML(f, block, level)
 	}
 }
@@ -201,7 +208,7 @@ func genHTML(pageID string, pageInfo *notion.PageInfo) []byte {
 
 	page := pageInfo.Page
 	genHTMLTitle(f, page)
-	genBlocksHTML(f, page.Content, 0)
+	genBlocksHTML(f, page, 0)
 	fmt.Fprintf(f, "</body>\n</html>\n")
 	return f.Bytes()
 }
@@ -341,6 +348,7 @@ func main() {
 	os.MkdirAll("cache", 0755)
 	os.MkdirAll("www", 0755)
 
+	notion.DebugLog = true
 	seen := map[string]struct{}{}
 	firstPage := true
 	for len(toVisit) > 0 {

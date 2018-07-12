@@ -21,8 +21,10 @@ go build github.com/kjk/notion/cmd/tohtml
 # 97100f9c17324fd7ba3d3c5f1832104d   test dates
 # 0fa8d15a16134f0c9fad1aa0a7232374   test comments, icon, cover
 # 57cb49183ee44eb9a4fcc37817473b54   test deleted page
+# 157765353f2c4705bd45474e5ba8b46c   notion "what's new" page
+# 72fd504c58984cc5a5dfb86b6f8617dc   test nested toggle
 
 # available args:
 # -recursive -no-cache
-./tohtml -no-cache 25b6ac21d67744f18a4dc071b21a86fe || true
+./tohtml -no-cache 157765353f2c4705bd45474e5ba8b46c || true
 rm -rf ./tohtml

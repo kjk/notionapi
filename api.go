@@ -246,7 +246,20 @@ func parseFormat(block *Block) error {
 		if err == nil {
 			block.FormatImage = &format
 		}
+	case TypeColumn:
+		var format FormatColumn
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatColumn = &format
+		}
+	case TypeText:
+		var format FormatText
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatText = &format
+		}
 	}
+
 	if err != nil {
 		fmt.Printf("parseFormat: json.Unamrshal() failed with '%s', format: '%s'\n", err, string(block.FormatRaw))
 		return err
@@ -354,7 +367,8 @@ func apiGetRecordValues(ids []string) (*getRecordValuesResponse, error) {
 	return rsp, nil
 }
 
-func findMissingBlocks(startIds []string, idToBlock map[string]*Block) []string {
+// recursively find blocks that we don't have yet
+func findMissingBlocks(startIds []string, idToBlock map[string]*Block, blocksToSkip map[string]struct{}) []string {
 	var missing []string
 	seen := map[string]struct{}{}
 	toCheck := append([]string{}, startIds...)
@@ -362,6 +376,9 @@ func findMissingBlocks(startIds []string, idToBlock map[string]*Block) []string 
 		id := toCheck[0]
 		toCheck = toCheck[1:]
 		if _, ok := seen[id]; ok {
+			continue
+		}
+		if _, ok := blocksToSkip[id]; ok {
 			continue
 		}
 		seen[id] = struct{}{}
@@ -403,6 +420,8 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 	idToCollection := map[string]*Collection{}
 	idToCollectionView := map[string]*CollectionView{}
 	idToUser := map[string]*User{}
+	// not alive or when server doesn't return "value" for this block id
+	blocksToSkip := map[string]struct{}{}
 	var cur *cursor
 	for {
 		rsp, err := apiLoadPageChunk(pageID, cur)
@@ -410,13 +429,23 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 			return nil, err
 		}
 		for id, v := range rsp.RecordMap.Blocks {
-			idToBlock[id] = v.Value
+			if v.Value.Alive {
+				idToBlock[id] = v.Value
+			} else {
+				blocksToSkip[id] = struct{}{}
+			}
 		}
 		for id, v := range rsp.RecordMap.Collections {
-			idToCollection[id] = v.Value
+			if v.Value.Alive {
+				idToCollection[id] = v.Value
+			}
+			// TODO: what to do for not alive?
 		}
 		for id, v := range rsp.RecordMap.CollectionViews {
-			idToCollectionView[id] = v.Value
+			if v.Value.Alive {
+				idToCollectionView[id] = v.Value
+			}
+			// TODO: what to do for not alive?
 		}
 		for id, v := range rsp.RecordMap.Users {
 			idToUser[id] = v.Value
@@ -431,28 +460,51 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 	}
 
 	// get blocks that are not already loaded
-	missing := findMissingBlocks(pageInfo.Page.ContentIDs, idToBlock)
-	// the API worked even with 6k items, but I'll split it into many
-	// smaller requrests anyway
-	maxToGet := 128
-	for len(missing) > 0 {
-		//dbg("GetPageInfo: there are %d missing blocks\n", len(missing))
-		toGet := missing
-		if len(toGet) > maxToGet {
-			toGet = missing[:maxToGet]
-			missing = missing[maxToGet:]
-		} else {
-			missing = nil
+	missingIter := 1
+	for {
+		missing := findMissingBlocks(pageInfo.Page.ContentIDs, idToBlock, blocksToSkip)
+		if len(missing) == 0 {
+			break
 		}
+		dbg("GetPageInfo: %d missing blocks in iteration %d\n", len(missing), missingIter)
+		missingIter++
 
-		recVals, err := apiGetRecordValues(toGet)
-		if err != nil {
-			return nil, err
-		}
-		for _, blockWithRole := range recVals.Results {
-			block := blockWithRole.Value
-			id := block.ID
-			idToBlock[id] = block
+		// the API worked even with 6k items, but I'll split it into many
+		// smaller requrests anyway
+		maxToGet := 128 * 10
+		for len(missing) > 0 {
+			toGet := missing
+			if len(toGet) > maxToGet {
+				toGet = missing[:maxToGet]
+				missing = missing[maxToGet:]
+			} else {
+				missing = nil
+			}
+
+			recVals, err := apiGetRecordValues(toGet)
+			if err != nil {
+				return nil, err
+			}
+			for n, blockWithRole := range recVals.Results {
+				block := blockWithRole.Value
+				// This can happen e.g. in 157765353f2c4705bd45474e5ba8b46c
+				// Server returns { "role": "none" },
+				if block == nil {
+					expectedID := toGet[n]
+					blocksToSkip[expectedID] = struct{}{}
+					if n > 0 {
+						prevBlock := recVals.Results[n-1]
+						prevBlockID := prevBlock.Value.ID
+						dbg("block is nil at position n = %v with expected id %s. Prev block id: %s\n", n, expectedID, prevBlockID)
+					} else {
+						dbg("block is nil at position n = %v with expected id %s.\n", n, expectedID)
+					}
+					continue
+				}
+
+				id := block.ID
+				idToBlock[id] = block
+			}
 		}
 	}
 
