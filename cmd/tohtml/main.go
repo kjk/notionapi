@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kjk/notion"
+	"github.com/kjk/notionapi"
 )
 
 func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
@@ -23,11 +23,11 @@ func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
 		fmt.Printf("os.Create('%s') failed with %s\n", path, err)
 		return nil, err
 	}
-	notion.Logger = f
+	notionapi.Logger = f
 	return f, nil
 }
 
-func genHTMLTitle(f io.Writer, pageBlock *notion.Block) {
+func genHTMLTitle(f io.Writer, pageBlock *notionapi.Block) {
 	title := ""
 	if len(pageBlock.InlineContent) > 0 {
 		title = pageBlock.InlineContent[0].Text
@@ -38,34 +38,34 @@ func genHTMLTitle(f io.Writer, pageBlock *notion.Block) {
 	io.WriteString(f, s)
 }
 
-func genInlineBlockHTML(f io.Writer, b *notion.InlineBlock) error {
+func genInlineBlockHTML(f io.Writer, b *notionapi.InlineBlock) error {
 	var start, close string
-	if b.AttrFlags&notion.AttrBold != 0 {
+	if b.AttrFlags&notionapi.AttrBold != 0 {
 		start += "<b>"
 		close += "</b>"
 	}
-	if b.AttrFlags&notion.AttrItalic != 0 {
+	if b.AttrFlags&notionapi.AttrItalic != 0 {
 		start += "<i>"
 		close += "</i>"
 	}
-	if b.AttrFlags&notion.AttrStrikeThrought != 0 {
+	if b.AttrFlags&notionapi.AttrStrikeThrought != 0 {
 		start += "<strike>"
 		close += "</strike>"
 	}
-	if b.AttrFlags&notion.AttrCode != 0 {
+	if b.AttrFlags&notionapi.AttrCode != 0 {
 		start += "<code>"
 		close += "</code>"
 	}
 	skipText := false
 	for _, attrRaw := range b.Attrs {
 		switch attr := attrRaw.(type) {
-		case *notion.AttrLink:
+		case *notionapi.AttrLink:
 			start += fmt.Sprintf(`<a href="%s">%s</a>`, attr.Link, b.Text)
 			skipText = true
-		case *notion.AttrUser:
+		case *notionapi.AttrUser:
 			start += fmt.Sprintf(`<span class="user">@%s</span>`, attr.UserID)
 			skipText = true
-		case *notion.AttrDate:
+		case *notionapi.AttrDate:
 			// TODO: serialize date properly
 			start += fmt.Sprintf(`<span class="date">@TODO: date</span>`)
 			skipText = true
@@ -81,7 +81,7 @@ func genInlineBlockHTML(f io.Writer, b *notion.InlineBlock) error {
 	return nil
 }
 
-func genInlineBlocksHTML(f io.Writer, blocks []*notion.InlineBlock) error {
+func genInlineBlocksHTML(f io.Writer, blocks []*notionapi.InlineBlock) error {
 	for _, block := range blocks {
 		err := genInlineBlockHTML(f, block)
 		if err != nil {
@@ -91,33 +91,33 @@ func genInlineBlocksHTML(f io.Writer, blocks []*notion.InlineBlock) error {
 	return nil
 }
 
-func genBlockSurroudedHTML(f io.Writer, block *notion.Block, start, close string, level int) {
+func genBlockSurroudedHTML(f io.Writer, block *notionapi.Block, start, close string, level int) {
 	io.WriteString(f, start+"\n")
 	genInlineBlocksHTML(f, block.InlineContent)
 	genBlocksHTML(f, block, level+1)
 	io.WriteString(f, close+"\n")
 }
 
-func genBlockHTML(f io.Writer, block *notion.Block, level int) {
+func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 	levelCls := ""
 	if level > 0 {
 		levelCls = fmt.Sprintf(" lvl%d", level)
 	}
 
 	switch block.Type {
-	case notion.TypeText:
+	case notionapi.TypeText:
 		start := fmt.Sprintf(`<div class="text%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notion.TypeHeader:
+	case notionapi.TypeHeader:
 		start := fmt.Sprintf(`<h1 class="hdr%s">`, levelCls)
 		close := `</h1>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notion.TypeSubHeader:
+	case notionapi.TypeSubHeader:
 		start := fmt.Sprintf(`<h2 class="hdr%s">`, levelCls)
 		close := `</h2>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notion.TypeTodo:
+	case notionapi.TypeTodo:
 		clsChecked := ""
 		if block.IsChecked {
 			clsChecked = " todo-checked"
@@ -125,23 +125,23 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) {
 		start := fmt.Sprintf(`<div class="todo%s%s">`, levelCls, clsChecked)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notion.TypeToggle:
+	case notionapi.TypeToggle:
 		start := fmt.Sprintf(`<div class="toggle%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notion.TypeBulletedList:
+	case notionapi.TypeBulletedList:
 		start := fmt.Sprintf(`<div class="bullet-list%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notion.TypeNumberedList:
+	case notionapi.TypeNumberedList:
 		start := fmt.Sprintf(`<div class="numbered-list%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notion.TypeQuote:
+	case notionapi.TypeQuote:
 		start := fmt.Sprintf(`<quote class="%s">`, levelCls)
 		close := `</quote>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notion.TypeDivider:
+	case notionapi.TypeDivider:
 		fmt.Fprintf(f, `<hr class="%s"/>`+"\n", levelCls)
 	case notion.TypePage:
 		id := strings.TrimSpace(block.ID)
@@ -153,22 +153,22 @@ func genBlockHTML(f io.Writer, block *notion.Block, level int) {
 		url := normalizeID(id) + ".html"
 		html := fmt.Sprintf(`<div class="%s%s"><a href="%s">%s</a></div>`, cls, levelCls, url, title)
 		fmt.Fprintf(f, "%s\n", html)
-	case notion.TypeCode:
+	case notionapi.TypeCode:
 		code := template.HTMLEscapeString(block.Code)
 		fmt.Fprintf(f, `<div class="%s">Lang for code: %s</div>
 <pre class="%s">
 %s
 </pre>`, levelCls, block.CodeLanguage, levelCls, code)
-	case notion.TypeBookmark:
+	case notionapi.TypeBookmark:
 		fmt.Fprintf(f, `<div class="bookmark %s">Bookmark to %s</div>`+"\n", levelCls, block.Link)
-	case notion.TypeGist:
+	case notionapi.TypeGist:
 		fmt.Fprintf(f, `<div class="gist %s">Gist for %s</div>`+"\n", levelCls, block.Source)
-	case notion.TypeImage:
+	case notionapi.TypeImage:
 		link := block.ImageURL
 		fmt.Fprintf(f, `<img class="%s" src="%s" />`+"\n", levelCls, link)
-	case notion.TypeColumnList:
+	case notionapi.TypeColumnList:
 		// TODO: implement me
-	case notion.TypeCollectionView:
+	case notionapi.TypeCollectionView:
 		// TODO: implement me
 	default:
 		fmt.Printf("Unsupported block type '%s', id: %s\n", block.Type, block.ID)
@@ -181,7 +181,7 @@ func normalizeID(s string) string {
 	return strings.Replace(s, "-", "", -1)
 }
 
-func genBlocksHTML(f io.Writer, parent *notion.Block, level int) {
+func genBlocksHTML(f io.Writer, parent *notionapi.Block, level int) {
 	blocks := parent.Content
 	for i, block := range blocks {
 		if block == nil {
@@ -192,7 +192,7 @@ func genBlocksHTML(f io.Writer, parent *notion.Block, level int) {
 	}
 }
 
-func genHTML(pageID string, pageInfo *notion.PageInfo) []byte {
+func genHTML(pageID string, pageInfo *notionapi.PageInfo) []byte {
 	f := &bytes.Buffer{}
 	title := pageInfo.Page.Title
 	title = template.HTMLEscapeString(title)
@@ -213,8 +213,8 @@ func genHTML(pageID string, pageInfo *notion.PageInfo) []byte {
 	return f.Bytes()
 }
 
-func getPageInfoCached(pageID string) (*notion.PageInfo, error) {
-	var pageInfo notion.PageInfo
+func getPageInfoCached(pageID string) (*notionapi.PageInfo, error) {
+	var pageInfo notionapi.PageInfo
 	cachedPath := filepath.Join("cache", pageID+".json")
 	if useCache {
 		d, err := ioutil.ReadFile(cachedPath)
@@ -228,7 +228,7 @@ func getPageInfoCached(pageID string) (*notion.PageInfo, error) {
 			fmt.Printf("json.Unmarshal() on '%s' failed with %s\n", cachedPath, err)
 		}
 	}
-	res, err := notion.GetPageInfo(pageID)
+	res, err := notionapi.GetPageInfo(pageID)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func getPageInfoCached(pageID string) (*notion.PageInfo, error) {
 	return res, nil
 }
 
-func toHTML(pageID, path string) (*notion.PageInfo, error) {
+func toHTML(pageID, path string) (*notionapi.PageInfo, error) {
 	fmt.Printf("toHTML: pageID=%s, path=%s\n", pageID, path)
 	lf, _ := openLogFileForPageID(pageID)
 	if lf != nil {
@@ -262,10 +262,10 @@ func toHTML(pageID, path string) (*notion.PageInfo, error) {
 	return pageInfo, err
 }
 
-func findSubPageIDs(blocks []*notion.Block) []string {
+func findSubPageIDs(blocks []*notionapi.Block) []string {
 	var res []string
 	for _, block := range blocks {
-		if block.Type == notion.TypePage {
+		if block.Type == notionapi.TypePage {
 			res = append(res, block.ID)
 		}
 	}
@@ -348,7 +348,7 @@ func main() {
 	os.MkdirAll("cache", 0755)
 	os.MkdirAll("www", 0755)
 
-	notion.DebugLog = true
+	notionapi.DebugLog = true
 	seen := map[string]struct{}{}
 	firstPage := true
 	for len(toVisit) > 0 {

@@ -1,4 +1,4 @@
-package notion
+package notionapi
 
 import (
 	"encoding/json"
@@ -150,7 +150,8 @@ func TestParseInlineBlock5(t *testing.T) {
 	{
 		attr, ok := b.Attrs[0].(*AttrDate)
 		assert.True(t, ok)
-		assert.Equal(t, 5, len(attr.Data))
+		assert.Equal(t, 1, len(b.Attrs))
+		assert.Equal(t, attr.Date.DateFormat, "relative")
 	}
 }
 
