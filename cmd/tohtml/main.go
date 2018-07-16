@@ -104,19 +104,19 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 	}
 
 	switch block.Type {
-	case notionapi.TypeText:
+	case notionapi.BlockText:
 		start := fmt.Sprintf(`<div class="text%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.TypeHeader:
+	case notionapi.BlockHeader:
 		start := fmt.Sprintf(`<h1 class="hdr%s">`, levelCls)
 		close := `</h1>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.TypeSubHeader:
+	case notionapi.BlockSubHeader:
 		start := fmt.Sprintf(`<h2 class="hdr%s">`, levelCls)
 		close := `</h2>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.TypeTodo:
+	case notionapi.BlockTodo:
 		clsChecked := ""
 		if block.IsChecked {
 			clsChecked = " todo-checked"
@@ -124,25 +124,25 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 		start := fmt.Sprintf(`<div class="todo%s%s">`, levelCls, clsChecked)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.TypeToggle:
+	case notionapi.BlockToggle:
 		start := fmt.Sprintf(`<div class="toggle%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.TypeBulletedList:
+	case notionapi.BlockBulletedList:
 		start := fmt.Sprintf(`<div class="bullet-list%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.TypeNumberedList:
+	case notionapi.BlockNumberedList:
 		start := fmt.Sprintf(`<div class="numbered-list%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.TypeQuote:
+	case notionapi.BlockQuote:
 		start := fmt.Sprintf(`<quote class="%s">`, levelCls)
 		close := `</quote>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.TypeDivider:
+	case notionapi.BlockDivider:
 		fmt.Fprintf(f, `<hr class="%s"/>`+"\n", levelCls)
-	case notionapi.TypePage:
+	case notionapi.BlockPage:
 		id := strings.TrimSpace(block.ID)
 		cls := "page"
 		if block.IsLinkToPage() {
@@ -152,22 +152,22 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 		url := normalizeID(id) + ".html"
 		html := fmt.Sprintf(`<div class="%s%s"><a href="%s">%s</a></div>`, cls, levelCls, url, title)
 		fmt.Fprintf(f, "%s\n", html)
-	case notionapi.TypeCode:
+	case notionapi.BlockCode:
 		code := template.HTMLEscapeString(block.Code)
 		fmt.Fprintf(f, `<div class="%s">Lang for code: %s</div>
 <pre class="%s">
 %s
 </pre>`, levelCls, block.CodeLanguage, levelCls, code)
-	case notionapi.TypeBookmark:
+	case notionapi.BlockBookmark:
 		fmt.Fprintf(f, `<div class="bookmark %s">Bookmark to %s</div>`+"\n", levelCls, block.Link)
-	case notionapi.TypeGist:
+	case notionapi.BlockGist:
 		fmt.Fprintf(f, `<div class="gist %s">Gist for %s</div>`+"\n", levelCls, block.Source)
-	case notionapi.TypeImage:
+	case notionapi.BlockImage:
 		link := block.ImageURL
 		fmt.Fprintf(f, `<img class="%s" src="%s" />`+"\n", levelCls, link)
-	case notionapi.TypeColumnList:
+	case notionapi.BlockColumnList:
 		// TODO: implement me
-	case notionapi.TypeCollectionView:
+	case notionapi.BlockCollectionView:
 		// TODO: implement me
 	default:
 		fmt.Printf("Unsupported block type '%s', id: %s\n", block.Type, block.ID)
@@ -264,7 +264,7 @@ func toHTML(pageID, path string) (*notionapi.PageInfo, error) {
 func findSubPageIDs(blocks []*notionapi.Block) []string {
 	var res []string
 	for _, block := range blocks {
-		if block.Type == notionapi.TypePage {
+		if block.Type == notionapi.BlockPage {
 			res = append(res, block.ID)
 		}
 	}

@@ -49,7 +49,7 @@ func TestGetRecordValues1(t *testing.T) {
 		v := res0.Value
 		assert.True(t, v.Alive)
 		assert.Equal(t, "300db9dc-27c8-4958-a08b-8d0c37f4cfe5", v.ParentID)
-		assert.Equal(t, TypePage, v.Type)
+		assert.Equal(t, BlockPage, v.Type)
 		assert.Equal(t, int64(34), v.Version)
 	}
 }

@@ -95,7 +95,7 @@ type Block struct {
 // IsLinkToPage returns true if block element is a link to existing page
 // (as opposed to )
 func (b *Block) IsLinkToPage() bool {
-	if b.Type != TypePage {
+	if b.Type != BlockPage {
 		return false
 	}
 	return b.ParentTable == TableSpace
@@ -104,17 +104,17 @@ func (b *Block) IsLinkToPage() bool {
 // IsPage returns true if block represents a page (either a sub-page or
 // a link to a page)
 func (b *Block) IsPage() bool {
-	return b.Type == TypePage
+	return b.Type == BlockPage
 }
 
 // IsImage returns true if block represents an image
 func (b *Block) IsImage() bool {
-	return b.Type == TypeImage
+	return b.Type == BlockImage
 }
 
 // IsCode returns true if block represents a code block
 func (b *Block) IsCode() bool {
-	return b.Type == TypeCode
+	return b.Type == BlockCode
 }
 
 // FormatPage describes format for TypePage

@@ -136,7 +136,7 @@ func TestLoadPageChunk1(t *testing.T) {
 		assert.True(t, v.Alive)
 		assert.Equal(t, "4c6a54c6-8b3e-4ea2-af9c-faabcc88d58d", v.ID)
 		assert.Equal(t, "300db9dc-27c8-4958-a08b-8d0c37f4cfe5", v.ParentID)
-		assert.Equal(t, TypePage, v.Type)
+		assert.Equal(t, BlockPage, v.Type)
 		assert.Equal(t, int64(34), v.Version)
 	}
 	{
@@ -144,7 +144,7 @@ func TestLoadPageChunk1(t *testing.T) {
 		assert.True(t, v.Alive)
 		assert.Equal(t, "c76d351e-e836-4a04-8f09-85c893660b4e", v.ID)
 		assert.Equal(t, "4c6a54c6-8b3e-4ea2-af9c-faabcc88d58d", v.ParentID)
-		assert.Equal(t, TypeText, v.Type)
+		assert.Equal(t, BlockText, v.Type)
 		assert.Equal(t, int64(66), v.Version)
 
 	}

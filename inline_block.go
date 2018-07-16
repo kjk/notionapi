@@ -6,12 +6,11 @@ import (
 )
 
 const (
-	// InlineAt is a text used for inline blocks representing
-	// for @user and @date
+	// InlineAt is what Notion uses for text to represent @user and @date blocks
 	InlineAt = "‣"
 )
 
-// AttrFlag is a compact description of
+// AttrFlag is a compact description of some flags
 type AttrFlag int
 
 const (

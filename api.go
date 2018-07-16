@@ -159,9 +159,9 @@ func parseProperties(block *Block) error {
 	props := block.Properties
 
 	if title, ok := props["title"]; ok {
-		if block.Type == TypePage {
+		if block.Type == BlockPage {
 			block.Title, err = getFirstInlineBlock(title)
-		} else if block.Type == TypeCode {
+		} else if block.Type == BlockCode {
 			block.Code, err = getFirstInlineBlock(title)
 		} else {
 			block.InlineContent, err = parseInlineBlocks(title)
@@ -171,7 +171,7 @@ func parseProperties(block *Block) error {
 		}
 	}
 
-	if TypeTodo == block.Type {
+	if BlockTodo == block.Type {
 		if checked, ok := props["checked"]; ok {
 			s, _ := getFirstInlineBlock(checked)
 			// fmt.Printf("checked: '%s'\n", s)
@@ -228,31 +228,31 @@ func parseFormat(block *Block) error {
 	}
 	var err error
 	switch block.Type {
-	case TypePage:
+	case BlockPage:
 		var format FormatPage
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
 			block.FormatPage = &format
 		}
-	case TypeBookmark:
+	case BlockBookmark:
 		var format FormatBookmark
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
 			block.FormatBookmark = &format
 		}
-	case TypeImage:
+	case BlockImage:
 		var format FormatImage
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
 			block.FormatImage = &format
 		}
-	case TypeColumn:
+	case BlockColumn:
 		var format FormatColumn
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
 			block.FormatColumn = &format
 		}
-	case TypeText:
+	case BlockText:
 		var format FormatText
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
@@ -305,7 +305,7 @@ func resolveBlocks2(block *Block, idToBlock map[string]*Block) error {
 			block.Content[i] = b
 			skip := false
 			switch b.Type {
-			case TypePage:
+			case BlockPage:
 				skip = true
 			}
 			if !skip {
@@ -392,7 +392,7 @@ func findMissingBlocks(startIds []string, idToBlock map[string]*Block, blocksToS
 		// get it unless this is a page block becuase this is only
 		// a link to a page
 		switch block.Type {
-		case TypePage:
+		case BlockPage:
 		// skip those blocks
 		default:
 			toCheck = append(toCheck, block.ContentIDs...)
