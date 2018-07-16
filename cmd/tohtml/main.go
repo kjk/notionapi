@@ -57,19 +57,18 @@ func genInlineBlockHTML(f io.Writer, b *notionapi.InlineBlock) error {
 		close += "</code>"
 	}
 	skipText := false
-	for _, attrRaw := range b.Attrs {
-		switch attr := attrRaw.(type) {
-		case *notionapi.AttrLink:
-			start += fmt.Sprintf(`<a href="%s">%s</a>`, attr.Link, b.Text)
-			skipText = true
-		case *notionapi.AttrUser:
-			start += fmt.Sprintf(`<span class="user">@%s</span>`, attr.UserID)
-			skipText = true
-		case *notionapi.AttrDate:
-			// TODO: serialize date properly
-			start += fmt.Sprintf(`<span class="date">@TODO: date</span>`)
-			skipText = true
-		}
+	if b.Link != "" {
+		start += fmt.Sprintf(`<a href="%s">%s</a>`, b.Link, b.Text)
+		skipText = true
+	}
+	if b.UserID != "" {
+		start += fmt.Sprintf(`<span class="user">@%s</span>`, b.UserID)
+		skipText = true
+	}
+	if b.Date != nil {
+		// TODO: serialize date properly
+		start += fmt.Sprintf(`<span class="date">@TODO: date</span>`)
+		skipText = true
 	}
 	if !skipText {
 		start += b.Text
@@ -143,7 +142,7 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 		genBlockSurroudedHTML(f, block, start, close, level)
 	case notionapi.TypeDivider:
 		fmt.Fprintf(f, `<hr class="%s"/>`+"\n", levelCls)
-	case notion.TypePage:
+	case notionapi.TypePage:
 		id := strings.TrimSpace(block.ID)
 		cls := "page"
 		if block.IsLinkToPage() {
