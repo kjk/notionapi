@@ -25,32 +25,16 @@ const (
 	AttrStrikeThrought
 )
 
-// Attr represents one of many complex attributes of inline blocks
-type Attr interface {
-}
-
-// AttrLink represents a link
-type AttrLink struct {
-	Link string
-}
-
-// AttrUser represents @user attribute
-type AttrUser struct {
-	UserID string
-}
-
-// AttrDate represents @date attribute
-type AttrDate struct {
-	Date *Date
-}
-
 // InlineBlock describes a nested inline block
 // It's either Content or Type and Children
 type InlineBlock struct {
 	Text string
 	// compact representation of attribute flags
 	AttrFlags AttrFlag
-	Attrs     []Attr
+	// only one of those is set on a given InlineBlock
+	Link   string // represents link attribute
+	UserID string // represents user attribute
+	Date   *Date  // represents date attribute
 }
 
 func parseAttribute(b *InlineBlock, a []interface{}) error {
@@ -88,17 +72,11 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 		if !ok {
 			return fmt.Errorf("value for 'a' attribute is not string. Type: %T, value: %#v", v, v)
 		}
-		var attr Attr
 		if s == "a" {
-			attr = &AttrLink{
-				Link: v,
-			}
+			b.Link = v
 		} else if s == "u" {
-			attr = &AttrUser{
-				UserID: v,
-			}
+			b.UserID = v
 		}
-		b.Attrs = append(b.Attrs, attr)
 	case "d":
 		v := a[1].(map[string]interface{})
 		js, err := json.MarshalIndent(v, "", "  ")
@@ -111,10 +89,7 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 		if err != nil {
 			panic(err.Error())
 		}
-		attr := &AttrDate{
-			Date: &d,
-		}
-		b.Attrs = append(b.Attrs, attr)
+		b.Date = &d
 	default:
 		return fmt.Errorf("unexpected attribute '%s'", s)
 	}
