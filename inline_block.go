@@ -27,13 +27,13 @@ const (
 // InlineBlock describes a nested inline block
 // It's either Content or Type and Children
 type InlineBlock struct {
-	Text string
+	Text string `json:"Text"`
 	// compact representation of attribute flags
-	AttrFlags AttrFlag
+	AttrFlags AttrFlag `json:"AttrFlags,omitempty"`
 	// only one of those is set on a given InlineBlock
-	Link   string // represents link attribute
-	UserID string // represents user attribute
-	Date   *Date  // represents date attribute
+	Link   string `json:"Link,omitempty"`   // represents link attribute
+	UserID string `json:"UserID,omitempty"` // represents user attribute
+	Date   *Date  `json:"Date,omitempty"`   // represents date attribute
 }
 
 // IsPlain returns true if this InlineBlock is plain text i.e. has no attributes

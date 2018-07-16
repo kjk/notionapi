@@ -43,6 +43,10 @@ type Block struct {
 	FormatRaw json.RawMessage `json:"format,omitempty"`
 	// a unique ID of the block
 	ID string `json:"id"`
+
+	// TODO: don't know what this means
+	IgnoreBlockCount bool `json:"ignore_block_count"`
+
 	// ID of the user who last edited this block
 	LastEditedBy   string `json:"last_edited_by"`
 	LastEditedTime int64  `json:"last_edited_time"`
@@ -63,25 +67,26 @@ type Block struct {
 	// this is for some types like TypePage, TypeText, TypeHeader etc.
 	InlineContent []*InlineBlock `json:"inline_content,omitempty"`
 
-	// for TypePage
+	// for BlockPage
 	Title string `json:"title,omitempty"`
-	// For TypeTodo, a checked state
+
+	// For BlockTodo, a checked state
 	IsChecked bool `json:"is_checked"`
 
-	// for TypeBookmark
+	// for BlockBookmark
 	Description string `json:"description,omitempty"`
 	Link        string `json:"link,omitempty"`
 
-	// for TypeGist it's the url for the gist
-	// for TypeBookmark it's the url of the page
-	// fot TypeImage it's url of the image, but use ImageURL instead
+	// for BlockGist it's the url for the gist
+	// for BlockBookmark it's the url of the page
+	// fot BlockImage it's url of the image, but use ImageURL instead
 	// because Source is sometimes not accessible
 	Source string `json:"source,omitempty"`
 
-	// for TypeImage it's
+	// for BlockImage it's
 	ImageURL string `json:"image_url,omitempty"`
 
-	// for TypeCode
+	// for BlockCode
 	Code         string `json:"code,omitempty"`
 	CodeLanguage string `json:"code_language,omitempty"`
 
