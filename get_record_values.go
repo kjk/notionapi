@@ -45,7 +45,7 @@ type Block struct {
 	ID string `json:"id"`
 
 	// TODO: don't know what this means
-	IgnoreBlockCount bool `json:"ignore_block_count"`
+	IgnoreBlockCount bool `json:"ignore_block_count,omitempty"`
 
 	// ID of the user who last edited this block
 	LastEditedBy   string `json:"last_edited_by"`
@@ -55,7 +55,7 @@ type Block struct {
 	ParentTable string `json:"parent_table"`
 	// not always available
 	Permissions *[]Permission          `json:"permissions,omitempty"`
-	Properties  map[string]interface{} `json:"properties"`
+	Properties  map[string]interface{} `json:"properties,omitempty"`
 	// type of the block e.g. TypeText, TypePage etc.
 	Type string `json:"type"`
 	// blocks are versioned
@@ -71,7 +71,7 @@ type Block struct {
 	Title string `json:"title,omitempty"`
 
 	// For BlockTodo, a checked state
-	IsChecked bool `json:"is_checked"`
+	IsChecked bool `json:"is_checked,omitempty"`
 
 	// for BlockBookmark
 	Description string `json:"description,omitempty"`
