@@ -27,10 +27,7 @@ func TestParseInlineBlock1(t *testing.T) {
 	assert.Equal(t, 1, len(blocks))
 	b := blocks[0]
 	assert.Equal(t, "Test page text", b.Text)
-	assert.Equal(t, 0, int(b.AttrFlags))
-	assert.Equal(t, b.Link, "")
-	assert.Equal(t, b.UserID, "")
-	assert.Nil(t, b.Date)
+	assert.True(t, b.IsPlain())
 }
 
 const title2 = `{
@@ -54,6 +51,7 @@ func TestParseInlineBlock2(t *testing.T) {
 	assert.Equal(t, InlineAt, b.Text)
 	assert.Equal(t, 0, int(b.AttrFlags))
 	assert.Equal(t, "bb760e2d-d679-4b64-b2a9-03005b21870a", b.UserID)
+	assert.False(t, b.IsPlain())
 }
 
 const title3 = `{
@@ -81,6 +79,7 @@ func TestParseInlineBlock3(t *testing.T) {
 		b := blocks[1]
 		assert.Equal(t, "bold ", b.Text)
 		assert.Equal(t, AttrFlag(AttrBold), b.AttrFlags)
+		assert.False(t, b.IsPlain())
 	}
 }
 
@@ -107,6 +106,7 @@ func TestParseInlineBlock4(t *testing.T) {
 		assert.Equal(t, "link inside bold", b.Text)
 		assert.Equal(t, AttrFlag(AttrBold), b.AttrFlags)
 		assert.Equal(t, "https://www.google.com", b.Link)
+		assert.False(t, b.IsPlain())
 	}
 }
 
@@ -137,6 +137,7 @@ func TestParseInlineBlock5(t *testing.T) {
 	assert.Equal(t, InlineAt, b.Text)
 	assert.Equal(t, 0, int(b.AttrFlags))
 	assert.Equal(t, b.Date.DateFormat, "relative")
+	assert.False(t, b.IsPlain())
 }
 
 const titleBig = `{

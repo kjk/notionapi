@@ -37,6 +37,11 @@ type InlineBlock struct {
 	Date   *Date  // represents date attribute
 }
 
+// IsPlain returns true if this InlineBlock is plain text i.e. has no attributes
+func (b *InlineBlock) IsPlain() bool {
+	return b.AttrFlags == 0 && b.Link == "" && b.UserID == "" && b.Date == nil
+}
+
 func parseAttribute(b *InlineBlock, a []interface{}) error {
 	if len(a) == 0 {
 		return fmt.Errorf("attribute array is empty")
