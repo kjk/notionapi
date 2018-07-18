@@ -2,7 +2,7 @@
 set -u -e -o pipefail
 
 mkdir -p log
-go build github.com/kjk/notion/cmd/tohtml
+go build github.com/kjk/notionapi/cmd/tohtml
 # https://www.notion.so/kjkpublic/Test-page-c969c9455d7c4dd79c7f860f3ace6429
 # https://www.notion.so/kjkpublic/Test-page-text-4c6a54c68b3e4ea2af9cfaabcc88d58d
 # https://www.notion.so/kjkpublic/Test-page-text-not-simple-f97ffca91f8949b48004999df34ab1f7
@@ -26,5 +26,5 @@ go build github.com/kjk/notion/cmd/tohtml
 
 # available args:
 # -recursive -no-cache
-./tohtml -no-cache 157765353f2c4705bd45474e5ba8b46c || true
+./tohtml -no-cache fa3fc358e5644f39b89c57f13d426d54 || true
 rm -rf ./tohtml

@@ -1,3 +1,4 @@
 *.log.txt
 www/
 ./tohtml
+cache/

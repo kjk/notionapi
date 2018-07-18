@@ -331,13 +331,29 @@ func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
 	}
 	n := len(block.ContentIDs)
 	block.Content = make([]*Block, n, n)
+	notResolved := []int{}
 	for i, id := range block.ContentIDs {
 		resolved := idToBlock[id]
 		if resolved == nil {
-			return fmt.Errorf("Couldn't resolve block with id '%s'", id)
+			// This can happen e.g. for page fa3fc358e5644f39b89c57f13d426d54
+			notResolved = append(notResolved, i)
+			//return fmt.Errorf("Couldn't resolve block with id '%s'", id)
+			continue
 		}
 		block.Content[i] = resolved
 		resolveBlocks(resolved, idToBlock)
+	}
+	// remove blocks that are not resolved
+	for idx, toRemove := range notResolved {
+		i := toRemove - idx
+		{
+			a := block.ContentIDs
+			block.ContentIDs = append(a[:i], a[i+1:]...)
+		}
+		{
+			a := block.Content
+			block.Content = append(a[:i], a[i+1:]...)
+		}
 	}
 	return nil
 }
