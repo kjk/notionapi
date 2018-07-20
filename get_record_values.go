@@ -138,7 +138,7 @@ func (b *Block) IsCode() bool {
 // FormatPage describes format for TypePage
 type FormatPage struct {
 	// /images/page-cover/gradients_11.jpg
-	PageCoverRelativeURL string `json:"page_cover"`
+	PageCover string `json:"page_cover"`
 	// e.g. 0.6
 	PageCoverPosition float64 `json:"page_cover_position"`
 	PageFont          string  `json:"page_font"`
@@ -147,6 +147,9 @@ type FormatPage struct {
 	// or emoji like "✉️"
 	PageIcon      string `json:"page_icon"`
 	PageSmallText bool   `json:"page_small_text"`
+
+	// calculated by us
+	PageCoverURL string `json:"page_cover_url,omitempty"`
 }
 
 // FormatBookmark describes format for TypeBookmark
@@ -156,12 +159,16 @@ type FormatBookmark struct {
 
 // FormatImage describes format for TypeImage
 type FormatImage struct {
+	// comes from notion API
 	BlockAspectRatio   float64 `json:"block_aspect_ratio"`
 	BlockFullWidth     bool    `json:"block_full_width"`
 	BlockPageWidth     bool    `json:"block_page_width"`
 	BlockPreserveScale bool    `json:"block_preserve_scale"`
 	BlockWidth         float64 `json:"block_width"`
-	DisplaySource      string  `json:"display_source"`
+	DisplaySource      string  `json:"display_source,omitempty"`
+
+	// calculated by us
+	ImageURL string `json:"image_url,omitempty"`
 }
 
 // FormatText describes format for TypeText

@@ -203,11 +203,7 @@ func parseProperties(block *Block) error {
 		}
 
 		if block.IsImage() {
-			// sometimes image url in "source" is not accessible but can
-			// be accessed when proxied via notion server as
-			// www.notion.so/image/${source}
-			// This also allows resizing via ?width=${n} arguments
-			block.ImageURL = "https://www.notion.so/image/" + url.PathEscape(block.Source)
+			block.ImageURL = makeImageURL(block.Source)
 		}
 	}
 
@@ -221,6 +217,17 @@ func parseProperties(block *Block) error {
 	return nil
 }
 
+// sometimes image url in "source" is not accessible but can
+// be accessed when proxied via notion server as
+// www.notion.so/image/${source}
+// This also allows resizing via ?width=${n} arguments
+func makeImageURL(uri string) string {
+	if strings.Contains(uri, "//www.notion.so/image/") {
+		return uri
+	}
+	return "https://www.notion.so/image/" + url.PathEscape(uri)
+}
+
 func parseFormat(block *Block) error {
 	if len(block.FormatRaw) == 0 {
 		// TODO: maybe if TypePage, set to default &FormatPage{}
@@ -232,6 +239,7 @@ func parseFormat(block *Block) error {
 		var format FormatPage
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
+			format.PageCoverURL = makeImageURL(format.PageCover)
 			block.FormatPage = &format
 		}
 	case BlockBookmark:
@@ -244,6 +252,7 @@ func parseFormat(block *Block) error {
 		var format FormatImage
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
+			format.ImageURL = makeImageURL(format.DisplaySource)
 			block.FormatImage = &format
 		}
 	case BlockColumn:
