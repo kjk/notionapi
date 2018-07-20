@@ -222,7 +222,7 @@ func parseProperties(block *Block) error {
 // www.notion.so/image/${source}
 // This also allows resizing via ?width=${n} arguments
 func makeImageURL(uri string) string {
-	if strings.Contains(uri, "//www.notion.so/image/") {
+	if uri == "" || strings.Contains(uri, "//www.notion.so/image/") {
 		return uri
 	}
 	return "https://www.notion.so/image/" + url.PathEscape(uri)
