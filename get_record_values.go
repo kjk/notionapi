@@ -102,13 +102,12 @@ type Block struct {
 
 // CreatedOn return the time the page was created
 func (b *Block) CreatedOn() time.Time {
-	return time.Unix(b.CreatedTime, 0)
+	return time.Unix(b.CreatedTime/1000, 0)
 }
 
 // UpdatedOn returns the time the page was last updated
 func (b *Block) UpdatedOn() time.Time {
-	return time.Unix(b.LastEditedTime, 0)
-
+	return time.Unix(b.LastEditedTime/1000, 0)
 }
 
 // IsLinkToPage returns true if block element is a link to existing page
