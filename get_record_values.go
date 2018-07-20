@@ -1,6 +1,9 @@
 package notionapi
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 // /api/v3/getRecordValues request
 type getRecordValuesRequest struct {
@@ -95,6 +98,17 @@ type Block struct {
 	FormatImage    *FormatImage    `json:"format_image,omitempty"`
 	FormatColumn   *FormatColumn   `json:"format_column,omitempty"`
 	FormatText     *FormatText     `json:"format_text,omitempty"`
+}
+
+// CreatedOn return the time the page was created
+func (b *Block) CreatedOn() time.Time {
+	return time.Unix(b.CreatedTime, 0)
+}
+
+// UpdatedOn returns the time the page was last updated
+func (b *Block) UpdatedOn() time.Time {
+	return time.Unix(b.LastEditedTime, 0)
+
 }
 
 // IsLinkToPage returns true if block element is a link to existing page
