@@ -439,14 +439,18 @@ func findMissingBlocks(startIds []string, idToBlock map[string]*Block, blocksToS
 // GetPageInfo returns Noion page data given its id
 func GetPageInfo(pageID string) (*PageInfo, error) {
 	// TODO: validate pageID?
-
 	var pageInfo PageInfo
 	{
 		recVals, err := apiGetRecordValues([]string{pageID})
 		if err != nil {
 			return nil, err
 		}
-		pageID = recVals.Results[0].Value.ID
+		res := recVals.Results[0]
+		// this might happen e.g. when a page is not publicly visible
+		if res.Value == nil {
+			return nil, fmt.Errorf("Couldn't retrieve page with id %s", pageID)
+		}
+		pageID = res.Value.ID
 		pageInfo.ID = pageID
 		pageInfo.Page = recVals.Results[0].Value
 	}
