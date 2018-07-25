@@ -36,7 +36,7 @@ type Block struct {
 	// Use Content to get corresponding block (they are in the same order)
 	ContentIDs   []string `json:"content,omitempty"`
 	CopiedFrom   string   `json:"copied_from,omitempty"`
-	CollectionID string   `json:"collection_id"` // for BlockCollectionView
+	CollectionID string   `json:"collection_id,omitempty"` // for BlockCollectionView
 	// ID of the user who created this block
 	CreatedBy   string `json:"created_by"`
 	CreatedTime int64  `json:"created_time"`
