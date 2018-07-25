@@ -26,5 +26,5 @@ go build github.com/kjk/notionapi/cmd/tohtml
 
 # available args:
 # -recursive -no-cache
-./tohtml -no-cache fa3fc358e5644f39b89c57f13d426d54 || true
+./tohtml -no-cache 94167af6567043279811dc923edd1f04 || true
 rm -rf ./tohtml

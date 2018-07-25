@@ -45,9 +45,9 @@ type CollectionViewWithRole struct {
 
 // CollectionView describes a collection
 type CollectionView struct {
+	ID          string                `json:"id"`
 	Alive       bool                  `json:"alive"`
 	Format      *CollectionViewFormat `json:"format"`
-	ID          string                `json:"id"`
 	Name        string                `json:"name"`
 	PageSort    []string              `json:"page_sort"`
 	ParentID    string                `json:"parent_id"`
@@ -59,15 +59,8 @@ type CollectionView struct {
 
 // CollectionViewFormat describes a fomrat of a collection view
 type CollectionViewFormat struct {
-	TableProperties []TableProperty `json:"table_properties"`
-	TableWrap       bool            `json:"table_wrap"`
-}
-
-// TableProperty describes a property of the table
-type TableProperty struct {
-	Property string `json:"property"`
-	Visible  bool   `json:"visible"`
-	Width    *int   `json:"width,omitempty"`
+	TableProperties []*TableProperty `json:"table_properties"`
+	TableWrap       bool             `json:"table_wrap"`
 }
 
 // CollectionViewQuery describes a query
@@ -92,14 +85,14 @@ type CollectionWithRole struct {
 
 // Collection describes a collection
 type Collection struct {
-	Alive              bool                             `json:"alive"`
-	Format             *CollectionFormat                `json:"format"`
-	ID                 string                           `json:"id"`
-	Name               [][]string                       `json:"name"`
-	ParentID           string                           `json:"parent_id"`
-	ParentTable        string                           `json:"parent_table"`
-	ColumnNameToSchema map[string]*CollectionColumnInfo `json:"schema"`
-	Version            int                              `json:"version"`
+	Alive            bool                             `json:"alive"`
+	Format           *CollectionFormat                `json:"format"`
+	ID               string                           `json:"id"`
+	Name             [][]string                       `json:"name"`
+	ParentID         string                           `json:"parent_id"`
+	ParentTable      string                           `json:"parent_table"`
+	CollectionSchema map[string]*CollectionColumnInfo `json:"schema"`
+	Version          int                              `json:"version"`
 }
 
 // CollectionFormat describes format of a collection
@@ -178,4 +171,35 @@ func parseLoadPageChunk(d []byte) (*loadPageChunkResponse, error) {
 		return nil, err
 	}
 	return &rsp, nil
+}
+
+func apiLoadPageChunk(pageID string, cur *cursor) (*loadPageChunkResponse, error) {
+	// emulating notion's website api usage: 50 items on first request,
+	// 30 on subsequent requests
+	limit := 30
+	apiURL := "/api/v3/loadPageChunk"
+	if cur == nil {
+		cur = &cursor{
+			// to mimic browser api which sends empty array for this argment
+			Stack: make([][]stack, 0),
+		}
+		limit = 50
+	}
+	req := &loadPageChunkRequest{
+		PageID:          pageID,
+		Limit:           limit,
+		Cursor:          *cur,
+		VerticalColumns: false,
+	}
+	var rsp *loadPageChunkResponse
+	parse := func(d []byte) error {
+		var err error
+		rsp, err = parseLoadPageChunk(d)
+		return err
+	}
+	err := doNotionAPI(apiURL, req, parse)
+	if err != nil {
+		return nil, err
+	}
+	return rsp, nil
 }

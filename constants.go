@@ -49,6 +49,16 @@ const (
 	BlockCollectionView = "collection_view"
 )
 
+// for CollectionColumnInfo.Type
+const (
+	// ColumnMultiSelect is multi-select column
+	ColumnMultiSelect = "multi_select"
+	ColumnTypeNumber  = "number"
+	ColumnTypeTitle   = "title"
+	// TODO: text, select, date, person, Files&Media, checkbox, URL, Email, phone
+	// formula, relaion, created time, created by, last edited time, last edited by
+)
+
 const (
 	// TableSpace represents a Notion workspace
 	TableSpace = "space"

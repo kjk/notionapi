@@ -43,9 +43,15 @@ type PageInfo struct {
 	ID   string
 	Page *Block
 	// Users allows to find users that Page refers to by their ID
-	Users           []*User
-	Collections     []*Collection
-	CollectionViews []*CollectionView
+	Users  []*User
+	Tables []*Table
+}
+
+// Table represents a table (i.e. CollectionView)
+type Table struct {
+	CollectionView *CollectionView `json:"collection_view"`
+	Collection     *Collection     `json:"collection"`
+	Data           []*Block
 }
 
 func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) error) error {
@@ -106,37 +112,6 @@ func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) 
 		log("Error: json.Unmarshal() failed with %s\n", err)
 	}
 	return err
-}
-
-func apiLoadPageChunk(pageID string, cur *cursor) (*loadPageChunkResponse, error) {
-	// emulating notion's website api usage: 50 items on first request,
-	// 30 on subsequent requests
-	limit := 30
-	apiURL := "/api/v3/loadPageChunk"
-	if cur == nil {
-		cur = &cursor{
-			// to mimic browser api which sends empty array for this argment
-			Stack: make([][]stack, 0),
-		}
-		limit = 50
-	}
-	req := &loadPageChunkRequest{
-		PageID:          pageID,
-		Limit:           limit,
-		Cursor:          *cur,
-		VerticalColumns: false,
-	}
-	var rsp *loadPageChunkResponse
-	parse := func(d []byte) error {
-		var err error
-		rsp, err = parseLoadPageChunk(d)
-		return err
-	}
-	err := doNotionAPI(apiURL, req, parse)
-	if err != nil {
-		return nil, err
-	}
-	return rsp, nil
 }
 
 func getFirstInline(inline []*InlineBlock) string {
@@ -271,6 +246,12 @@ func parseFormat(block *Block) error {
 		if err == nil {
 			block.FormatColumn = &format
 		}
+	case BlockTable:
+		var format FormatTable
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatTable = &format
+		}
 	case BlockText:
 		var format FormatText
 		err = json.Unmarshal(block.FormatRaw, &format)
@@ -375,31 +356,6 @@ func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
 		}
 	}
 	return nil
-}
-
-func apiGetRecordValues(ids []string) (*getRecordValuesResponse, error) {
-	req := &getRecordValuesRequest{}
-
-	for _, id := range ids {
-		v := getRecordValuesRequestInner{
-			Table: TableBlock,
-			ID:    id,
-		}
-		req.Requests = append(req.Requests, v)
-	}
-
-	apiURL := "/api/v3/getRecordValues"
-	var rsp *getRecordValuesResponse
-	parse1 := func(d []byte) error {
-		var err error
-		rsp, err = parseGetRecordValues(d)
-		return err
-	}
-	err := doNotionAPI(apiURL, req, parse1)
-	if err != nil {
-		return nil, err
-	}
-	return rsp, nil
 }
 
 // recursively find blocks that we don't have yet
@@ -547,19 +503,66 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 		}
 	}
 
-	for _, v := range idToCollection {
-		pageInfo.Collections = append(pageInfo.Collections, v)
-	}
-	for _, v := range idToCollectionView {
-		pageInfo.CollectionViews = append(pageInfo.CollectionViews, v)
-	}
 	for _, v := range idToUser {
 		pageInfo.Users = append(pageInfo.Users, v)
 	}
 
+	/*
+		for _, v := range idToCollection {
+			pageInfo.Collections = append(pageInfo.Collections, v)
+		}
+		for _, v := range idToCollectionView {
+			pageInfo.CollectionViews = append(pageInfo.CollectionViews, v)
+		}
+	*/
+
 	err := resolveBlocks(pageInfo.Page, idToBlock)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, block := range pageInfo.Page.Content {
+		if block.Type != BlockCollectionView {
+			continue
+		}
+		if len(block.ViewIDs) == 0 {
+			return nil, fmt.Errorf("collection_view has no ViewIDs")
+		}
+		// TODO: should fish out the user based on block.CreatedBy
+		if len(pageInfo.Users) == 0 {
+			return nil, fmt.Errorf("no users when trying to resolve collection_view")
+		}
+
+		collectionID := block.CollectionID
+		for _, collectionViewID := range block.ViewIDs {
+			user := pageInfo.Users[0]
+			collectionView, ok := idToCollectionView[collectionViewID]
+			if !ok {
+				return nil, fmt.Errorf("Didn't find collection_view with id '%s'", collectionViewID)
+			}
+			collection, ok := idToCollection[collectionID]
+			if !ok {
+				return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
+			}
+			agg := collectionView.Query.Aggregate
+			res, err := apiQueryCollection(collectionID, collectionViewID, agg, user)
+			if err != nil {
+				return nil, err
+			}
+			blockIds := res.Result.BlockIDS
+			collInfo := &CollectionViewInfo{
+				CollectionView: collectionView,
+				Collection:     collection,
+			}
+			for _, id := range blockIds {
+				rowBlock, ok := res.RecordMap.Blocks[id]
+				if !ok {
+					return nil, fmt.Errorf("didn't find block with id '%s' for collection view with id '%s'", id, collectionViewID)
+				}
+				collInfo.CollectionRows = append(collInfo.CollectionRows, rowBlock.Value)
+			}
+			block.CollectionViews = append(block.CollectionViews, collInfo)
+		}
 	}
 	return &pageInfo, nil
 }

@@ -34,7 +34,9 @@ type Block struct {
 	Alive bool `json:"alive"`
 	// List of block ids for that make up content of this block
 	// Use Content to get corresponding block (they are in the same order)
-	ContentIDs []string `json:"content,omitempty"`
+	ContentIDs   []string `json:"content,omitempty"`
+	CopiedFrom   string   `json:"copied_from,omitempty"`
+	CollectionID string   `json:"collection_id"` // for BlockCollectionView
 	// ID of the user who created this block
 	CreatedBy   string `json:"created_by"`
 	CreatedTime int64  `json:"created_time"`
@@ -62,7 +64,8 @@ type Block struct {
 	// type of the block e.g. TypeText, TypePage etc.
 	Type string `json:"type"`
 	// blocks are versioned
-	Version int64 `json:"version"`
+	Version int64    `json:"version"`
+	ViewIDs []string `json:"view_ids,omitempty"`
 
 	// Values calculated by us
 	// maps ContentIDs array
@@ -93,11 +96,23 @@ type Block struct {
 	Code         string `json:"code,omitempty"`
 	CodeLanguage string `json:"code_language,omitempty"`
 
+	// for BlockCollectionView
+	// It looks like the info about which view is selected is stored in browser
+	CollectionViews []*CollectionViewInfo
+
 	FormatPage     *FormatPage     `json:"format_page,omitempty"`
 	FormatBookmark *FormatBookmark `json:"format_bookmark,omitempty"`
 	FormatImage    *FormatImage    `json:"format_image,omitempty"`
 	FormatColumn   *FormatColumn   `json:"format_column,omitempty"`
 	FormatText     *FormatText     `json:"format_text,omitempty"`
+	FormatTable    *FormatTable    `json:"format_table,omitempty"`
+}
+
+// CollectionViewInfo describes a particular view of the collection
+type CollectionViewInfo struct {
+	CollectionView *CollectionView
+	Collection     *Collection
+	CollectionRows []*Block
 }
 
 // CreatedOn return the time the page was created
@@ -177,6 +192,19 @@ type FormatText struct {
 	BlockColor *string `json:"block_color,omitempty"`
 }
 
+// FormatTable describes format for TypeTable
+type FormatTable struct {
+	TableWrap       bool             `json:"table_wrap"`
+	TableProperties []*TableProperty `json:"table_properties"`
+}
+
+// TableProperty describes property of a table
+type TableProperty struct {
+	Width    int    `json:"width"`
+	Visible  bool   `json:"visible"`
+	Property string `json:"property"`
+}
+
 // FormatColumn describes format for TypeColumn
 type FormatColumn struct {
 	ColumnRation float64 `json:"column_ratio"` // e.g. 0.5 for half-sized column
@@ -197,4 +225,29 @@ func parseGetRecordValues(d []byte) (*getRecordValuesResponse, error) {
 		return nil, err
 	}
 	return &rec, nil
+}
+
+func apiGetRecordValues(ids []string) (*getRecordValuesResponse, error) {
+	req := &getRecordValuesRequest{}
+
+	for _, id := range ids {
+		v := getRecordValuesRequestInner{
+			Table: TableBlock,
+			ID:    id,
+		}
+		req.Requests = append(req.Requests, v)
+	}
+
+	apiURL := "/api/v3/getRecordValues"
+	var rsp *getRecordValuesResponse
+	parse1 := func(d []byte) error {
+		var err error
+		rsp, err = parseGetRecordValues(d)
+		return err
+	}
+	err := doNotionAPI(apiURL, req, parse1)
+	if err != nil {
+		return nil, err
+	}
+	return rsp, nil
 }
