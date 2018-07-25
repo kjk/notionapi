@@ -98,7 +98,7 @@ type Block struct {
 
 	// for BlockCollectionView
 	// It looks like the info about which view is selected is stored in browser
-	CollectionViews []*CollectionViewInfo
+	CollectionViews []*CollectionViewInfo `json:"collection_views,omitempty"`
 
 	FormatPage     *FormatPage     `json:"format_page,omitempty"`
 	FormatBookmark *FormatBookmark `json:"format_bookmark,omitempty"`
