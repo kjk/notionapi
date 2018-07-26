@@ -32,7 +32,7 @@ import (
     "github.com/kjk/notionapi"
 )
 
-    pageID := "DownloadPage"
+    pageID := "c969c9455d7c4dd79c7f860f3ace6429"
     page, err := notionapi.DownloadPage(pageID)
     if err != nil {
         log.Fatalf("DownloadPage() failed with %s\n", err)
