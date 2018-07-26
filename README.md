@@ -32,12 +32,12 @@ import (
     "github.com/kjk/notionapi"
 )
 
-    pageID := "c969c9455d7c4dd79c7f860f3ace6429"
-    pageInfo, err := notionapi.GetPageInfo(pageID)
+    pageID := "DownloadPage"
+    page, err := notionapi.DownloadPage(pageID)
     if err != nil {
-        log.Fatalf("GetPageInfo() failed with %s\n", err)
+        log.Fatalf("DownloadPage() failed with %s\n", err)
     }
-    // look at pageInfo.Page to see structured content
+    // look at page.Page to see structured content
 ```
 
 You can see a full example that adds recursive downloading of pages, caching etc. at https://github.com/kjk/blog/blob/master/notion_import.go

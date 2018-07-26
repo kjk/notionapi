@@ -191,9 +191,9 @@ func genBlocksHTML(f io.Writer, parent *notionapi.Block, level int) {
 	}
 }
 
-func genHTML(pageID string, pageInfo *notionapi.PageInfo) []byte {
+func genHTML(pageID string, page *notionapi.Page) []byte {
 	f := &bytes.Buffer{}
-	title := pageInfo.Page.Title
+	title := page.Root.Title
 	title = template.HTMLEscapeString(title)
 	fmt.Fprintf(f, `<!doctype html>
 <html>
@@ -205,29 +205,29 @@ func genHTML(pageID string, pageInfo *notionapi.PageInfo) []byte {
 	</head>
 	<body>`, title)
 
-	page := pageInfo.Page
-	genHTMLTitle(f, page)
-	genBlocksHTML(f, page, 0)
+	root := page.Root
+	genHTMLTitle(f, root)
+	genBlocksHTML(f, root, 0)
 	fmt.Fprintf(f, "</body>\n</html>\n")
 	return f.Bytes()
 }
 
-func getPageInfoCached(pageID string) (*notionapi.PageInfo, error) {
-	var pageInfo notionapi.PageInfo
+func downloadPageCached(pageID string) (*notionapi.Page, error) {
+	var page notionapi.Page
 	cachedPath := filepath.Join("cache", pageID+".json")
 	if useCache {
 		d, err := ioutil.ReadFile(cachedPath)
 		if err == nil {
-			err = json.Unmarshal(d, &pageInfo)
+			err = json.Unmarshal(d, &page)
 			if err == nil {
 				fmt.Printf("Got data for pageID %s from cache file %s\n", pageID, cachedPath)
-				return &pageInfo, nil
+				return &page, nil
 			}
 			// not a fatal error, just a warning
 			fmt.Printf("json.Unmarshal() on '%s' failed with %s\n", cachedPath, err)
 		}
 	}
-	res, err := notionapi.GetPageInfo(pageID)
+	res, err := notionapi.DownloadPage(pageID)
 	if err != nil {
 		return nil, err
 	}
@@ -245,20 +245,20 @@ func getPageInfoCached(pageID string) (*notionapi.PageInfo, error) {
 	return res, nil
 }
 
-func toHTML(pageID, path string) (*notionapi.PageInfo, error) {
+func toHTML(pageID, path string) (*notionapi.Page, error) {
 	fmt.Printf("toHTML: pageID=%s, path=%s\n", pageID, path)
 	lf, _ := openLogFileForPageID(pageID)
 	if lf != nil {
 		defer lf.Close()
 	}
-	pageInfo, err := getPageInfoCached(pageID)
+	page, err := downloadPageCached(pageID)
 	if err != nil {
-		fmt.Printf("getPageInfoCached('%s') failed with %s\n", pageID, err)
+		fmt.Printf("downloadPageCached('%s') failed with %s\n", pageID, err)
 		return nil, err
 	}
-	d := genHTML(pageID, pageInfo)
+	d := genHTML(pageID, page)
 	err = ioutil.WriteFile(path, d, 0644)
-	return pageInfo, err
+	return page, err
 }
 
 func findSubPageIDs(blocks []*notionapi.Block) []string {
@@ -363,12 +363,12 @@ func main() {
 			name = "index.html"
 		}
 		path := filepath.Join("www", name)
-		pageInfo, err := toHTML(id, path)
+		page, err := toHTML(id, path)
 		if err != nil {
 			fmt.Printf("toHTML('%s') failed with %s\n", id, err)
 		}
 		if flgRecursive {
-			subPages := findSubPageIDs(pageInfo.Page.Content)
+			subPages := findSubPageIDs(page.Root.Content)
 			toVisit = append(toVisit, subPages...)
 		}
 		firstPage = false

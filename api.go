@@ -38,10 +38,11 @@ var (
 	HTTPIntercept HTTPInterceptor
 )
 
-// PageInfo describes a single Notion page
-type PageInfo struct {
-	ID   string
-	Page *Block
+// Page describes a single Notion page
+type Page struct {
+	ID string
+	// Root is a root block representing a page
+	Root *Block
 	// Users allows to find users that Page refers to by their ID
 	Users  []*User
 	Tables []*Table
@@ -392,10 +393,10 @@ func findMissingBlocks(startIds []string, idToBlock map[string]*Block, blocksToS
 	return missing
 }
 
-// GetPageInfo returns Noion page data given its id
-func GetPageInfo(pageID string) (*PageInfo, error) {
+// DownloadPage returns Noion page data given its id
+func DownloadPage(pageID string) (*Page, error) {
 	// TODO: validate pageID?
-	var pageInfo PageInfo
+	var page Page
 	{
 		recVals, err := apiGetRecordValues([]string{pageID})
 		if err != nil {
@@ -407,8 +408,8 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 			return nil, fmt.Errorf("Couldn't retrieve page with id %s", pageID)
 		}
 		pageID = res.Value.ID
-		pageInfo.ID = pageID
-		pageInfo.Page = recVals.Results[0].Value
+		page.ID = pageID
+		page.Root = recVals.Results[0].Value
 	}
 
 	idToBlock := map[string]*Block{}
@@ -447,7 +448,7 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 		}
 
 		cursor := rsp.Cursor
-		//dbg("GetPageInfo: len(cursor.Stack)=%d\n", len(cursor.Stack))
+		//dbg("GetPaDownloadPagegeInfo: len(cursor.Stack)=%d\n", len(cursor.Stack))
 		if len(cursor.Stack) == 0 {
 			break
 		}
@@ -457,11 +458,11 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 	// get blocks that are not already loaded
 	missingIter := 1
 	for {
-		missing := findMissingBlocks(pageInfo.Page.ContentIDs, idToBlock, blocksToSkip)
+		missing := findMissingBlocks(page.Root.ContentIDs, idToBlock, blocksToSkip)
 		if len(missing) == 0 {
 			break
 		}
-		dbg("GetPageInfo: %d missing blocks in iteration %d\n", len(missing), missingIter)
+		dbg("DownloadPage: %d missing blocks in iteration %d\n", len(missing), missingIter)
 		missingIter++
 
 		// the API worked even with 6k items, but I'll split it into many
@@ -504,24 +505,15 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 	}
 
 	for _, v := range idToUser {
-		pageInfo.Users = append(pageInfo.Users, v)
+		page.Users = append(page.Users, v)
 	}
 
-	/*
-		for _, v := range idToCollection {
-			pageInfo.Collections = append(pageInfo.Collections, v)
-		}
-		for _, v := range idToCollectionView {
-			pageInfo.CollectionViews = append(pageInfo.CollectionViews, v)
-		}
-	*/
-
-	err := resolveBlocks(pageInfo.Page, idToBlock)
+	err := resolveBlocks(page.Root, idToBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, block := range pageInfo.Page.Content {
+	for _, block := range page.Root.Content {
 		if block.Type != BlockCollectionView {
 			continue
 		}
@@ -529,13 +521,13 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 			return nil, fmt.Errorf("collection_view has no ViewIDs")
 		}
 		// TODO: should fish out the user based on block.CreatedBy
-		if len(pageInfo.Users) == 0 {
+		if len(page.Users) == 0 {
 			return nil, fmt.Errorf("no users when trying to resolve collection_view")
 		}
 
 		collectionID := block.CollectionID
 		for _, collectionViewID := range block.ViewIDs {
-			user := pageInfo.Users[0]
+			user := page.Users[0]
 			collectionView, ok := idToCollectionView[collectionViewID]
 			if !ok {
 				return nil, fmt.Errorf("Didn't find collection_view with id '%s'", collectionViewID)
@@ -564,5 +556,5 @@ func GetPageInfo(pageID string) (*PageInfo, error) {
 			block.CollectionViews = append(block.CollectionViews, collInfo)
 		}
 	}
-	return &pageInfo, nil
+	return &page, nil
 }
