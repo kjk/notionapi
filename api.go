@@ -259,6 +259,12 @@ func parseFormat(block *Block) error {
 		if err == nil {
 			block.FormatText = &format
 		}
+	case BlockVideo:
+		var format FormatVideo
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatVideo = &format
+		}
 	}
 
 	if err != nil {

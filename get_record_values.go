@@ -106,6 +106,7 @@ type Block struct {
 	FormatColumn   *FormatColumn   `json:"format_column,omitempty"`
 	FormatText     *FormatText     `json:"format_text,omitempty"`
 	FormatTable    *FormatTable    `json:"format_table,omitempty"`
+	FormatVideo    *FormatVideo    `json:"format_video,omitempt"`
 }
 
 // CollectionViewInfo describes a particular view of the collection
@@ -184,6 +185,17 @@ type FormatImage struct {
 
 	// calculated by us
 	ImageURL string `json:"image_url,omitempty"`
+}
+
+// FormatVideo describes fromat form TypeVideo
+type FormatVideo struct {
+	BlockWidth         int64   `json:"block_width"`
+	BlockHeight        int64   `json:"block_height"`
+	DisplaySource      string  `json:"display_source"`
+	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockPageWidth     bool    `json:"block_page_width"`
+	BlockAspectRatio   float64 `json:"block_aspect_ratio"`
+	BlockPreserveScale bool    `json:"block_preserve_scale"`
 }
 
 // FormatText describes format for TypeText
