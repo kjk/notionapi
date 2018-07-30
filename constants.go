@@ -47,6 +47,8 @@ const (
 	BlockTable = "table"
 	// BlockCollectionView is a collection view block
 	BlockCollectionView = "collection_view"
+	// BlockVideo is youtube video embed
+	BlockVideo = "video"
 )
 
 // for CollectionColumnInfo.Type
