@@ -106,7 +106,7 @@ type Block struct {
 	FormatColumn   *FormatColumn   `json:"format_column,omitempty"`
 	FormatText     *FormatText     `json:"format_text,omitempty"`
 	FormatTable    *FormatTable    `json:"format_table,omitempty"`
-	FormatVideo    *FormatVideo    `json:"format_video,omitempt"`
+	FormatVideo    *FormatVideo    `json:"format_video,omitempty"`
 }
 
 // CollectionViewInfo describes a particular view of the collection
