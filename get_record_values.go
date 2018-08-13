@@ -83,10 +83,11 @@ type Block struct {
 	Description string `json:"description,omitempty"`
 	Link        string `json:"link,omitempty"`
 
-	// for BlockGist it's the url for the gist
 	// for BlockBookmark it's the url of the page
+	// for BlockGist it's the url for the gist
 	// fot BlockImage it's url of the image, but use ImageURL instead
 	// because Source is sometimes not accessible
+	// for BlockFile it's url of the file
 	Source string `json:"source,omitempty"`
 
 	// for BlockImage it's

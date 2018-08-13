@@ -130,6 +130,19 @@ func getFirstInlineBlock(v interface{}) (string, error) {
 	return getFirstInline(inline), nil
 }
 
+func getProp(block *Block, name string, toSet *string) bool {
+	v, ok := block.Properties[name]
+	if !ok {
+		return false
+	}
+	s, err := getFirstInlineBlock(v)
+	if err != nil {
+		return false
+	}
+	*toSet = s
+	return true
+}
+
 func parseProperties(block *Block) error {
 	var err error
 	props := block.Properties
@@ -155,40 +168,20 @@ func parseProperties(block *Block) error {
 		}
 	}
 
-	if description, ok := props["description"]; ok {
-		// for TypeBookmark
-		block.Description, err = getFirstInlineBlock(description)
-		if err != nil {
-			return err
-		}
-	}
+	// for TypeBookmark
+	getProp(block, "description", &block.Description)
+	// for TypeBookmark
+	getProp(block, "link", &block.Link)
 
-	if link, ok := props["link"]; ok {
-		// for TypeBookmark
-		block.Link, err = getFirstInlineBlock(link)
-		if err != nil {
-			return err
-		}
-	}
-
-	if source, ok := props["source"]; ok {
-		// for TypeBookmark, TypeImage, TypeGist
-		block.Source, err = getFirstInlineBlock(source)
-		if err != nil {
-			return err
-		}
-
+	// for TypeBookmark, TypeImage, TypeGist, TypeFile
+	if ok := getProp(block, "source", &block.Source); ok {
 		if block.IsImage() {
 			block.ImageURL = makeImageURL(block.Source)
 		}
 	}
 
-	if language, ok := props["language"]; ok {
-		block.CodeLanguage, err = getFirstInlineBlock(language)
-		if err != nil {
-			return err
-		}
-	}
+	// for TypeCode
+	getProp(block, "language", &block.CodeLanguage)
 
 	return nil
 }

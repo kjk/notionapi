@@ -49,6 +49,8 @@ const (
 	BlockCollectionView = "collection_view"
 	// BlockVideo is youtube video embed
 	BlockVideo = "video"
+	// BlockFile is an embedded file
+	BlockFile = "file"
 )
 
 // for CollectionColumnInfo.Type
