@@ -68,6 +68,7 @@ type Block struct {
 	ViewIDs []string `json:"view_ids,omitempty"`
 
 	// Values calculated by us
+
 	// maps ContentIDs array
 	Content []*Block `json:"content_resolved,omitempty"`
 	// this is for some types like TypePage, TypeText, TypeHeader etc.
@@ -90,7 +91,10 @@ type Block struct {
 	// for BlockFile it's url of the file
 	Source string `json:"source,omitempty"`
 
-	// for BlockImage it's
+	// for BlockFile
+	FileSize string `json:"file_size,omitempty"`
+
+	// for BlockImage it's an URL built from Source that is always accessible
 	ImageURL string `json:"image_url,omitempty"`
 
 	// for BlockCode
@@ -169,12 +173,12 @@ type FormatPage struct {
 	PageCoverURL string `json:"page_cover_url,omitempty"`
 }
 
-// FormatBookmark describes format for TypeBookmark
+// FormatBookmark describes format for BlockBookmark
 type FormatBookmark struct {
 	BookmarkIcon string `json:"bookmark_icon"`
 }
 
-// FormatImage describes format for TypeImage
+// FormatImage describes format for BlockImage
 type FormatImage struct {
 	// comes from notion API
 	BlockAspectRatio   float64 `json:"block_aspect_ratio"`

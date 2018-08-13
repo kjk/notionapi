@@ -168,20 +168,28 @@ func parseProperties(block *Block) error {
 		}
 	}
 
-	// for TypeBookmark
+	// for BlockBookmark
 	getProp(block, "description", &block.Description)
-	// for TypeBookmark
+	// for BlockBookmark
 	getProp(block, "link", &block.Link)
 
-	// for TypeBookmark, TypeImage, TypeGist, TypeFile
-	if ok := getProp(block, "source", &block.Source); ok {
-		if block.IsImage() {
-			block.ImageURL = makeImageURL(block.Source)
-		}
+	// for BlockBookmark, BlockImage, BlockGist, BlockFile
+	// don't over-write if was already set from "source" json field
+	if block.Source != "" {
+		getProp(block, "source", &block.Source)
 	}
 
-	// for TypeCode
+	if block.Source != "" && block.IsImage() {
+		block.ImageURL = makeImageURL(block.Source)
+	}
+
+	// for BlockCode
 	getProp(block, "language", &block.CodeLanguage)
+
+	// for BlockFile
+	if block.Type == BlockFile {
+		getProp(block, "size", &block.FileSize)
+	}
 
 	return nil
 }
@@ -209,7 +217,7 @@ func makeImageURL(uri string) string {
 
 func parseFormat(block *Block) error {
 	if len(block.FormatRaw) == 0 {
-		// TODO: maybe if TypePage, set to default &FormatPage{}
+		// TODO: maybe if BlockPage, set to default &FormatPage{}
 		return nil
 	}
 	var err error
@@ -272,7 +280,7 @@ func normalizeID(s string) string {
 	return strings.Replace(s, "-", "", -1)
 }
 
-// TODO: non-recusrive version of revolveBlocks but doesn't work?
+// TODO: non-recursive version of revolveBlocks but doesn't work?
 func resolveBlocks2(block *Block, idToBlock map[string]*Block) error {
 	resolved := map[string]struct{}{}
 
