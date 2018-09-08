@@ -173,7 +173,7 @@ func parseProperties(block *Block) error {
 	// for BlockBookmark
 	getProp(block, "link", &block.Link)
 
-	// for BlockBookmark, BlockImage, BlockGist, BlockFile
+	// for BlockBookmark, BlockImage, BlockGist, BlockFile, BlockEmbed
 	// don't over-write if was already set from "source" json field
 	if block.Source != "" {
 		getProp(block, "source", &block.Source)
@@ -265,6 +265,12 @@ func parseFormat(block *Block) error {
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
 			block.FormatVideo = &format
+		}
+	case BlockEmbed:
+		var format FormatEmbed
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatEmbed = &format
 		}
 	}
 

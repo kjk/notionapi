@@ -89,6 +89,7 @@ type Block struct {
 	// fot BlockImage it's url of the image, but use ImageURL instead
 	// because Source is sometimes not accessible
 	// for BlockFile it's url of the file
+	// for BlockEmbed it's url of the embed
 	Source string `json:"source,omitempty"`
 
 	// for BlockFile
@@ -112,6 +113,7 @@ type Block struct {
 	FormatText     *FormatText     `json:"format_text,omitempty"`
 	FormatTable    *FormatTable    `json:"format_table,omitempty"`
 	FormatVideo    *FormatVideo    `json:"format_video,omitempty"`
+	FormatEmbed    *FormatEmbed    `json:"format_embed,omitempty"`
 }
 
 // CollectionViewInfo describes a particular view of the collection
@@ -192,7 +194,7 @@ type FormatImage struct {
 	ImageURL string `json:"image_url,omitempty"`
 }
 
-// FormatVideo describes fromat form TypeVideo
+// FormatVideo describes fromat form BlockVideo
 type FormatVideo struct {
 	BlockWidth         int64   `json:"block_width"`
 	BlockHeight        int64   `json:"block_height"`
@@ -203,13 +205,13 @@ type FormatVideo struct {
 	BlockPreserveScale bool    `json:"block_preserve_scale"`
 }
 
-// FormatText describes format for TypeText
+// FormatText describes format for BlockText
 // TODO: possibly more?
 type FormatText struct {
 	BlockColor *string `json:"block_color,omitempty"`
 }
 
-// FormatTable describes format for TypeTable
+// FormatTable describes format for BlockTable
 type FormatTable struct {
 	TableWrap       bool             `json:"table_wrap"`
 	TableProperties []*TableProperty `json:"table_properties"`
@@ -222,9 +224,18 @@ type TableProperty struct {
 	Property string `json:"property"`
 }
 
-// FormatColumn describes format for TypeColumn
+// FormatColumn describes format for BlockColumn
 type FormatColumn struct {
 	ColumnRation float64 `json:"column_ratio"` // e.g. 0.5 for half-sized column
+}
+
+// FormatEmbed describes format for BlockEmbed
+type FormatEmbed struct {
+	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockHeight        float64 `json:"block_height"`
+	BlockPageWidth     bool    `json:"block_page_width"`
+	BlockPreserveScale bool    `json:"block_preserve_scale"`
+	DisplaySource      string  `json:"display_source"`
 }
 
 // Permission describes user permissions

@@ -51,6 +51,8 @@ const (
 	BlockVideo = "video"
 	// BlockFile is an embedded file
 	BlockFile = "file"
+	// BlockEmbed is a generic oembed link
+	BlockEmbed = "embed"
 )
 
 // for CollectionColumnInfo.Type
