@@ -6,7 +6,7 @@ It allows you to retrieve content of a public Notion page in structured format.
 
 You can then convert that format to HTML.
 
-API docs: https://godoc.org/github.com/kjk/notion
+API docs: https://godoc.org/github.com/kjk/notionapi
 
 You can learn how [I reverse-engineered the API](https://blog.kowalczyk.info/article/88aee8f43620471aa9dbcad28368174c/how-i-reverse-engineered-notion-api.html).
 
