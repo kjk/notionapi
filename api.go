@@ -281,9 +281,23 @@ func parseFormat(block *Block) error {
 	return nil
 }
 
-// convert 2131b10c-ebf6-4938-a127-7089ff02dbe4 to 2131b10cebf64938a1277089ff02dbe4
-func normalizeID(s string) string {
-	return strings.Replace(s, "-", "", -1)
+var segments = []int{8, 4, 4, 4}
+
+// NormalizeID converts 2131b10cebf64938a1277089ff02dbe4
+// 2131b10c-ebf6-4938-a127-7089ff02dbe4
+func NormalizeID(s string) string {
+	s = strings.Replace(s, "-", "", -1)
+	if len(s) != 32 {
+		return s
+	}
+	var parts []string
+	for _, n := range segments {
+		part := s[0:n]
+		s = s[n:]
+		parts = append(parts, part)
+	}
+	parts = append(parts, s)
+	return strings.Join(parts, "-")
 }
 
 // TODO: non-recursive version of revolveBlocks but doesn't work?
@@ -295,7 +309,7 @@ func resolveBlocks2(block *Block, idToBlock map[string]*Block) error {
 	for len(toResolve) > 0 {
 		block := toResolve[0]
 		toResolve = toResolve[1:]
-		id := normalizeID(block.ID)
+		id := NormalizeID(block.ID)
 		if _, ok := resolved[id]; ok {
 			continue
 		}
@@ -409,6 +423,7 @@ func findMissingBlocks(startIds []string, idToBlock map[string]*Block, blocksToS
 // DownloadPage returns Noion page data given its id
 func DownloadPage(pageID string) (*Page, error) {
 	// TODO: validate pageID?
+	pageID = NormalizeID(pageID)
 	var page Page
 	{
 		recVals, err := apiGetRecordValues([]string{pageID})

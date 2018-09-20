@@ -149,7 +149,7 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 			cls = "page-link"
 		}
 		title := template.HTMLEscapeString(block.Title)
-		url := normalizeID(id) + ".html"
+		url := notionapi.NormalizeID(id) + ".html"
 		html := fmt.Sprintf(`<div class="%s%s"><a href="%s">%s</a></div>`, cls, levelCls, url, title)
 		fmt.Fprintf(f, "%s\n", html)
 	case notionapi.BlockCode:
@@ -173,11 +173,6 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 		fmt.Printf("Unsupported block type '%s', id: %s\n", block.Type, block.ID)
 		panic(fmt.Sprintf("Unsupported block type '%s'", block.Type))
 	}
-}
-
-// convert 2131b10c-ebf6-4938-a127-7089ff02dbe4 to 2131b10cebf64938a1277089ff02dbe4
-func normalizeID(s string) string {
-	return strings.Replace(s, "-", "", -1)
 }
 
 func genBlocksHTML(f io.Writer, parent *notionapi.Block, level int) {
@@ -314,8 +309,8 @@ func parseCmdFlags() {
 		if n > 1 {
 			id = parts[n-1]
 		}
-		id = normalizeID(id)
-		if len(id) != 32 {
+		id = notionapi.NormalizeID(id)
+		if len(id) != 36 {
 			fmt.Printf("Id '%s' extracted from '%s' doesn't look like a valid Notion page id\n", id, arg)
 			usageAndExit()
 		}
@@ -353,7 +348,7 @@ func main() {
 	for len(toVisit) > 0 {
 		pageID := toVisit[0]
 		toVisit = toVisit[1:]
-		id := normalizeID(pageID)
+		id := notionapi.NormalizeID(pageID)
 		if _, ok := seen[id]; ok {
 			continue
 		}
