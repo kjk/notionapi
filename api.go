@@ -35,6 +35,8 @@ type HTTPInterceptor interface {
 
 // Client is client for invoking Notion API
 type Client struct {
+	// AuthToken allows accessing non-public pages.
+	AuthToken string
 	// HTTPClient allows over-riding http.Client
 	HTTPClient *http.Client
 	// HTTPIntercept allows intercepting http requests
@@ -87,7 +89,9 @@ func doNotionAPI(client *Client, apiURL string, requestData interface{}, parseFn
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept-Language", acceptLang)
-
+	if client.AuthToken != "" {
+		req.Header.Set("cookie", fmt.Sprintf("token=%v", client.AuthToken))
+	}
 	var rsp *http.Response
 	if client.HTTPIntercept != nil {
 		rsp = client.HTTPIntercept.OnRequest(req)
