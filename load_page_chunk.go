@@ -18,19 +18,36 @@ type stack struct {
 	Index int    `json:"index"`
 }
 
-// /api/v3/loadPageChunk response
+// LoadPageChunkResponse is a response to /api/v3/loadPageChunk api
 type LoadPageChunkResponse struct {
 	RecordMap RecordMap `json:"recordMap"`
 	Cursor    cursor    `json:"cursor"`
 }
 
+// RecordMap contains a collections of blocks, a space, users, and collections.
 type RecordMap struct {
 	Blocks          map[string]*BlockWithRole          `json:"block"`
-	Space           map[string]interface{}             `json:"space"` // TODO: figure out the type
-	Users           map[string]*notionUserInfo         `json:"notion_user"`
+	Space           map[string]*SpaceWithRole          `json:"space"`
+	Users           map[string]*UserWithRole           `json:"notion_user"`
 	Collections     map[string]*CollectionWithRole     `json:"collection"`
 	CollectionViews map[string]*CollectionViewWithRole `json:"collection_view"`
 	// TDOO: there might be more records types
+}
+
+// SpaceWithRole holds a user's role associated with a space and a space.
+type SpaceWithRole struct {
+	Role  string `json:"role,omitempty"`
+	Value *Space `json:"value,omitempty"`
+}
+
+// Space is a notion.so workspace.
+type Space struct {
+	ID          string        `json:"id"`
+	Version     float64       `json:"version"`
+	Name        string        `json:"name"`
+	BetaEnabled bool          `json:"beta_enabled"`
+	Permissions *[]Permission `json:"permissions,omitempty"`
+	Pages       []string      `json:"pages,omitempty"`
 }
 
 // CollectionViewWithRole describes a role and a collection view
@@ -116,7 +133,8 @@ type CollectionColumnOption struct {
 	Value string `json:"value"`
 }
 
-type notionUserInfo struct {
+// UserWithRole describes a user and its role
+type UserWithRole struct {
 	Role  string `json:"role"`
 	Value *User  `json:"value"`
 }
