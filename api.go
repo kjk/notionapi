@@ -300,50 +300,6 @@ func NormalizeID(s string) string {
 	return strings.Join(parts[:], "-")
 }
 
-// TODO: non-recursive version of revolveBlocks but doesn't work?
-func resolveBlocks2(block *Block, idToBlock map[string]*Block) error {
-	resolved := map[string]struct{}{}
-
-	toResolve := []*Block{block}
-
-	for len(toResolve) > 0 {
-		block := toResolve[0]
-		toResolve = toResolve[1:]
-		id := NormalizeID(block.ID)
-		if _, ok := resolved[id]; ok {
-			continue
-		}
-		resolved[id] = struct{}{}
-
-		err := parseProperties(block)
-		if err != nil {
-			return err
-		}
-
-		n := len(block.ContentIDs)
-		if n == 0 {
-			continue
-		}
-		block.Content = make([]*Block, n, n)
-		for i, id := range block.ContentIDs {
-			b := idToBlock[id]
-			if b == nil {
-				return fmt.Errorf("Couldn't resolve block with id '%s'", id)
-			}
-			block.Content[i] = b
-			skip := false
-			switch b.Type {
-			case BlockPage:
-				skip = true
-			}
-			if !skip {
-				toResolve = append(toResolve, b)
-			}
-		}
-	}
-	return nil
-}
-
 func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
 	err := parseProperties(block)
 	if err != nil {
