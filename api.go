@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -24,7 +25,7 @@ type HTTPInterceptor interface {
 	// OnRequest is called before http request is sent tot he server
 	// If it returns non-nil response, it'll be used instead of sending
 	// a request to the server
-	OnReqeust(*http.Request) *http.Response
+	OnRequest(*http.Request) *http.Response
 	// OnResponse is called after getting a response from the server
 	// to allow e.g. caching of responses
 	// Only called if the request was sent to the server (i.e. doesn't come
@@ -32,11 +33,19 @@ type HTTPInterceptor interface {
 	OnResponse(*http.Response)
 }
 
-var (
+// Client is client for invoking Notion API
+type Client struct {
+	// HTTPClient allows over-riding http.Client
+	HTTPClient *http.Client
 	// HTTPIntercept allows intercepting http requests
 	// e.g. to implement caching
 	HTTPIntercept HTTPInterceptor
-)
+	// Logger is used to log requests and responses for debugging.
+	// By default is not set.
+	Logger io.Writer
+	// DebugLog enables debug logging
+	DebugLog bool
+}
 
 // Page describes a single Notion page
 type Page struct {
@@ -55,7 +64,7 @@ type Table struct {
 	Data           []*Block
 }
 
-func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) error) error {
+func doNotionAPI(client *Client, apiURL string, requestData interface{}, parseFn func(d []byte) error) error {
 	var js []byte
 	var err error
 	if requestData != nil {
@@ -66,9 +75,9 @@ func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) 
 	}
 	uri := notionHost + apiURL
 	body := bytes.NewBuffer(js)
-	log("POST %s\n", uri)
+	log(client, "POST %s\n", uri)
 	if len(js) > 0 {
-		log("%s\n", string(js))
+		log(client, "%s\n", string(js))
 	}
 
 	req, err := http.NewRequest("POST", uri, body)
@@ -80,37 +89,41 @@ func doNotionAPI(apiURL string, requestData interface{}, parseFn func(d []byte) 
 	req.Header.Set("Accept-Language", acceptLang)
 
 	var rsp *http.Response
-	if HTTPIntercept != nil {
-		rsp = HTTPIntercept.OnReqeust(req)
+	if client.HTTPIntercept != nil {
+		rsp = client.HTTPIntercept.OnRequest(req)
 	}
 
 	realHTTPRequest := false
 	if rsp == nil {
 		realHTTPRequest = true
-		rsp, err = http.DefaultClient.Do(req)
+		httpClient := client.HTTPClient
+		if httpClient == nil {
+			httpClient = http.DefaultClient
+		}
+		rsp, err = httpClient.Do(req)
 	}
 
 	if err != nil {
-		log("http.DefaultClient.Do() failed with %s\n", err)
+		log(client, "http.DefaultClient.Do() failed with %s\n", err)
 		return err
 	}
-	if HTTPIntercept != nil && realHTTPRequest {
-		HTTPIntercept.OnResponse(rsp)
+	if client.HTTPIntercept != nil && realHTTPRequest {
+		client.HTTPIntercept.OnResponse(rsp)
 	}
 	if rsp.StatusCode != 200 {
-		log("Error: status code %d\n", rsp.StatusCode)
+		log(client, "Error: status code %d\n", rsp.StatusCode)
 		return fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
 	}
 	defer rsp.Body.Close()
 	d, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		log("Error: ioutil.ReadAll() failed with %s\n", err)
+		log(client, "Error: ioutil.ReadAll() failed with %s\n", err)
 		return err
 	}
-	logJSON(d)
+	logJSON(client, d)
 	err = parseFn(d)
 	if err != nil {
-		log("Error: json.Unmarshal() failed with %s\n", err)
+		log(client, "Error: json.Unmarshal() failed with %s\n", err)
 	}
 	return err
 }
@@ -285,10 +298,10 @@ var segments = []int{8, 4, 4, 4}
 
 // NormalizeID converts 2131b10cebf64938a1277089ff02dbe4
 // 2131b10c-ebf6-4938-a127-7089ff02dbe4
-func NormalizeID(s string) string {
+func NormalizeID(s string) (string, bool) {
 	s = strings.Replace(s, "-", "", -1)
 	if len(s) != 32 {
-		return s
+		return s, false
 	}
 	var parts [5]string
 	for i, n := range segments {
@@ -297,7 +310,7 @@ func NormalizeID(s string) string {
 		parts[i] = part
 	}
 	parts[4] = s
-	return strings.Join(parts[:], "-")
+	return strings.Join(parts[:], "-"), true
 }
 
 func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
@@ -377,12 +390,16 @@ func findMissingBlocks(startIds []string, idToBlock map[string]*Block, blocksToS
 }
 
 // DownloadPage returns Noion page data given its id
-func DownloadPage(pageID string) (*Page, error) {
-	// TODO: validate pageID?
-	pageID = NormalizeID(pageID)
+func (c *Client) DownloadPage(pageID string) (*Page, error) {
+	normalizedPageID, ok := NormalizeID(pageID)
+	if !ok {
+		return nil, fmt.Errorf("%s is not a valid Notion page id", pageID)
+	}
+	pageID = normalizedPageID
+
 	var page Page
 	{
-		recVals, err := apiGetRecordValues([]string{pageID})
+		recVals, err := apiGetRecordValues(c, []string{pageID})
 		if err != nil {
 			return nil, err
 		}
@@ -404,7 +421,7 @@ func DownloadPage(pageID string) (*Page, error) {
 	blocksToSkip := map[string]struct{}{}
 	var cur *cursor
 	for {
-		rsp, err := apiLoadPageChunk(pageID, cur)
+		rsp, err := apiLoadPageChunk(c, pageID, cur)
 		if err != nil {
 			return nil, err
 		}
@@ -446,7 +463,7 @@ func DownloadPage(pageID string) (*Page, error) {
 		if len(missing) == 0 {
 			break
 		}
-		dbg("DownloadPage: %d missing blocks in iteration %d\n", len(missing), missingIter)
+		dbg(c, "DownloadPage: %d missing blocks in iteration %d\n", len(missing), missingIter)
 		missingIter++
 
 		// the API worked even with 6k items, but I'll split it into many
@@ -461,7 +478,7 @@ func DownloadPage(pageID string) (*Page, error) {
 				missing = nil
 			}
 
-			recVals, err := apiGetRecordValues(toGet)
+			recVals, err := apiGetRecordValues(c, toGet)
 			if err != nil {
 				return nil, err
 			}
@@ -475,9 +492,9 @@ func DownloadPage(pageID string) (*Page, error) {
 					if n > 0 {
 						prevBlock := recVals.Results[n-1]
 						prevBlockID := prevBlock.Value.ID
-						dbg("block is nil at position n = %v with expected id %s. Prev block id: %s\n", n, expectedID, prevBlockID)
+						dbg(c, "block is nil at position n = %v with expected id %s. Prev block id: %s\n", n, expectedID, prevBlockID)
 					} else {
-						dbg("block is nil at position n = %v with expected id %s.\n", n, expectedID)
+						dbg(c, "block is nil at position n = %v with expected id %s.\n", n, expectedID)
 					}
 					continue
 				}
@@ -521,7 +538,7 @@ func DownloadPage(pageID string) (*Page, error) {
 				return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
 			}
 			agg := collectionView.Query.Aggregate
-			res, err := apiQueryCollection(collectionID, collectionViewID, agg, user)
+			res, err := apiQueryCollection(c, collectionID, collectionViewID, agg, user)
 			if err != nil {
 				return nil, err
 			}

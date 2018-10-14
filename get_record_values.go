@@ -245,17 +245,17 @@ type Permission struct {
 	UserID *string `json:"user_id,omitempty"`
 }
 
-func parseGetRecordValues(d []byte) (*getRecordValuesResponse, error) {
+func parseGetRecordValues(client *Client, d []byte) (*getRecordValuesResponse, error) {
 	var rec getRecordValuesResponse
 	err := json.Unmarshal(d, &rec)
 	if err != nil {
-		dbg("parseGetRecordValues: json.Unmarshal() failed with '%s'\n", err)
+		dbg(client, "parseGetRecordValues: json.Unmarshal() failed with '%s'\n", err)
 		return nil, err
 	}
 	return &rec, nil
 }
 
-func apiGetRecordValues(ids []string) (*getRecordValuesResponse, error) {
+func apiGetRecordValues(client *Client, ids []string) (*getRecordValuesResponse, error) {
 	req := &getRecordValuesRequest{}
 
 	for _, id := range ids {
@@ -270,10 +270,10 @@ func apiGetRecordValues(ids []string) (*getRecordValuesResponse, error) {
 	var rsp *getRecordValuesResponse
 	parse1 := func(d []byte) error {
 		var err error
-		rsp, err = parseGetRecordValues(d)
+		rsp, err = parseGetRecordValues(client, d)
 		return err
 	}
-	err := doNotionAPI(apiURL, req, parse1)
+	err := doNotionAPI(client, apiURL, req, parse1)
 	if err != nil {
 		return nil, err
 	}

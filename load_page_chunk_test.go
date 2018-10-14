@@ -127,7 +127,8 @@ const (
 )
 
 func TestLoadPageChunk1(t *testing.T) {
-	res, err := parseLoadPageChunk([]byte(loadPageJSON1))
+	client := &Client{}
+	res, err := parseLoadPageChunk(client, []byte(loadPageJSON1))
 	assert.NoError(t, err)
 	blocks := res.RecordMap.Blocks
 	assert.Equal(t, 3, len(blocks))

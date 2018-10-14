@@ -33,11 +33,10 @@ func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
 		fmt.Printf("os.Create('%s') failed with %s\n", path, err)
 		return nil, err
 	}
-	notionapi.Logger = f
 	return f, nil
 }
 
-func downloadPageCached(pageID string) (*notionapi.Page, error) {
+func downloadPageCached(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
 	var page notionapi.Page
 	cachedPath := filepath.Join(cacheDir, pageID+".json")
 	if useCache {
@@ -52,7 +51,7 @@ func downloadPageCached(pageID string) (*notionapi.Page, error) {
 			fmt.Printf("json.Unmarshal() on '%s' failed with %s\n", cachedPath, err)
 		}
 	}
-	res, err := notionapi.DownloadPage(pageID)
+	res, err := client.DownloadPage(pageID)
 	if err != nil {
 		return nil, err
 	}
@@ -70,12 +69,15 @@ func downloadPageCached(pageID string) (*notionapi.Page, error) {
 	return res, nil
 }
 
-func dl(pageID string) (*notionapi.Page, error) {
-	lf, _ := openLogFileForPageID(pageID)
-	if lf != nil {
-		defer lf.Close()
+func dl(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
+	client.Logger, _ = openLogFileForPageID(pageID)
+	if client.Logger != nil {
+		defer func() {
+			f := client.Logger.(*os.File)
+			f.Close()
+		}()
 	}
-	page, err := downloadPageCached(pageID)
+	page, err := downloadPageCached(client, pageID)
 	if err != nil {
 		fmt.Printf("downloadPageCached('%s') failed with %s\n", pageID, err)
 		return nil, err
@@ -94,8 +96,10 @@ func main() {
 	os.MkdirAll(cacheDir, 0755)
 
 	pageID := os.Args[1]
-	notionapi.DebugLog = true
-	_, err := dl(pageID)
+	client := &notionapi.Client{
+		DebugLog: true,
+	}
+	_, err := dl(client, pageID)
 	if err != nil {
 		fmt.Printf("dl failed with %s\n", err)
 	} else {

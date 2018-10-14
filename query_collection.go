@@ -60,17 +60,17 @@ type AggregationResult struct {
 	Value int64  `json:"value"`
 }
 
-func parseQueryCollectionRequest(d []byte) (*queryCollectionResponse, error) {
+func parseQueryCollectionRequest(client *Client, d []byte) (*queryCollectionResponse, error) {
 	var rsp queryCollectionResponse
 	err := json.Unmarshal(d, &rsp)
 	if err != nil {
-		dbg("parseQueryCollectionRequest: json.Unmarshal() failed with '%s'\n", err)
+		dbg(client, "parseQueryCollectionRequest: json.Unmarshal() failed with '%s'\n", err)
 		return nil, err
 	}
 	return &rsp, nil
 }
 
-func apiQueryCollection(collectionID, collectionViewID string, aggregateQuery []*AggregateQuery, user *User) (*queryCollectionResponse, error) {
+func apiQueryCollection(client *Client, collectionID, collectionViewID string, aggregateQuery []*AggregateQuery, user *User) (*queryCollectionResponse, error) {
 	req := &queryCollectionRequest{
 		CollectionID:     collectionID,
 		CollectionViewID: collectionViewID,
@@ -90,10 +90,10 @@ func apiQueryCollection(collectionID, collectionViewID string, aggregateQuery []
 	var rsp *queryCollectionResponse
 	parse1 := func(d []byte) error {
 		var err error
-		rsp, err = parseQueryCollectionRequest(d)
+		rsp, err = parseQueryCollectionRequest(client, d)
 		return err
 	}
-	err := doNotionAPI(apiURL, req, parse1)
+	err := doNotionAPI(client, apiURL, req, parse1)
 	if err != nil {
 		return nil, err
 	}

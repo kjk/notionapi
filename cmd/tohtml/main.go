@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,7 +24,6 @@ func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
 		fmt.Printf("os.Create('%s') failed with %s\n", path, err)
 		return nil, err
 	}
-	notionapi.Logger = f
 	return f, nil
 }
 
@@ -149,7 +149,8 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 			cls = "page-link"
 		}
 		title := template.HTMLEscapeString(block.Title)
-		url := notionapi.NormalizeID(id) + ".html"
+		url, _ := notionapi.NormalizeID(id)
+		url += ".html"
 		html := fmt.Sprintf(`<div class="%s%s"><a href="%s">%s</a></div>`, cls, levelCls, url, title)
 		fmt.Fprintf(f, "%s\n", html)
 	case notionapi.BlockCode:
@@ -207,7 +208,7 @@ func genHTML(pageID string, page *notionapi.Page) []byte {
 	return f.Bytes()
 }
 
-func downloadPageCached(pageID string) (*notionapi.Page, error) {
+func downloadPageCached(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
 	var page notionapi.Page
 	cachedPath := filepath.Join("cache", pageID+".json")
 	if useCache {
@@ -222,7 +223,7 @@ func downloadPageCached(pageID string) (*notionapi.Page, error) {
 			fmt.Printf("json.Unmarshal() on '%s' failed with %s\n", cachedPath, err)
 		}
 	}
-	res, err := notionapi.DownloadPage(pageID)
+	res, err := client.DownloadPage(pageID)
 	if err != nil {
 		return nil, err
 	}
@@ -240,13 +241,16 @@ func downloadPageCached(pageID string) (*notionapi.Page, error) {
 	return res, nil
 }
 
-func toHTML(pageID, path string) (*notionapi.Page, error) {
+func toHTML(client *notionapi.Client, pageID, path string) (*notionapi.Page, error) {
 	fmt.Printf("toHTML: pageID=%s, path=%s\n", pageID, path)
-	lf, _ := openLogFileForPageID(pageID)
-	if lf != nil {
-		defer lf.Close()
+	client.Logger, _ = openLogFileForPageID(pageID)
+	if client.Logger != nil {
+		defer func() {
+			lf := client.Logger.(*os.File)
+			lf.Close()
+		}()
 	}
-	page, err := downloadPageCached(pageID)
+	page, err := downloadPageCached(client, pageID)
 	if err != nil {
 		fmt.Printf("downloadPageCached('%s') failed with %s\n", pageID, err)
 		return nil, err
@@ -309,7 +313,7 @@ func parseCmdFlags() {
 		if n > 1 {
 			id = parts[n-1]
 		}
-		id = notionapi.NormalizeID(id)
+		id, _ = notionapi.NormalizeID(id)
 		if len(id) != 36 {
 			fmt.Printf("Id '%s' extracted from '%s' doesn't look like a valid Notion page id\n", id, arg)
 			usageAndExit()
@@ -342,13 +346,18 @@ func main() {
 	os.MkdirAll("cache", 0755)
 	os.MkdirAll("www", 0755)
 
-	notionapi.DebugLog = true
+	client := &notionapi.Client{
+		DebugLog: true,
+	}
 	seen := map[string]struct{}{}
 	firstPage := true
 	for len(toVisit) > 0 {
 		pageID := toVisit[0]
 		toVisit = toVisit[1:]
-		id := notionapi.NormalizeID(pageID)
+		id, ok := notionapi.NormalizeID(pageID)
+		if !ok {
+			log.Fatalf("%s is not a valid Notion page id\n", pageID)
+		}
 		if _, ok := seen[id]; ok {
 			continue
 		}
@@ -358,7 +367,7 @@ func main() {
 			name = "index.html"
 		}
 		path := filepath.Join("www", name)
-		page, err := toHTML(id, path)
+		page, err := toHTML(client, id, path)
 		if err != nil {
 			fmt.Printf("toHTML('%s') failed with %s\n", id, err)
 		}

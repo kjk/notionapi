@@ -3,29 +3,20 @@ package notionapi
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 )
 
-var (
-	// Logger is used to log requests and responses for debugging.
-	// By default is not set.
-	Logger io.Writer
-	// DebugLog enables debug logging
-	DebugLog = false
-)
-
-func dbg(format string, args ...interface{}) {
-	if !DebugLog {
+func dbg(client *Client, format string, args ...interface{}) {
+	if !client.DebugLog {
 		return
 	}
-	fmt.Printf(format, args...)
+	log(client, format, args...)
 }
 
-func log(format string, args ...interface{}) {
-	if Logger == nil {
+func log(client *Client, format string, args ...interface{}) {
+	if client.Logger == nil {
 		return
 	}
-	fmt.Fprintf(Logger, format, args...)
+	fmt.Fprintf(client.Logger, format, args...)
 }
 
 // pretty-print if valid JSON. If not, return unchanged
@@ -43,10 +34,10 @@ func ppJSON(js []byte) []byte {
 }
 
 // log JSON after pretty printing it
-func logJSON(js []byte) {
-	if Logger == nil {
+func logJSON(client *Client, js []byte) {
+	if client.Logger == nil {
 		return
 	}
 	js = ppJSON(js)
-	fmt.Fprintf(Logger, "%s\n", string(js))
+	log(client, "%s\n", string(js))
 }

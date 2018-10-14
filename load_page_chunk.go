@@ -163,17 +163,17 @@ type Reminder struct {
 	Value int64  `json:"value"`
 }
 
-func parseLoadPageChunk(d []byte) (*loadPageChunkResponse, error) {
+func parseLoadPageChunk(client *Client, d []byte) (*loadPageChunkResponse, error) {
 	var rsp loadPageChunkResponse
 	err := json.Unmarshal(d, &rsp)
 	if err != nil {
-		dbg("parseLoadPageChunk: json.Unmarshal() failed with '%s'\n", err)
+		dbg(client, "parseLoadPageChunk: json.Unmarshal() failed with '%s'\n", err)
 		return nil, err
 	}
 	return &rsp, nil
 }
 
-func apiLoadPageChunk(pageID string, cur *cursor) (*loadPageChunkResponse, error) {
+func apiLoadPageChunk(client *Client, pageID string, cur *cursor) (*loadPageChunkResponse, error) {
 	// emulating notion's website api usage: 50 items on first request,
 	// 30 on subsequent requests
 	limit := 30
@@ -194,10 +194,10 @@ func apiLoadPageChunk(pageID string, cur *cursor) (*loadPageChunkResponse, error
 	var rsp *loadPageChunkResponse
 	parse := func(d []byte) error {
 		var err error
-		rsp, err = parseLoadPageChunk(d)
+		rsp, err = parseLoadPageChunk(client, d)
 		return err
 	}
-	err := doNotionAPI(apiURL, req, parse)
+	err := doNotionAPI(client, apiURL, req, parse)
 	if err != nil {
 		return nil, err
 	}

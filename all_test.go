@@ -12,7 +12,7 @@ func TestNormalizeID(t *testing.T) {
 		{"2131b", "2131b"},
 	}
 	for _, test := range tests {
-		got := NormalizeID(test.s)
+		got, _ := NormalizeID(test.s)
 		if got != test.exp {
 			t.Errorf("s: %s got: %s, expected: %s\n", test.s, got, test.exp)
 		}

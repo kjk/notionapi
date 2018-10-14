@@ -39,7 +39,8 @@ const (
 )
 
 func TestGetRecordValues1(t *testing.T) {
-	res, err := parseGetRecordValues([]byte(getRecordValuesJSON1))
+	client := &Client{}
+	res, err := parseGetRecordValues(client, []byte(getRecordValuesJSON1))
 	assert.NoError(t, err)
 	assert.NotNil(t, res.Results)
 	assert.Equal(t, 1, len(res.Results))
