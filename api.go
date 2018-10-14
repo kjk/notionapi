@@ -290,14 +290,14 @@ func NormalizeID(s string) string {
 	if len(s) != 32 {
 		return s
 	}
-	var parts []string
-	for _, n := range segments {
+	var parts [5]string
+	for i, n := range segments {
 		part := s[0:n]
 		s = s[n:]
-		parts = append(parts, part)
+		parts[i] = part
 	}
-	parts = append(parts, s)
-	return strings.Join(parts, "-")
+	parts[4] = s
+	return strings.Join(parts[:], "-")
 }
 
 // TODO: non-recursive version of revolveBlocks but doesn't work?
