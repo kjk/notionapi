@@ -1,9 +1,5 @@
 package notionapi
 
-import (
-	"encoding/json"
-)
-
 // /api/v3/loadPageChunk request
 type loadPageChunkRequest struct {
 	PageID          string `json:"pageId"`
@@ -23,12 +19,12 @@ type stack struct {
 }
 
 // /api/v3/loadPageChunk response
-type loadPageChunkResponse struct {
-	RecordMap recordMap `json:"recordMap"`
+type LoadPageChunkResponse struct {
+	RecordMap RecordMap `json:"recordMap"`
 	Cursor    cursor    `json:"cursor"`
 }
 
-type recordMap struct {
+type RecordMap struct {
 	Blocks          map[string]*BlockWithRole          `json:"block"`
 	Space           map[string]interface{}             `json:"space"` // TODO: figure out the type
 	Users           map[string]*notionUserInfo         `json:"notion_user"`
@@ -163,17 +159,8 @@ type Reminder struct {
 	Value int64  `json:"value"`
 }
 
-func parseLoadPageChunk(client *Client, d []byte) (*loadPageChunkResponse, error) {
-	var rsp loadPageChunkResponse
-	err := json.Unmarshal(d, &rsp)
-	if err != nil {
-		dbg(client, "parseLoadPageChunk: json.Unmarshal() failed with '%s'\n", err)
-		return nil, err
-	}
-	return &rsp, nil
-}
-
-func apiLoadPageChunk(client *Client, pageID string, cur *cursor) (*loadPageChunkResponse, error) {
+// LoadPageChunk executes a raw API call /api/v3/loadPageChunk
+func (c *Client) LoadPageChunk(pageID string, cur *cursor) (*LoadPageChunkResponse, error) {
 	// emulating notion's website api usage: 50 items on first request,
 	// 30 on subsequent requests
 	limit := 30
@@ -191,15 +178,10 @@ func apiLoadPageChunk(client *Client, pageID string, cur *cursor) (*loadPageChun
 		Cursor:          *cur,
 		VerticalColumns: false,
 	}
-	var rsp *loadPageChunkResponse
-	parse := func(d []byte) error {
-		var err error
-		rsp, err = parseLoadPageChunk(client, d)
-		return err
-	}
-	err := doNotionAPI(client, apiURL, req, parse)
+	var rsp LoadPageChunkResponse
+	err := doNotionAPI(c, apiURL, req, &rsp)
 	if err != nil {
 		return nil, err
 	}
-	return rsp, nil
+	return &rsp, nil
 }

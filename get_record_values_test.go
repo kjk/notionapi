@@ -1,6 +1,7 @@
 package notionapi
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,8 +40,8 @@ const (
 )
 
 func TestGetRecordValues1(t *testing.T) {
-	client := &Client{}
-	res, err := parseGetRecordValues(client, []byte(getRecordValuesJSON1))
+	var res GetRecordValuesResponse
+	err := json.Unmarshal([]byte(getRecordValuesJSON1), &res)
 	assert.NoError(t, err)
 	assert.NotNil(t, res.Results)
 	assert.Equal(t, 1, len(res.Results))

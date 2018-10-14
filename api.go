@@ -66,7 +66,7 @@ type Table struct {
 	Data           []*Block
 }
 
-func doNotionAPI(client *Client, apiURL string, requestData interface{}, parseFn func(d []byte) error) error {
+func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) error {
 	var js []byte
 	var err error
 	if requestData != nil {
@@ -77,9 +77,9 @@ func doNotionAPI(client *Client, apiURL string, requestData interface{}, parseFn
 	}
 	uri := notionHost + apiURL
 	body := bytes.NewBuffer(js)
-	log(client, "POST %s\n", uri)
+	log(c, "POST %s\n", uri)
 	if len(js) > 0 {
-		log(client, "%s\n", string(js))
+		log(c, "%s\n", string(js))
 	}
 
 	req, err := http.NewRequest("POST", uri, body)
@@ -89,18 +89,18 @@ func doNotionAPI(client *Client, apiURL string, requestData interface{}, parseFn
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept-Language", acceptLang)
-	if client.AuthToken != "" {
-		req.Header.Set("cookie", fmt.Sprintf("token=%v", client.AuthToken))
+	if c.AuthToken != "" {
+		req.Header.Set("cookie", fmt.Sprintf("token=%v", c.AuthToken))
 	}
 	var rsp *http.Response
-	if client.HTTPIntercept != nil {
-		rsp = client.HTTPIntercept.OnRequest(req)
+	if c.HTTPIntercept != nil {
+		rsp = c.HTTPIntercept.OnRequest(req)
 	}
 
 	realHTTPRequest := false
 	if rsp == nil {
 		realHTTPRequest = true
-		httpClient := client.HTTPClient
+		httpClient := c.HTTPClient
 		if httpClient == nil {
 			httpClient = http.DefaultClient
 		}
@@ -108,26 +108,26 @@ func doNotionAPI(client *Client, apiURL string, requestData interface{}, parseFn
 	}
 
 	if err != nil {
-		log(client, "http.DefaultClient.Do() failed with %s\n", err)
+		log(c, "http.DefaultClient.Do() failed with %s\n", err)
 		return err
 	}
-	if client.HTTPIntercept != nil && realHTTPRequest {
-		client.HTTPIntercept.OnResponse(rsp)
+	if c.HTTPIntercept != nil && realHTTPRequest {
+		c.HTTPIntercept.OnResponse(rsp)
 	}
 	if rsp.StatusCode != 200 {
-		log(client, "Error: status code %d\n", rsp.StatusCode)
+		log(c, "Error: status code %d\n", rsp.StatusCode)
 		return fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
 	}
 	defer rsp.Body.Close()
 	d, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		log(client, "Error: ioutil.ReadAll() failed with %s\n", err)
+		log(c, "Error: ioutil.ReadAll() failed with %s\n", err)
 		return err
 	}
-	logJSON(client, d)
-	err = parseFn(d)
+	logJSON(c, d)
+	err = json.Unmarshal(d, result)
 	if err != nil {
-		log(client, "Error: json.Unmarshal() failed with %s\n", err)
+		log(c, "Error: json.Unmarshal() failed with %s\n", err)
 	}
 	return err
 }
@@ -403,7 +403,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 
 	var page Page
 	{
-		recVals, err := apiGetRecordValues(c, []string{pageID})
+		recVals, err := c.GetRecordValues([]string{pageID})
 		if err != nil {
 			return nil, err
 		}
@@ -425,7 +425,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	blocksToSkip := map[string]struct{}{}
 	var cur *cursor
 	for {
-		rsp, err := apiLoadPageChunk(c, pageID, cur)
+		rsp, err := c.LoadPageChunk(pageID, cur)
 		if err != nil {
 			return nil, err
 		}
@@ -482,7 +482,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				missing = nil
 			}
 
-			recVals, err := apiGetRecordValues(c, toGet)
+			recVals, err := c.GetRecordValues(toGet)
 			if err != nil {
 				return nil, err
 			}
@@ -542,7 +542,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
 			}
 			agg := collectionView.Query.Aggregate
-			res, err := apiQueryCollection(c, collectionID, collectionViewID, agg, user)
+			res, err := c.QueryCollection(collectionID, collectionViewID, agg, user)
 			if err != nil {
 				return nil, err
 			}

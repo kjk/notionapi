@@ -1,7 +1,5 @@
 package notionapi
 
-import "encoding/json"
-
 // /api/v3/queryCollection request
 type queryCollectionRequest struct {
 	CollectionID     string           `json:"collectionId"`
@@ -40,14 +38,14 @@ type CollectionQuery struct {
 	Sort           []interface{} `json:"sort"`
 }
 
-// /api/v3/queryCollection response
-
-type queryCollectionResponse struct {
-	RecordMap recordMap              `json:"recordMap"`
-	Result    *queryCollectionResult `json:"result"`
+// QueryCollectionResponse is json response for /api/v3/queryCollection
+type QueryCollectionResponse struct {
+	RecordMap RecordMap              `json:"recordMap"`
+	Result    *QueryCollectionResult `json:"result"`
 }
 
-type queryCollectionResult struct {
+// QueryCollectionResult is part of response for /api/v3/queryCollection
+type QueryCollectionResult struct {
 	Type               string               `json:"type"`
 	BlockIDS           []string             `json:"blockIds"`
 	AggregationResults []*AggregationResult `json:"aggregationResults"`
@@ -60,17 +58,8 @@ type AggregationResult struct {
 	Value int64  `json:"value"`
 }
 
-func parseQueryCollectionRequest(client *Client, d []byte) (*queryCollectionResponse, error) {
-	var rsp queryCollectionResponse
-	err := json.Unmarshal(d, &rsp)
-	if err != nil {
-		dbg(client, "parseQueryCollectionRequest: json.Unmarshal() failed with '%s'\n", err)
-		return nil, err
-	}
-	return &rsp, nil
-}
-
-func apiQueryCollection(client *Client, collectionID, collectionViewID string, aggregateQuery []*AggregateQuery, user *User) (*queryCollectionResponse, error) {
+// QueryCollection executes a raw API call /api/v3/queryCollection
+func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregateQuery []*AggregateQuery, user *User) (*QueryCollectionResponse, error) {
 	req := &queryCollectionRequest{
 		CollectionID:     collectionID,
 		CollectionViewID: collectionViewID,
@@ -87,15 +76,10 @@ func apiQueryCollection(client *Client, collectionID, collectionViewID string, a
 	}
 
 	apiURL := "/api/v3/queryCollection"
-	var rsp *queryCollectionResponse
-	parse1 := func(d []byte) error {
-		var err error
-		rsp, err = parseQueryCollectionRequest(client, d)
-		return err
-	}
-	err := doNotionAPI(client, apiURL, req, parse1)
+	var rsp QueryCollectionResponse
+	err := doNotionAPI(c, apiURL, req, &rsp)
 	if err != nil {
 		return nil, err
 	}
-	return rsp, nil
+	return &rsp, nil
 }

@@ -1,6 +1,7 @@
 package notionapi
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -127,8 +128,8 @@ const (
 )
 
 func TestLoadPageChunk1(t *testing.T) {
-	client := &Client{}
-	res, err := parseLoadPageChunk(client, []byte(loadPageJSON1))
+	var res LoadPageChunkResponse
+	err := json.Unmarshal([]byte(loadPageJSON1), &res)
 	assert.NoError(t, err)
 	blocks := res.RecordMap.Blocks
 	assert.Equal(t, 3, len(blocks))

@@ -17,7 +17,7 @@ type getRecordValuesRequestInner struct {
 
 // /api/v3/getRecordValues response
 // Note: it depends on Table type in request
-type getRecordValuesResponse struct {
+type GetRecordValuesResponse struct {
 	Results []*BlockWithRole `json:"results"`
 }
 
@@ -245,17 +245,8 @@ type Permission struct {
 	UserID *string `json:"user_id,omitempty"`
 }
 
-func parseGetRecordValues(client *Client, d []byte) (*getRecordValuesResponse, error) {
-	var rec getRecordValuesResponse
-	err := json.Unmarshal(d, &rec)
-	if err != nil {
-		dbg(client, "parseGetRecordValues: json.Unmarshal() failed with '%s'\n", err)
-		return nil, err
-	}
-	return &rec, nil
-}
-
-func apiGetRecordValues(client *Client, ids []string) (*getRecordValuesResponse, error) {
+// GetRecordValues executes a raw API call /api/v3/getRecordValues
+func (c *Client) GetRecordValues(ids []string) (*GetRecordValuesResponse, error) {
 	req := &getRecordValuesRequest{}
 
 	for _, id := range ids {
@@ -267,15 +258,10 @@ func apiGetRecordValues(client *Client, ids []string) (*getRecordValuesResponse,
 	}
 
 	apiURL := "/api/v3/getRecordValues"
-	var rsp *getRecordValuesResponse
-	parse1 := func(d []byte) error {
-		var err error
-		rsp, err = parseGetRecordValues(client, d)
-		return err
-	}
-	err := doNotionAPI(client, apiURL, req, parse1)
+	var rsp GetRecordValuesResponse
+	err := doNotionAPI(c, apiURL, req, &rsp)
 	if err != nil {
 		return nil, err
 	}
-	return rsp, nil
+	return &rsp, nil
 }
