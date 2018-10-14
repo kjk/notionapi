@@ -192,7 +192,7 @@ func parseProperties(block *Block) error {
 
 	// for BlockBookmark, BlockImage, BlockGist, BlockFile, BlockEmbed
 	// don't over-write if was already set from "source" json field
-	if block.Source != "" {
+	if block.Source == "" {
 		getProp(block, "source", &block.Source)
 	}
 
