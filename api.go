@@ -90,7 +90,7 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept-Language", acceptLang)
 	if c.AuthToken != "" {
-		req.Header.Set("cookie", fmt.Sprintf("token=%v", c.AuthToken))
+		req.Header.Set("cookie", fmt.Sprintf("token_v2=%v", c.AuthToken))
 	}
 	var rsp *http.Response
 	if c.HTTPIntercept != nil {
