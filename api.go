@@ -114,11 +114,12 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	if c.HTTPIntercept != nil && realHTTPRequest {
 		c.HTTPIntercept.OnResponse(rsp)
 	}
+	defer rsp.Body.Close()
 	if rsp.StatusCode != 200 {
-		log(c, "Error: status code %d\n", rsp.StatusCode)
+		d, _ := ioutil.ReadAll(rsp.Body)
+		log(c, "Error: status code %s\nBody:\n%s\n", rsp.Status, string(d))
 		return fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
 	}
-	defer rsp.Body.Close()
 	d, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
 		log(c, "Error: ioutil.ReadAll() failed with %s\n", err)
