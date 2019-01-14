@@ -79,7 +79,7 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	body := bytes.NewBuffer(js)
 	log(c, "POST %s\n", uri)
 	if len(js) > 0 {
-		log(c, "%s\n", string(js))
+		logJSON(c, js)
 	}
 
 	req, err := http.NewRequest("POST", uri, body)
@@ -117,7 +117,7 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	defer rsp.Body.Close()
 	if rsp.StatusCode != 200 {
 		d, _ := ioutil.ReadAll(rsp.Body)
-		log(c, "Error: status code %s\nBody:\n%s\n", rsp.Status, string(d))
+		log(c, "Error: status code %s\nBody:\n%s\n", rsp.Status, ppJSON(d))
 		return fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
 	}
 	d, err := ioutil.ReadAll(rsp.Body)
@@ -128,7 +128,7 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	logJSON(c, d)
 	err = json.Unmarshal(d, result)
 	if err != nil {
-		log(c, "Error: json.Unmarshal() failed with %s\n", err)
+		log(c, "Error: json.Unmarshal() failed with %s\n. Body:\n%s\n", err, string(d))
 	}
 	return err
 }
