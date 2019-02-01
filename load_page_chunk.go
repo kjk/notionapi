@@ -3,6 +3,7 @@ package notionapi
 // /api/v3/loadPageChunk request
 type loadPageChunkRequest struct {
 	PageID          string `json:"pageId"`
+	ChunkNumber int `json:"chunkNumber"`
 	Limit           int    `json:"limit"`
 	Cursor          cursor `json:"cursor"`
 	VerticalColumns bool   `json:"verticalColumns"`
@@ -13,9 +14,9 @@ type cursor struct {
 }
 
 type stack struct {
-	Table string `json:"table"`
 	ID    string `json:"id"`
 	Index int    `json:"index"`
+	Table string `json:"table"`
 }
 
 // LoadPageChunkResponse is a response to /api/v3/loadPageChunk api
@@ -178,7 +179,7 @@ type Reminder struct {
 }
 
 // LoadPageChunk executes a raw API call /api/v3/loadPageChunk
-func (c *Client) LoadPageChunk(pageID string, cur *cursor) (*LoadPageChunkResponse, error) {
+func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPageChunkResponse, error) {
 	// emulating notion's website api usage: 50 items on first request,
 	// 30 on subsequent requests
 	limit := 30
@@ -192,6 +193,7 @@ func (c *Client) LoadPageChunk(pageID string, cur *cursor) (*LoadPageChunkRespon
 	}
 	req := &loadPageChunkRequest{
 		PageID:          pageID,
+		ChunkNumber: chunkNo,
 		Limit:           limit,
 		Cursor:          *cur,
 		VerticalColumns: false,

@@ -424,9 +424,11 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	idToUser := map[string]*User{}
 	// not alive or when server doesn't return "value" for this block id
 	blocksToSkip := map[string]struct{}{}
+	chunkNo := 0
 	var cur *cursor
 	for {
-		rsp, err := c.LoadPageChunk(pageID, cur)
+		rsp, err := c.LoadPageChunk(pageID, chunkNo, cur)
+		chunkNo++
 		if err != nil {
 			return nil, err
 		}
