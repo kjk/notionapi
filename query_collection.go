@@ -64,9 +64,11 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregat
 		CollectionID:     collectionID,
 		CollectionViewID: collectionViewID,
 	}
-	req.Query = &CollectionQuery{
-		Aggregate:      aggregateQuery,
-		FilterOperator: "and",
+	if aggregateQuery != nil {
+		req.Query = &CollectionQuery{
+			Aggregate:      aggregateQuery,
+			FilterOperator: "and",
+		}
 	}
 	req.Loader = &Loader{
 		Type:         "table",

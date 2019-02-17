@@ -544,7 +544,10 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			if !ok {
 				return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
 			}
-			agg := collectionView.Query.Aggregate
+			var agg []*AggregateQuery
+			if collectionView.Query != nil {
+				agg = collectionView.Query.Aggregate
+			}
 			res, err := c.QueryCollection(collectionID, collectionViewID, agg, user)
 			if err != nil {
 				return nil, err

@@ -106,7 +106,7 @@ func assert(ok bool, format string, args ...interface{}) {
 }
 
 func main() {
-	fmt.Printf("Runnign page tests\n")
+	fmt.Printf("Running page tests\n")
 	reacreateDir(logDir)
 	reacreateDir(cacheDir)
 
