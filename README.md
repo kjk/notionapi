@@ -2,7 +2,7 @@
 
 This is an unofficial, read-only Go API for https://notion.so
 
-It allows you to retrieve content of a public Notion page in structured format.
+It allows you to retrieve content of a Notion page in structured format.
 
 You can then convert that format to HTML.
 
@@ -18,13 +18,9 @@ You can see the code at https://github.com/kjk/blog
 
 # Usage
 
-This API only support public pages i.e. you have to share the page in Notion UI.
-
-This is becacuse I didn't bother figuring out how to authenticate.
-
 Then you have to know id of the page. It's the last part in Notion URL e.g. https://www.notion.so/Test-page-all-c969c9455d7c4dd79c7f860f3ace6429 has id `c969c9455d7c4dd79c7f860f3ace6429`.
 
-Then you can retrive the page content:
+Then you can retrive the content of public page:
 ```go
 
 import (
@@ -39,6 +35,14 @@ import (
         log.Fatalf("DownloadPage() failed with %s\n", err)
     }
     // look at page.Page to see structured content
+```
+
+To access non-public pages you need to find out access token which the value of `token_v2` cookie. In Chrome open developer tools (Menu `More Tools\Developer Tools`), navigate to `Application` tab, look under `Storage \ Cookies` and copy the value of `token_v2` name.
+
+Then do:
+```
+client := &notionapi.Client{}
+client.AuthToken = "value of token_v2 value"
 ```
 
 You can see a full example that adds recursive downloading of pages, caching etc. at https://github.com/kjk/blog/blob/master/notion_import.go
