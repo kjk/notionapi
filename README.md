@@ -37,6 +37,7 @@ import (
     // look at page.Page to see structured content
 ```
 
+# Accessing non-public pages
 To access non-public pages you need to find out access token which the value of `token_v2` cookie. In Chrome open developer tools (Menu `More Tools\Developer Tools`), navigate to `Application` tab, look under `Storage \ Cookies` and copy the value of `token_v2` name.
 
 Then do:
@@ -44,6 +45,8 @@ Then do:
 client := &notionapi.Client{}
 client.AuthToken = "value of token_v2 value"
 ```
+
+# Examples
 
 You can see a full example that adds recursive downloading of pages, caching etc. at https://github.com/kjk/blog/blob/master/notion_import.go
 
