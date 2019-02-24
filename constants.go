@@ -32,6 +32,8 @@ const (
 	BlockHeader = "header"
 	// BlockSubHeader is a header block
 	BlockSubHeader = "sub_header"
+	// BlockSubSubHeader
+	BlockSubSubHeader = "sub_sub_header"
 	// BlockQuote is a quote block
 	BlockQuote = "quote"
 	// BlockComment is a comment block
