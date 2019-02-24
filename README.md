@@ -4,7 +4,7 @@ This is an unofficial, read-only Go API for https://notion.so
 
 It allows you to retrieve content of a Notion page in structured format.
 
-You can then convert that format to HTML.
+You can then e.g. convert that format to HTML.
 
 API docs: https://godoc.org/github.com/kjk/notionapi
 
@@ -37,10 +37,16 @@ import (
     // look at page.Page to see structured content
 ```
 
-# Accessing non-public pages
-To access non-public pages you need to find out access token which the value of `token_v2` cookie. In Chrome open developer tools (Menu `More Tools\Developer Tools`), navigate to `Application` tab, look under `Storage \ Cookies` and copy the value of `token_v2` name.
 
-Then do:
+# Accessing non-public pages
+
+To access non-public pages you need to find out authentication token. 
+
+Auth token is the value of `token_v2` cookie. 
+
+In Chrome: open developer tools (Menu `More Tools\Developer Tools`), navigate to `Application` tab, look under `Storage \ Cookies` and copy the value of `token_v2` cookie. You can do similar things in other browsers.
+
+Then configure `Client` with access token::
 ```
 client := &notionapi.Client{}
 client.AuthToken = "value of token_v2 value"
@@ -53,3 +59,7 @@ You can see a full example that adds recursive downloading of pages, caching etc
 A page in notion is a tree of blocks of different types. See https://github.com/kjk/notionapi/blob/master/get_record_values.go#L31 for the definition.
 
 To convert Notion page to HTML you can use https://github.com/kjk/blog/blob/master/notion_to_html.go as a template.
+
+# Implemntation for other languages
+
+* https://github.com/jamalex/notion-py : for Python, even has more functionality
