@@ -60,6 +60,6 @@ A page in notion is a tree of blocks of different types. See https://github.com/
 
 To convert Notion page to HTML you can use https://github.com/kjk/blog/blob/master/notion_to_html.go as a template.
 
-# Implemntation for other languages
+# Implementations for other languages
 
 * https://github.com/jamalex/notion-py : for Python, even has more functionality
