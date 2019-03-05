@@ -134,12 +134,16 @@ func testChangeFormat() {
 	}
 	// https://www.notion.so/Test-for-change-title-7e825831be07487e87e756e52914233b
 	pageID := "7e825831be07487e87e756e52914233b"
+	pageID = "0fc3a590ba5f4e128e7c750e8ecc961d"
 	page, err := client.DownloadPage(pageID)
 	if err != nil {
 		fmt.Printf("testChangeFormat: client.DownloadPage() failed with '%s'\n", err)
 		return
 	}
 	origFormat := page.Root.FormatPage
+	if origFormat == nil {
+		origFormat = &notionapi.FormatPage{}
+	}
 	newSmallText := !origFormat.PageSmallText
 	newFullWidth := !origFormat.PageFullWidth
 
