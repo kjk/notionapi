@@ -1,6 +1,6 @@
 # About notionapi
 
-This is an unofficial, Go API for https://notion.so. Limited write capabilities.
+This is an unofficial, Go API for https://notion.so. Mostly for reading, limited write capabilities.
 
 It allows you to retrieve content of a Notion page in structured format.
 
