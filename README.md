@@ -1,6 +1,6 @@
 # About notionapi
 
-This is an unofficial, read-only Go API for https://notion.so
+This is an unofficial, Go API for https://notion.so. Limited write capabilities.
 
 It allows you to retrieve content of a Notion page in structured format.
 
@@ -12,7 +12,9 @@ You can learn how [I reverse-engineered the API](https://blog.kowalczyk.info/art
 
 # Real-life usage
 
-I use this API to publish my [blog](https://blog.kowalczyk.info/). Notion is my CMS where I write and edit all content and I use a custom Go script which uses this library to convert Notion pages to HTML and publish the result to Netlify.
+I use this API to publish my [blog](https://blog.kowalczyk.info/) and series of [programming books](https://www.programming-books.io/). 
+
+Notion is my CMS where I write and edit all content. I use custom Go program which uses this library to convert Notion pages to HTML and publish the result to Netlify.
 
 You can see the code at https://github.com/kjk/blog
 
@@ -51,6 +53,29 @@ Then configure `Client` with access token::
 client := &notionapi.Client{}
 client.AuthToken = "value of token_v2 value"
 ```
+
+# Writing data to Notion
+
+Currently the library has very limited capabilities for writing data to Notion.
+
+You can change page title and change format of the page.
+
+For example, to change page title:
+
+```go
+page, err := client.DownloadPage(pageID)
+if err != nil {
+    log.Fatalf("DownloadPage() failed with %s\n", err)
+}
+err = page.SetTitle("new title")
+if err != nil {
+    log.Fatalf("SetTitle() failed with %s\n", err)
+}
+```
+
+There's no technical reason write capabilities are so limited. We could do everything that Notion does. I just don't need such capability myself.
+
+If you have specific needs, open an issue and describe what write capabilities you need and I'll look into it.
 
 # Examples
 
