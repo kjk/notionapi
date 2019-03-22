@@ -115,23 +115,37 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	return err
 }
 
-var segments = []int{8, 4, 4, 4}
+var (
+    dashIDLen = len("2131b10c-ebf6-4938-a127-7089ff02dbe4")
+    noDashIDLen = len("2131b10cebf64938a1277089ff02dbe4")
+)
 
-// NormalizeID converts 2131b10cebf64938a1277089ff02dbe4
-// 2131b10c-ebf6-4938-a127-7089ff02dbe4
+// NormalizeID is deprecated. Use ToDashID instead.
 func NormalizeID(s string) (string, bool) {
-	s = strings.Replace(s, "-", "", -1)
+    return ToDashID(s), true
+}
+
+// ToNoDashID converts  2131b10c-ebf6-4938-a127-7089ff02dbe4
+// to 2131b10cebf64938a1277089ff02dbe4.
+// If not in expected format, we leave it untouched
+func ToNoDashID(id string) string {
+	s := strings.Replace(id, "-", "", -1)
 	if len(s) != 32 {
-		return s, false
+		return id
 	}
-	var parts [5]string
-	for i, n := range segments {
-		part := s[0:n]
-		s = s[n:]
-		parts[i] = part
+    return s
+}
+
+// ToDashID convert id in format bb760e2dd6794b64b2a903005b21870a
+// to bb760e2d-d679-4b64-b2a9-03005b21870a
+// If id is not in that format, we leave it untouched.
+func ToDashID(id string) string {
+	s := strings.Replace(id, "-", "", -1)
+	if len(s) != noDashIDLen {
+		return id
 	}
-	parts[4] = s
-	return strings.Join(parts[:], "-"), true
+	res := id[:8] + "-" + id[8:12] + "-" + id[12:16] + "-" + id[16:20] + "-" + id[20:]
+	return res
 }
 
 func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
