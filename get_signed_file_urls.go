@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+const (
+	signedURLPrefix    = "https://www.notion.so/signed/"
+	s3URLPrefix        = "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/"
+	//s3URLPrefixEncoded = "https://s3.us-west-2.amazonaws.com/secure.notion-static.com/"
+)
+
 type getSignedFileUrlsRequest struct {
 	Urls []getSignedFileURL `json:"urls"`
 }
@@ -16,6 +22,7 @@ type getSignedFileURL struct {
 	URL string `json:"url"`
 }
 
+// GetSignedFileUrlsResponse is a response of GetSignedFileUrls()
 type GetSignedFileUrlsResponse struct {
 	SignedUrls []string `json:"signedUrls"`
 	RawJSON    []byte   `json:"-"`
@@ -43,8 +50,8 @@ func (c *Client) GetSignedFileUrls(urls []string) (*GetSignedFileUrlsResponse, e
 
 // DownloadFileResponse is a result of DownloadFile()
 type DownloadFileResponse struct {
-	Data    []byte
-	Headers http.Header
+	Data   []byte
+	Header http.Header
 }
 
 // see if the url is for a file stored in notion
@@ -52,8 +59,16 @@ func isNotionURL(uri string) bool {
 	return strings.HasPrefix(uri, "https://www.notion.so/")
 }
 
+// files like https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e5661303-82e1-43e4-be8e-662d1598cd53/untitled
+// need to be proxied
+func shouldSignURL(uri string) bool {
+	return strings.Contains(uri, "secure.notion-static.com")
+}
+
+// DownloadFile downloads a file stored in Notion
 func (c *Client) DownloadFile(uri string) (*DownloadFileResponse, error) {
-	if isNotionURL(uri) {
+	//fmt.Printf("DownloadFile: uri: %s\n", uri)
+	if shouldSignURL(uri) {
 		rsp, err := c.GetSignedFileUrls([]string{uri})
 		if err != nil {
 			// TODO: can it be that it returns an error because the url
@@ -61,6 +76,8 @@ func (c *Client) DownloadFile(uri string) (*DownloadFileResponse, error) {
 			return nil, err
 		}
 		uri = rsp.SignedUrls[0]
+		//fmt.Printf("  singed uri: %s\n", uri)
+		//fmt.Printf("rsp:\n%s\n", string(rsp.RawJSON))
 	}
 
 	req, err := http.NewRequest("GET", uri, nil)
@@ -85,8 +102,8 @@ func (c *Client) DownloadFile(uri string) (*DownloadFileResponse, error) {
 		return nil, err
 	}
 	rsp := &DownloadFileResponse{
-		Data:    buf.Bytes(),
-		Headers: resp.Header,
+		Data:   buf.Bytes(),
+		Header: resp.Header,
 	}
 	return rsp, nil
 }

@@ -105,12 +105,64 @@ func assert(ok bool, format string, args ...interface{}) {
 	panic(s)
 }
 
+func pageURL(pageID string) string {
+	return "https://notion.so/" + pageID
+}
+
+func testDownloadImage() {
+	client := &notionapi.Client{
+		DebugLog: true,
+	}
+	// page with images
+	pageID := "8511412cbfde432ba226648e9bdfbec2"
+	fmt.Printf("testDownloadImage %s\n", pageURL(pageID))
+	page, err := dl(client, pageID)
+	panicIfErr(err)
+	block := page.Root
+	assert(block.Title == "test image", "unexpected title ''%s'", block.Title)
+	blocks := block.Content
+	assert(len(blocks) == 2, "expected 2 blockSS, got %d", len(blocks))
+
+	block = blocks[0]
+	if true {
+		fmt.Printf("block.Image: %s\n", block.Source)
+		exp := "https://www.notion.so/image/https:%2F%2Fi.imgur.com%2FNT9NcB6.png"
+		assert(block.ImageURL == exp, "expected %s, got %s", exp, block.Source)
+		rsp, err := client.DownloadFile(block.Source)
+		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.ImageURL)
+		fmt.Printf("Downloaded image %s of size %d\n", block.ImageURL, len(rsp.Data))
+		ct := rsp.Header.Get("Content-Type")
+		exp = "image/png"
+		assert(ct == exp, "unexpected Content-Type, wanted %s, got %s", exp, ct)
+		//disp := rsp.Header.Get("Content-Disposition")
+		//exp = "filename=\"NT9NcB6.png\""
+		//assert(disp == exp, "unexpected Content-Disposition, got %s, wanted %s", disp, exp)
+	}
+
+	block = blocks[1]
+	// TODO: figure out why doesn't sign
+	if false {
+		fmt.Printf("block.Image: %s\n", block.Source)
+		exp := "https://www.notion.so/image/https:%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2Fe5661303-82e1-43e4-be8e-662d1598cd53%2Funtitled"
+		assert(block.ImageURL == exp, "expected '%s', got '%s'", exp, block.ImageURL)
+		rsp, err := client.DownloadFile(block.ImageURL)
+		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.ImageURL)
+		fmt.Printf("Downloaded image %s of size %d\n", block.ImageURL, len(rsp.Data))
+		ct := rsp.Header.Get("Content-Type")
+		exp = "image/png"
+		assert(ct == exp, "unexpected Content-Type, wanted %s, got %s", exp, ct)
+		disp := rsp.Header.Get("Content-Disposition")
+		fmt.Printf("Disp: %s\n", disp)
+	}
+}
+
 func testGist() {
 	client := &notionapi.Client{
 		DebugLog: true,
 	}
 	// gist page
 	pageID := "7b9cdf3ab2cf405692e9810b0ac8322e"
+	fmt.Printf("testGist %s\n", pageURL(pageID))
 	page, err := dl(client, pageID)
 	panicIfErr(err)
 	title := page.Root.Title
@@ -212,6 +264,7 @@ func main() {
 	reacreateDir(logDir)
 	reacreateDir(cacheDir)
 
+	testDownloadImage()
 	testGist()
 	testChangeTitle()
 	testChangeFormat()
