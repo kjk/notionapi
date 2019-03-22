@@ -22,7 +22,8 @@ func (c *Client) SubmitTransaction(ops []*Operation) error {
 	// response is empty, as far as I can tell
 	var rsp map[string]interface{}
 	apiURL := "/api/v3/submitTransaction"
-	return doNotionAPI(c, apiURL, req, &rsp)
+	_, err := doNotionAPI(c, apiURL, req, &rsp)
+	return err
 }
 
 // this is title for

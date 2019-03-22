@@ -3,7 +3,7 @@ package notionapi
 // /api/v3/loadPageChunk request
 type loadPageChunkRequest struct {
 	PageID          string `json:"pageId"`
-	ChunkNumber int `json:"chunkNumber"`
+	ChunkNumber     int    `json:"chunkNumber"`
 	Limit           int    `json:"limit"`
 	Cursor          cursor `json:"cursor"`
 	VerticalColumns bool   `json:"verticalColumns"`
@@ -23,6 +23,7 @@ type stack struct {
 type LoadPageChunkResponse struct {
 	RecordMap RecordMap `json:"recordMap"`
 	Cursor    cursor    `json:"cursor"`
+	RawJSON   []byte    `json:"-"`
 }
 
 // RecordMap contains a collections of blocks, a space, users, and collections.
@@ -193,13 +194,14 @@ func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPa
 	}
 	req := &loadPageChunkRequest{
 		PageID:          pageID,
-		ChunkNumber: chunkNo,
+		ChunkNumber:     chunkNo,
 		Limit:           limit,
 		Cursor:          *cur,
 		VerticalColumns: false,
 	}
 	var rsp LoadPageChunkResponse
-	err := doNotionAPI(c, apiURL, req, &rsp)
+	var err error
+	rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp)
 	if err != nil {
 		return nil, err
 	}

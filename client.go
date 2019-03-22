@@ -48,13 +48,22 @@ type Client struct {
 	DebugLog bool
 }
 
-func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) error {
+func (c *Client) getHTTPClient() *http.Client {
+	if c.HTTPClient != nil {
+		return c.HTTPClient
+	}
+	// TODO: better defaults (timeouts)
+	httpClient := http.DefaultClient
+	return httpClient
+}
+
+func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) ([]byte, error) {
 	var js []byte
 	var err error
 	if requestData != nil {
 		js, err = json.Marshal(requestData)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	uri := notionHost + apiURL
@@ -66,7 +75,7 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 
 	req, err := http.NewRequest("POST", uri, body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", userAgent)
@@ -82,16 +91,13 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	realHTTPRequest := false
 	if rsp == nil {
 		realHTTPRequest = true
-		httpClient := c.HTTPClient
-		if httpClient == nil {
-			httpClient = http.DefaultClient
-		}
+		httpClient := c.getHTTPClient()
 		rsp, err = httpClient.Do(req)
 	}
 
 	if err != nil {
 		log(c, "http.DefaultClient.Do() failed with %s\n", err)
-		return err
+		return nil, err
 	}
 	if c.HTTPIntercept != nil && realHTTPRequest {
 		c.HTTPIntercept.OnResponse(rsp)
@@ -100,30 +106,31 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	if rsp.StatusCode != 200 {
 		d, _ := ioutil.ReadAll(rsp.Body)
 		log(c, "Error: status code %s\nBody:\n%s\n", rsp.Status, ppJSON(d))
-		return fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
+		return nil, fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
 	}
 	d, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
 		log(c, "Error: ioutil.ReadAll() failed with %s\n", err)
-		return err
+		return nil, err
 	}
 	logJSON(c, d)
 	err = json.Unmarshal(d, result)
 	if err != nil {
 		log(c, "Error: json.Unmarshal() failed with %s\n. Body:\n%s\n", err, string(d))
+		return nil, err
 	}
-	return err
+	return d, nil
 }
 
 var (
-    dashIDLen = len("2131b10c-ebf6-4938-a127-7089ff02dbe4")
-    noDashIDLen = len("2131b10cebf64938a1277089ff02dbe4")
+	dashIDLen   = len("2131b10c-ebf6-4938-a127-7089ff02dbe4")
+	noDashIDLen = len("2131b10cebf64938a1277089ff02dbe4")
 )
 
 // NormalizeID is deprecated. Use ToDashID instead.
 func NormalizeID(id string) (string, bool) {
-    id = ToDashID(id)
-    return id, isValidDashID(id)
+	id = ToDashID(id)
+	return id, isValidDashID(id)
 }
 
 // ToNoDashID converts  2131b10c-ebf6-4938-a127-7089ff02dbe4
@@ -134,21 +141,21 @@ func ToNoDashID(id string) string {
 	if len(s) != 32 {
 		return id
 	}
-    return s
+	return s
 }
 
 func isValidDashID(id string) bool {
-    // TODO: more strict validation
-    return len(id) == dashIDLen
+	// TODO: more strict validation
+	return len(id) == dashIDLen
 }
 
 // ToDashID convert id in format bb760e2dd6794b64b2a903005b21870a
 // to bb760e2d-d679-4b64-b2a9-03005b21870a
 // If id is not in that format, we leave it untouched.
 func ToDashID(id string) string {
-    if isValidDashID(id) {
-        return id
-    }
+	if isValidDashID(id) {
+		return id
+	}
 	s := strings.Replace(id, "-", "", -1)
 	if len(s) != noDashIDLen {
 		return id

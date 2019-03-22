@@ -42,6 +42,7 @@ type CollectionQuery struct {
 type QueryCollectionResponse struct {
 	RecordMap RecordMap              `json:"recordMap"`
 	Result    *QueryCollectionResult `json:"result"`
+	RawJSON   []byte                 `json:"-"`
 }
 
 // QueryCollectionResult is part of response for /api/v3/queryCollection
@@ -79,7 +80,8 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregat
 
 	apiURL := "/api/v3/queryCollection"
 	var rsp QueryCollectionResponse
-	err := doNotionAPI(c, apiURL, req, &rsp)
+	var err error
+	rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp)
 	if err != nil {
 		return nil, err
 	}
