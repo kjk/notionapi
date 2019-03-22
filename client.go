@@ -121,8 +121,9 @@ var (
 )
 
 // NormalizeID is deprecated. Use ToDashID instead.
-func NormalizeID(s string) (string, bool) {
-    return ToDashID(s), true
+func NormalizeID(id string) (string, bool) {
+    id = ToDashID(id)
+    return id, isValidDashID(id)
 }
 
 // ToNoDashID converts  2131b10c-ebf6-4938-a127-7089ff02dbe4
@@ -136,10 +137,18 @@ func ToNoDashID(id string) string {
     return s
 }
 
+func isValidDashID(id string) bool {
+    // TODO: more strict validation
+    return len(id) == dashIDLen
+}
+
 // ToDashID convert id in format bb760e2dd6794b64b2a903005b21870a
 // to bb760e2d-d679-4b64-b2a9-03005b21870a
 // If id is not in that format, we leave it untouched.
 func ToDashID(id string) string {
+    if isValidDashID(id) {
+        return id
+    }
 	s := strings.Replace(id, "-", "", -1)
 	if len(s) != noDashIDLen {
 		return id

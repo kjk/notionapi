@@ -2,6 +2,7 @@ package notionapi
 
 import (
 	"encoding/json"
+    "fmt"
 	"time"
 )
 
@@ -15,7 +16,7 @@ type getRecordValuesRequestInner struct {
 	ID    string `json:"id"`
 }
 
-// /api/v3/getRecordValues response
+// GetRecordValuesResponse represents response to /api/v3/getRecordValues api
 // Note: it depends on Table type in request
 type GetRecordValuesResponse struct {
 	Results []*BlockWithRole `json:"results"`
@@ -250,9 +251,13 @@ func (c *Client) GetRecordValues(ids []string) (*GetRecordValuesResponse, error)
 	req := &getRecordValuesRequest{}
 
 	for _, id := range ids {
+        dashID := ToDashID(id)
+        if !isValidDashID(dashID) {
+            return nil, fmt.Errorf("'%s' is not a valid notion id", id)
+        }
 		v := getRecordValuesRequestInner{
 			Table: TableBlock,
-			ID:    id,
+			ID:    dashID,
 		}
 		req.Requests = append(req.Requests, v)
 	}
