@@ -125,34 +125,31 @@ func testDownloadImage() {
 
 	block = blocks[0]
 	if true {
-		fmt.Printf("block.Image: %s\n", block.Source)
-		exp := "https://www.notion.so/image/https:%2F%2Fi.imgur.com%2FNT9NcB6.png"
-		assert(block.ImageURL == exp, "expected %s, got %s", exp, block.Source)
+		fmt.Printf("block.Source: %s\n", block.Source)
+		exp := "https://i.imgur.com/NT9NcB6.png"
+		assert(block.Source == exp, "expected %s, got %s", exp, block.Source)
 		rsp, err := client.DownloadFile(block.Source)
-		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.ImageURL)
-		fmt.Printf("Downloaded image %s of size %d\n", block.ImageURL, len(rsp.Data))
-		ct := rsp.Header.Get("Content-Type")
-		exp = "image/png"
-		assert(ct == exp, "unexpected Content-Type, wanted %s, got %s", exp, ct)
-		//disp := rsp.Header.Get("Content-Disposition")
-		//exp = "filename=\"NT9NcB6.png\""
-		//assert(disp == exp, "unexpected Content-Disposition, got %s, wanted %s", disp, exp)
-	}
-
-	block = blocks[1]
-	// TODO: figure out why doesn't sign
-	if false {
-		fmt.Printf("block.Image: %s\n", block.Source)
-		exp := "https://www.notion.so/image/https:%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2Fe5661303-82e1-43e4-be8e-662d1598cd53%2Funtitled"
-		assert(block.ImageURL == exp, "expected '%s', got '%s'", exp, block.ImageURL)
-		rsp, err := client.DownloadFile(block.ImageURL)
-		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.ImageURL)
-		fmt.Printf("Downloaded image %s of size %d\n", block.ImageURL, len(rsp.Data))
+		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.Source)
+		fmt.Printf("Downloaded image %s of size %d\n", block.Source, len(rsp.Data))
 		ct := rsp.Header.Get("Content-Type")
 		exp = "image/png"
 		assert(ct == exp, "unexpected Content-Type, wanted %s, got %s", exp, ct)
 		disp := rsp.Header.Get("Content-Disposition")
-		fmt.Printf("Disp: %s\n", disp)
+		exp = "filename=\"NT9NcB6.png\""
+		assert(disp == exp, "unexpected Content-Disposition, got %s, wanted %s", disp, exp)
+	}
+
+	block = blocks[1]
+	if true {
+		fmt.Printf("block.Source: %s\n", block.Source)
+		exp := "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e5661303-82e1-43e4-be8e-662d1598cd53/untitled"
+		assert(block.Source == exp, "expected '%s', got '%s'", exp, block.Source)
+		rsp, err := client.DownloadFile(block.Source)
+		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.Source)
+		fmt.Printf("Downloaded image %s of size %d\n", block.Source, len(rsp.Data))
+		ct := rsp.Header.Get("Content-Type")
+		exp = "image/png"
+		assert(ct == exp, "unexpected Content-Type, wanted %s, got %s", exp, ct)
 	}
 }
 
@@ -265,9 +262,9 @@ func main() {
 	reacreateDir(cacheDir)
 
 	testDownloadImage()
-	testGist()
-	testChangeTitle()
-	testChangeFormat()
+	//testGist()
+	//testChangeTitle()
+	//testChangeFormat()
 
 	fmt.Printf("Finished tests ok!\n")
 }

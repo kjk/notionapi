@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
 const (
-	signedURLPrefix    = "https://www.notion.so/signed/"
-	s3URLPrefix        = "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/"
+	signedURLPrefix = "https://www.notion.so/signed/"
+	s3URLPrefix     = "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/"
 	//s3URLPrefixEncoded = "https://s3.us-west-2.amazonaws.com/secure.notion-static.com/"
 )
 
@@ -54,31 +55,52 @@ type DownloadFileResponse struct {
 	Header http.Header
 }
 
-// see if the url is for a file stored in notion
-func isNotionURL(uri string) bool {
-	return strings.HasPrefix(uri, "https://www.notion.so/")
+// sometimes image url in "source" is not accessible but can
+// be accessed when proxied via notion server as
+// www.notion.so/image/${source}
+// This also allows resizing via ?width=${n} arguments
+//
+// from: /images/page-cover/met_vincent_van_gogh_cradle.jpg
+// =>
+// https://www.notion.so/image/https%3A%2F%2Fwww.notion.so%2Fimages%2Fpage-cover%2Fmet_vincent_van_gogh_cradle.jpg?width=3290
+func maybeProxyImageURL(uri string) string {
+	if strings.HasPrefix(uri, s3URLPrefix) {
+		return signedURLPrefix + url.PathEscape(uri)
+	}
+
+	if uri == "" || strings.Contains(uri, "//www.notion.so/image/") {
+		return uri
+	}
+	// if the url has https://, it's already in s3.
+	// If not, it's only a relative URL (like those for built-in
+	// cover pages)
+	if !strings.HasPrefix(uri, "https://") {
+		uri = "https://www.notion.so" + uri
+	}
+	return "https://www.notion.so/image/" + url.PathEscape(uri)
 }
 
-// files like https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e5661303-82e1-43e4-be8e-662d1598cd53/untitled
-// need to be proxied
-func shouldSignURL(uri string) bool {
-	return strings.Contains(uri, "secure.notion-static.com")
+func (c *Client) maybeSignImageURL(uri string) string {
+	if !strings.HasPrefix(uri, s3URLPrefix) {
+		return maybeProxyImageURL(uri)
+	}
+	/* notionapi-py does:
+
+	if url.startswith(S3_URL_PREFIX):
+		url = SIGNED_URL_PREFIX + quote_plus(url)
+		if client:
+			url = client.session.head(url).headers.get("Location")
+	*/
+	rsp, err := c.GetSignedFileUrls([]string{uri})
+	if err != nil {
+		return uri
+	}
+	return rsp.SignedUrls[0]
 }
 
 // DownloadFile downloads a file stored in Notion
 func (c *Client) DownloadFile(uri string) (*DownloadFileResponse, error) {
-	//fmt.Printf("DownloadFile: uri: %s\n", uri)
-	if shouldSignURL(uri) {
-		rsp, err := c.GetSignedFileUrls([]string{uri})
-		if err != nil {
-			// TODO: can it be that it returns an error because the url
-			// doesn't need signed url
-			return nil, err
-		}
-		uri = rsp.SignedUrls[0]
-		//fmt.Printf("  singed uri: %s\n", uri)
-		//fmt.Printf("rsp:\n%s\n", string(rsp.RawJSON))
-	}
+	uri = c.maybeSignImageURL(uri)
 
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {

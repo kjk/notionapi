@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 )
 
@@ -123,7 +122,7 @@ func parseProperties(block *Block) error {
 	}
 
 	if block.Source != "" && block.IsImage() {
-		block.ImageURL = makeImageURL(block.Source)
+		block.ImageURL = maybeProxyImageURL(block.Source)
 	}
 
 	// for BlockCode
@@ -137,27 +136,6 @@ func parseProperties(block *Block) error {
 	return nil
 }
 
-// sometimes image url in "source" is not accessible but can
-// be accessed when proxied via notion server as
-// www.notion.so/image/${source}
-// This also allows resizing via ?width=${n} arguments
-//
-// from: /images/page-cover/met_vincent_van_gogh_cradle.jpg
-// =>
-// https://www.notion.so/image/https%3A%2F%2Fwww.notion.so%2Fimages%2Fpage-cover%2Fmet_vincent_van_gogh_cradle.jpg?width=3290
-func makeImageURL(uri string) string {
-	if uri == "" || strings.Contains(uri, "//www.notion.so/image/") {
-		return uri
-	}
-	// if the url has https://, it's already in s3.
-	// If not, it's only a relative URL (like those for built-in
-	// cover pages)
-	if !strings.HasPrefix(uri, "https://") {
-		uri = "https://www.notion.so" + uri
-	}
-	return "https://www.notion.so/image/" + url.PathEscape(uri)
-}
-
 func parseFormat(block *Block) error {
 	if len(block.FormatRaw) == 0 {
 		// TODO: maybe if BlockPage, set to default &FormatPage{}
@@ -169,7 +147,7 @@ func parseFormat(block *Block) error {
 		var format FormatPage
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
-			format.PageCoverURL = makeImageURL(format.PageCover)
+			format.PageCoverURL = maybeProxyImageURL(format.PageCover)
 			block.FormatPage = &format
 		}
 	case BlockBookmark:
@@ -182,7 +160,7 @@ func parseFormat(block *Block) error {
 		var format FormatImage
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
-			format.ImageURL = makeImageURL(format.DisplaySource)
+			format.ImageURL = maybeProxyImageURL(format.DisplaySource)
 			block.FormatImage = &format
 		}
 	case BlockColumn:
