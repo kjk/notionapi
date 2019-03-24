@@ -201,3 +201,17 @@ func parseFormat(block *Block) error {
 	}
 	return nil
 }
+
+func panicIf(cond bool, args ...interface{}) {
+	if !cond {
+		return
+	}
+	if len(args) == 0 {
+		panic("condition failed")
+	}
+	format := args[0].(string)
+	if len(args) == 1 {
+		panic(format)
+	}
+	panic(fmt.Sprintf(format, args[1:]))
+}
