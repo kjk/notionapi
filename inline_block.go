@@ -22,6 +22,8 @@ const (
 	AttrItalic
 	// AttrStrikeThrought represents strikethrough block
 	AttrStrikeThrought
+	// AttrComment represents a comment block
+	AttrComment
 )
 
 // InlineBlock describes a nested inline block
@@ -30,10 +32,12 @@ type InlineBlock struct {
 	Text string `json:"Text"`
 	// compact representation of attribute flags
 	AttrFlags AttrFlag `json:"AttrFlags,omitempty"`
-	// only one of those is set on a given InlineBlock
-	Link   string `json:"Link,omitempty"`   // represents link attribute
-	UserID string `json:"UserID,omitempty"` // represents user attribute
-	Date   *Date  `json:"Date,omitempty"`   // represents date attribute
+
+	// those are set for other attributes
+	Link      string `json:"Link,omitempty"`      // represents link attribute
+	UserID    string `json:"UserID,omitempty"`    // represents user attribute
+	CommentID string `json:"CommentID,omitempty"` // represents comment block (I think)
+	Date      *Date  `json:"Date,omitempty"`      // represents date attribute
 }
 
 // IsPlain returns true if this InlineBlock is plain text i.e. has no attributes
@@ -71,7 +75,7 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 	}
 
 	switch s {
-	case "a", "u":
+	case "a", "u", "m":
 		v, ok := a[1].(string)
 		if !ok {
 			return fmt.Errorf("value for 'a' attribute is not string. Type: %T, value: %#v", v, v)
@@ -80,6 +84,10 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 			b.Link = v
 		} else if s == "u" {
 			b.UserID = v
+		} else if s == "m" {
+			b.CommentID = v
+		} else {
+			panic(fmt.Errorf("unexpected val '%s'", s))
 		}
 	case "d":
 		v := a[1].(map[string]interface{})

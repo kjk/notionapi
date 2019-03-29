@@ -256,12 +256,29 @@ func testChangeTitle() {
 	}
 }
 
+func testDownloadBig() {
+	// this tests downloading a page that has (hopefully) all kinds of elements
+	// for notion, for testing that we handle everything
+	// page is c969c9455d7c4dd79c7f860f3ace6429 https://www.notion.so/Test-page-all-not-c969c9455d7c4dd79c7f860f3ace6429
+	client := &notionapi.Client{
+		DebugLog: true,
+	}
+	// page with images
+	pageID := "c969c9455d7c4dd79c7f860f3ace6429"
+	fmt.Printf("testDownloadImage %s\n", pageURL(pageID))
+	page, err := dl(client, pageID)
+	panicIfErr(err)
+	s := notionapi.DumpToString(page)
+	fmt.Printf("Downloaded page %s, %s\n%s\n", page.ID, pageURL(pageID), s)
+}
+
 func main() {
 	fmt.Printf("Running page tests\n")
 	reacreateDir(logDir)
 	reacreateDir(cacheDir)
 
-	testDownloadImage()
+	testDownloadBig()
+	//testDownloadImage()
 	//testGist()
 	//testChangeTitle()
 	//testChangeFormat()

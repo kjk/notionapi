@@ -230,3 +230,44 @@ func TestParseInlineBlockBig(t *testing.T) {
 	blocks := parseBlocks(t, titleBig)
 	assert.Equal(t, 17, len(blocks))
 }
+
+const titleWithComment = `{
+	"title": [
+	[
+		"Just"
+	],
+	[
+		"comment",
+		[
+			[
+				"m",
+				"4a1cc3be-03cf-489a-9542-69d9a02f3534"
+			]
+		]
+	],
+	[
+		"inline."
+	]
+]
+}
+`
+
+func TestParseInlineBlockComment(t *testing.T) {
+	blocks := parseBlocks(t, titleWithComment)
+	assert.Equal(t, 3, len(blocks))
+
+	{
+		// "Just"
+		b := blocks[0]
+		assert.Equal(t, b.Text, "Just")
+		assert.Equal(t, int(b.AttrFlags), 0)
+	}
+	{
+		// "comment"
+		b := blocks[1]
+		assert.Equal(t, b.Text, "comment")
+		assert.Equal(t, int(b.AttrFlags), 0)
+		assert.Equal(t, b.CommentID, "4a1cc3be-03cf-489a-9542-69d9a02f3534")
+	}
+
+}
