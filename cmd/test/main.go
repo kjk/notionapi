@@ -102,7 +102,7 @@ func emptyLogDir() {
 
 // returns path of the created file
 func savePageAsJSON(page *notionapi.Page) string {
-	d, err := json.Marshal(page)
+	d, err := json.MarshalIndent(page, "", "  ")
 	must(err)
 	path := jsonFilePathForPageID(page.ID)
 	err = ioutil.WriteFile(path, d, 0644)

@@ -116,14 +116,6 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 		start := fmt.Sprintf(`<h2 class="hdr%s">`, levelCls)
 		close := `</h2>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.BlockTodo:
-		clsChecked := ""
-		if block.IsChecked {
-			clsChecked = " todo-checked"
-		}
-		start := fmt.Sprintf(`<div class="todo%s%s">`, levelCls, clsChecked)
-		close := `</div>`
-		genBlockSurroudedHTML(f, block, start, close, level)
 	case notionapi.BlockToggle:
 		start := fmt.Sprintf(`<div class="toggle%s">`, levelCls)
 		close := `</div>`

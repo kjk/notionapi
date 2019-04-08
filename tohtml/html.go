@@ -75,8 +75,7 @@ func (h *HTMLRenderer) PopBuffer() *bytes.Buffer {
 	return res
 }
 
-// Newline writes a newline to the buffer as long as it doesn't already
-// ends with newline
+// Newline writes a newline to the buffer. It'll suppress multiple newlines.
 func (h *HTMLRenderer) Newline() {
 	d := h.Buf.Bytes()
 	n := len(d)
@@ -92,29 +91,34 @@ func (h *HTMLRenderer) WriteIndent() {
 	}
 }
 
+func (h *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
+	if h.AppendID {
+		return ""
+	}
+	return block.ID
+}
+
 // WriteElement is a helper class that writes HTML with a given
 // class (optional) and id (also optional)
-func (h *HTMLRenderer) WriteElement(el string, class string, id string, entering bool) {
+func (h *HTMLRenderer) WriteElement(block *notionapi.Block, el string, class string, entering bool) {
 	if !entering {
 		h.Buf.WriteString("</" + el + ">")
+		h.Newline()
 		return
 	}
 	s := "<" + el
 	if class != "" {
 		s += ` class="` + class + `"`
 	}
+	id := h.maybeGetID(block)
 	if id != "" {
 		s += ` id="` + id + `"`
 	}
 	s += ">"
 	h.Buf.WriteString(s)
-}
-
-func (h *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
-	if h.AppendID {
-		return ""
-	}
-	return block.ID
+	h.Newline()
+	h.RenderInlines(block.InlineContent)
+	h.Newline()
 }
 
 // RenderInline renders inline block
@@ -137,14 +141,14 @@ func (h *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 		close += "</code>"
 	}
 	skipText := false
-	// TODO: allow over-riding rendering of links/user ids/dates etc.
+	// TODO: allow over-riding rendering of links, user ids, dates etc.
 	if b.Link != "" {
 		link := b.Link
 		start += fmt.Sprintf(`<a class="notion-link" href="%s">%s</a>`, link, b.Text)
 		skipText = true
 	}
 	if b.UserID != "" {
-		start += fmt.Sprintf(`<span class="notion-user">@%s</span>`, b.UserID)
+		start += fmt.Sprintf(`<span class="notion-user">@TODO: user with id%s</span>`, b.UserID)
 		skipText = true
 	}
 	if b.Date != nil {
@@ -168,40 +172,29 @@ func (h *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 }
 
 func (h *HTMLRenderer) renderPage(block *notionapi.Block, entering bool) bool {
-	h.WriteElement("div", "notion-page", h.maybeGetID(block), entering)
-	h.Newline()
+	h.WriteElement(block, "div", "notion-page", entering)
 	return true
 }
 
 func (h *HTMLRenderer) renderText(block *notionapi.Block, entering bool) bool {
-	h.WriteElement("p", "notion-text", h.maybeGetID(block), entering)
-	h.Newline()
-	if entering {
-		h.RenderInlines(block.InlineContent)
-	}
+	h.WriteElement(block, "p", "notion-text", entering)
 	return true
 }
 
 func (h *HTMLRenderer) renderNumberedList(block *notionapi.Block, entering bool) bool {
-	h.WriteElement("ol", "notion-numbered-list", h.maybeGetID(block), entering)
-	h.Newline()
+	h.WriteElement(block, "ol", "notion-numbered-list", entering)
 	return true
 }
 
 func (h *HTMLRenderer) renderBulletedList(block *notionapi.Block, entering bool) bool {
-	h.WriteElement("li", "notion-bulleted-list", h.maybeGetID(block), entering)
-	h.Newline()
+	h.WriteElement(block, "li", "notion-bulleted-list", entering)
 	return true
 }
 
 func (h *HTMLRenderer) renderHeaderLevel(block *notionapi.Block, level int, entering bool) bool {
 	el := fmt.Sprintf("h%d", level)
 	cls := fmt.Sprintf("notion-header-%d", level)
-	h.WriteElement(el, cls, h.maybeGetID(block), entering)
-	h.Newline()
-	if entering {
-		h.RenderInlines(block.InlineContent)
-	}
+	h.WriteElement(block, el, cls, entering)
 	return true
 }
 
@@ -218,6 +211,12 @@ func (h *HTMLRenderer) renderSubSubHeader(block *notionapi.Block, entering bool)
 }
 
 func (h *HTMLRenderer) renderTodo(block *notionapi.Block, entering bool) bool {
+	cls := "notion-todo"
+	if block.IsChecked {
+		cls = "notion-todo-checked"
+	}
+
+	h.WriteElement(block, "div", cls, entering)
 	return true
 }
 

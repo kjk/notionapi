@@ -1,0 +1,70 @@
+body {
+  margin: 0;
+  background: white;
+  color: black;
+  /* same as github.com */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 12pt;
+  line-height: 1.4;
+}
+
+code {
+  background-color: #f9f9f9;
+}
+
+.notion-todo-checked {
+  color: lightgray;
+  text-decoration: line-through;
+}
+
+div.notion-todo-checked:before {
+  content: "\2612";
+}
+
+.notion-todo::before {
+  content: "\2610";
+}
+
+.lvl1 {
+  margin-left: 16px;
+}
+
+.lvl2 {
+  margin-left: 32px;
+}
+
+.lvl3 {
+  margin-left: 48px;
+}
+
+.lvl4 {
+  margin-left: 64px;
+}
+
+.lvl5 {
+  margin-left: 80px;
+}
+
+.lvl6 {
+  margin-left: 96px;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
+/*
+pre.chroma {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background-color: #fdfdfd;
+  color: #657b83;
+  border: 1px solid #e5e5e5;
+  overflow-x: visible;
+  font-size: 85%;
+  tab-size: 2;
+}
+*/
