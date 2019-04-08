@@ -145,12 +145,6 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 		url += ".html"
 		html := fmt.Sprintf(`<div class="%s%s"><a href="%s">%s</a></div>`, cls, levelCls, url, title)
 		fmt.Fprintf(f, "%s\n", html)
-	case notionapi.BlockCode:
-		code := template.HTMLEscapeString(block.Code)
-		fmt.Fprintf(f, `<div class="%s">Lang for code: %s</div>
-<pre class="%s">
-%s
-</pre>`, levelCls, block.CodeLanguage, levelCls, code)
 	case notionapi.BlockBookmark:
 		fmt.Fprintf(f, `<div class="bookmark %s">Bookmark to %s</div>`+"\n", levelCls, block.Link)
 	case notionapi.BlockGist:

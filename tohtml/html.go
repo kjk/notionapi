@@ -3,6 +3,8 @@ package tohtml
 import (
 	"bytes"
 	"fmt"
+	"html/template"
+	"strings"
 
 	"github.com/kjk/notionapi"
 )
@@ -37,6 +39,7 @@ type HTMLRenderer struct {
 	bufs []*bytes.Buffer
 }
 
+// NewHTMLRenderer returns customizable HTML renderer
 func NewHTMLRenderer(page *notionapi.Page) *HTMLRenderer {
 	return &HTMLRenderer{
 		Page: page,
@@ -221,42 +224,65 @@ func (h *HTMLRenderer) renderTodo(block *notionapi.Block, entering bool) bool {
 }
 
 func (h *HTMLRenderer) renderToggle(block *notionapi.Block, entering bool) bool {
+	h.maybePanic("NYI")
 	return true
 }
 
 func (h *HTMLRenderer) renderQuote(block *notionapi.Block, entering bool) bool {
+	h.maybePanic("NYI")
 	return true
 }
 
 func (h *HTMLRenderer) renderDivider(block *notionapi.Block, entering bool) bool {
+	h.maybePanic("NYI")
 	return true
 }
 
 func (h *HTMLRenderer) renderCode(block *notionapi.Block, entering bool) bool {
+	if !entering {
+		h.Buf.WriteString("</code></pre>")
+		h.Newline()
+		return true
+	}
+
+	cls := "notion-code"
+	lang := strings.ToLower(strings.TrimSpace(block.CodeLanguage))
+	if lang != "" {
+		cls += " notion-lang-" + lang
+	}
+	code := template.HTMLEscapeString(block.Code)
+	s := fmt.Sprintf(`<pre class="%s"><code>%s`, cls, code)
+	h.Buf.WriteString(s)
 	return true
 }
 
 func (h *HTMLRenderer) renderBookmark(block *notionapi.Block, entering bool) bool {
+	h.maybePanic("NYI")
 	return true
 }
 
 func (h *HTMLRenderer) renderGist(block *notionapi.Block, entering bool) bool {
+	h.maybePanic("NYI")
 	return true
 }
 
 func (h *HTMLRenderer) renderImage(block *notionapi.Block, entering bool) bool {
+	h.maybePanic("NYI")
 	return true
 }
 
 func (h *HTMLRenderer) renderColumnList(block *notionapi.Block, entering bool) bool {
+	h.maybePanic("NYI")
 	return true
 }
 
 func (h *HTMLRenderer) renderCollectionView(block *notionapi.Block, entering bool) bool {
+	h.maybePanic("NYI")
 	return true
 }
 
 func (h *HTMLRenderer) renderEmbed(block *notionapi.Block, entering bool) bool {
+	h.maybePanic("NYI")
 	return true
 }
 
@@ -315,7 +341,6 @@ func (h *HTMLRenderer) blockHasChildren(blockType string) bool {
 		return false
 	default:
 		h.maybePanic("unrecognized block type '%s'", blockType)
-
 	}
 	return false
 }
@@ -343,9 +368,14 @@ func (h *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 	}
 	h.Level--
 
-	if !h.blockHasChildren(block.Type) {
-		//panicIf(len(block.Content) != 0)
-	}
+	/// TODO: not sure if this is needed
+	/*
+		if !h.blockHasChildren(block.Type) {
+			if len(block.Content) != 0 {
+				h.maybePanic("block has children but blockHasChildren() says it doesn't have children")
+			}
+		}
+	*/
 
 	handled = false
 	if h.RenderBlockOverride != nil {

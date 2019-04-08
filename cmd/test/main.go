@@ -11,9 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kjk/notionapi/tohtml"
-
 	"github.com/kjk/notionapi"
+	"github.com/kjk/notionapi/tohtml"
 )
 
 const (
@@ -202,7 +201,11 @@ func toHTML(pageID string) {
 	if page == nil {
 		return
 	}
-	html := tohtml.ToHTML(page)
+
+	r := tohtml.NewHTMLRenderer(page)
+	r.PanicOnFailures = true
+	html := r.ToHTML()
+
 	html = makeFullHTML(html)
 	path := htmlFilePathForPageID(pageID)
 	err := ioutil.WriteFile(path, html, 0644)

@@ -7,9 +7,10 @@ body {
     sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   font-size: 12pt;
   line-height: 1.4;
+  padding: 1em 2em;
 }
 
-code {
+.notion-code {
   background-color: #f9f9f9;
 }
 
