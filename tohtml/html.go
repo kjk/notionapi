@@ -19,8 +19,6 @@ type ToHTML struct {
 	Level int
 	// if true, adds id=${NotionID} attribute to HTML nodes
 	AppendID bool
-	// if set, will be called to log unexpected things
-	Log func(format string, args ...interface{})
 	// allows over-riding rendering of specific blocks
 	// return false for default rendering
 	RenderBlockOverride BlockRenderFunc
@@ -28,12 +26,31 @@ type ToHTML struct {
 	// RenderBlockOverride
 	Data interface{}
 
+	// mostly for debugging, if set we'll log to it when encountering
+	// structure we can't handle
+	Log func(format string, args ...interface{})
+	// mostly for debugging. If true will panic when encounters
+	// structure it cannot handle (e.g. when Notion adds another
+	// type of block)
+	PanicOnFailures bool
+
 	bufs []*bytes.Buffer
 }
 
-func (h *ToHTML) lg(format string, args ...interface{}) {
+// TODO: not sure if I want to keep this or always use maybePanic
+// (which also logs)
+func (h *ToHTML) log(format string, args ...interface{}) {
 	if h.Log != nil {
 		h.Log(format, args...)
+	}
+}
+
+func (h *ToHTML) maybePanic(format string, args ...interface{}) {
+	if h.Log != nil {
+		h.Log(format, args...)
+	}
+	if h.PanicOnFailures {
+		panic(fmt.Sprintf(format, args...))
 	}
 }
 
@@ -279,12 +296,12 @@ func (h *ToHTML) DefaultRenderFunc(blockType string) BlockRenderFunc {
 	case notionapi.BlockEmbed:
 		return h.renderEmbed
 	default:
-		h.lg("DefaultRenderFunc: unsupported block type '%s'\n", blockType)
+		h.maybePanic("DefaultRenderFunc: unsupported block type '%s'\n", blockType)
 	}
 	return nil
 }
 
-func blockHasChildren(blockType string, lg func(format string, args ...interface{})) bool {
+func (h *ToHTML) blockHasChildren(blockType string) bool {
 	switch blockType {
 	case notionapi.BlockPage, notionapi.BlockNumberedList,
 		notionapi.BlockBulletedList:
@@ -292,9 +309,8 @@ func blockHasChildren(blockType string, lg func(format string, args ...interface
 	case notionapi.BlockText:
 		return false
 	default:
-		if lg != nil {
-			lg("unrecognized block type '%s'", blockType)
-		}
+		h.maybePanic("unrecognized block type '%s'", blockType)
+
 	}
 	return false
 }
@@ -322,7 +338,7 @@ func (h *ToHTML) RenderBlock(block *notionapi.Block) {
 	}
 	h.Level--
 
-	if !blockHasChildren(block.Type, h.Log) {
+	if !h.blockHasChildren(block.Type) {
 		//panicIf(len(block.Content) != 0)
 	}
 
