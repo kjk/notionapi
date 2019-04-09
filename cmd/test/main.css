@@ -10,8 +10,21 @@ body {
   padding: 1em 2em;
 }
 
+/* set on <pre> element in <pre><code> sequence */
 .notion-code {
-  background-color: #f9f9f9;
+  display: block;
+  padding: 0.5em;
+  overflow-x: visible;
+
+  tab-size: 2;
+
+  font-size: 85%;
+
+  border: 1px solid #e5e5e5;
+
+  color: #657b83;
+  /* background-color: #f9f9f9; */
+  background-color: #fdfdfd;
 }
 
 .notion-todo-checked {
@@ -120,40 +133,3 @@ div.notion-embed {
   padding: 1em;
 }
 
-.lvl1 {
-  margin-left: 16px;
-}
-
-.lvl2 {
-  margin-left: 32px;
-}
-
-.lvl3 {
-  margin-left: 48px;
-}
-
-.lvl4 {
-  margin-left: 64px;
-}
-
-.lvl5 {
-  margin-left: 80px;
-}
-
-.lvl6 {
-  margin-left: 96px;
-}
-
-/*
-pre.chroma {
-  display: block;
-  overflow-x: auto;
-  padding: 0.5em;
-  background-color: #fdfdfd;
-  color: #657b83;
-  border: 1px solid #e5e5e5;
-  overflow-x: visible;
-  font-size: 85%;
-  tab-size: 2;
-}
-*/
