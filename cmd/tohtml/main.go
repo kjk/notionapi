@@ -104,18 +104,6 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 	}
 
 	switch block.Type {
-	case notionapi.BlockText:
-		start := fmt.Sprintf(`<div class="text%s">`, levelCls)
-		close := `</div>`
-		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.BlockHeader:
-		start := fmt.Sprintf(`<h1 class="hdr%s">`, levelCls)
-		close := `</h1>`
-		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.BlockSubHeader:
-		start := fmt.Sprintf(`<h2 class="hdr%s">`, levelCls)
-		close := `</h2>`
-		genBlockSurroudedHTML(f, block, start, close, level)
 	case notionapi.BlockToggle:
 		start := fmt.Sprintf(`<div class="toggle%s">`, levelCls)
 		close := `</div>`
@@ -128,12 +116,6 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 		start := fmt.Sprintf(`<div class="numbered-list%s">`, levelCls)
 		close := `</div>`
 		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.BlockQuote:
-		start := fmt.Sprintf(`<quote class="%s">`, levelCls)
-		close := `</quote>`
-		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.BlockDivider:
-		fmt.Fprintf(f, `<hr class="%s"/>`+"\n", levelCls)
 	case notionapi.BlockPage:
 		id := strings.TrimSpace(block.ID)
 		cls := "page"
@@ -145,10 +127,6 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 		url += ".html"
 		html := fmt.Sprintf(`<div class="%s%s"><a href="%s">%s</a></div>`, cls, levelCls, url, title)
 		fmt.Fprintf(f, "%s\n", html)
-	case notionapi.BlockBookmark:
-		fmt.Fprintf(f, `<div class="bookmark %s">Bookmark to %s</div>`+"\n", levelCls, block.Link)
-	case notionapi.BlockGist:
-		fmt.Fprintf(f, `<div class="gist %s">Gist for %s</div>`+"\n", levelCls, block.Source)
 	case notionapi.BlockImage:
 		link := block.ImageURL
 		fmt.Fprintf(f, `<img class="%s" src="%s" />`+"\n", levelCls, link)

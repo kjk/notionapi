@@ -271,3 +271,42 @@ func TestParseInlineBlockComment(t *testing.T) {
 	}
 
 }
+
+const title6 = `{
+	"title": [
+		[
+			"colored",
+			[
+				[
+					"h",
+					"teal_background"
+				]
+			]
+		],
+		[
+			"text",
+			[
+				[
+					"h",
+					"blue"
+				]
+			]
+		]
+	]
+}`
+
+func TestParseInlineBlock6(t *testing.T) {
+	blocks := parseBlocks(t, title6)
+	assert.Equal(t, 2, len(blocks))
+
+	{
+		b := blocks[0]
+		assert.Equal(t, b.Text, "colored")
+		assert.Equal(t, b.Highlight, "teal_background")
+	}
+	{
+		b := blocks[1]
+		assert.Equal(t, b.Text, "text")
+		assert.Equal(t, b.Highlight, "blue")
+	}
+}

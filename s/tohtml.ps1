@@ -15,5 +15,5 @@
 
 Remove-Item -Force -ErrorAction Ignore ./test.exe
 go build -o test.exe github.com/kjk/notionapi/cmd/test
-./test.exe -use-cache -tohtml $args
+./test.exe -tohtml $args
 Remove-Item -Force -ErrorAction Ignore ./test.exe

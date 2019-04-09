@@ -33,11 +33,20 @@ type InlineBlock struct {
 	// compact representation of attribute flags
 	AttrFlags AttrFlag `json:"AttrFlags,omitempty"`
 
-	// those are set for other attributes
-	Link      string `json:"Link,omitempty"`      // represents link attribute
-	UserID    string `json:"UserID,omitempty"`    // represents user attribute
-	CommentID string `json:"CommentID,omitempty"` // represents comment block (I think)
-	Date      *Date  `json:"Date,omitempty"`      // represents date attribute
+	// those values are set for other attributes
+
+	// represents link attribute
+	Link string `json:"Link,omitempty"`
+	// represents user attribute
+	UserID string `json:"UserID,omitempty"`
+	// represents comment block (I think)
+	CommentID string `json:"CommentID,omitempty"`
+	// represents date attribute
+	Date *Date `json:"Date,omitempty"`
+	// represents highlight (text or background) color.
+	// text color looks like: "blue"
+	// bg color looks like: "teal_background"
+	Highlight string `json:"Highlight,omitempty"`
 }
 
 // IsPlain returns true if this InlineBlock is plain text i.e. has no attributes
@@ -75,7 +84,7 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 	}
 
 	switch s {
-	case "a", "u", "m":
+	case "a", "u", "m", "h":
 		v, ok := a[1].(string)
 		if !ok {
 			return fmt.Errorf("value for 'a' attribute is not string. Type: %T, value: %#v", v, v)
@@ -86,6 +95,8 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 			b.UserID = v
 		} else if s == "m" {
 			b.CommentID = v
+		} else if s == "h" {
+			b.Highlight = v
 		} else {
 			panic(fmt.Errorf("unexpected val '%s'", s))
 		}

@@ -37,6 +37,11 @@ div.notion-bookmark {
   padding: 1em;
 }
 
+div.notion-gist {
+  border: 1px solid #eee;
+  padding: 1em;
+}
+
 .lvl1 {
   margin-left: 16px;
 }

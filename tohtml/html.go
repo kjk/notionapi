@@ -48,54 +48,54 @@ func NewHTMLRenderer(page *notionapi.Page) *HTMLRenderer {
 
 // TODO: not sure if I want to keep this or always use maybePanic
 // (which also logs)
-func (h *HTMLRenderer) log(format string, args ...interface{}) {
-	if h.Log != nil {
-		h.Log(format, args...)
+func (r *HTMLRenderer) log(format string, args ...interface{}) {
+	if r.Log != nil {
+		r.Log(format, args...)
 	}
 }
 
-func (h *HTMLRenderer) maybePanic(format string, args ...interface{}) {
-	if h.Log != nil {
-		h.Log(format, args...)
+func (r *HTMLRenderer) maybePanic(format string, args ...interface{}) {
+	if r.Log != nil {
+		r.Log(format, args...)
 	}
-	if h.PanicOnFailures {
+	if r.PanicOnFailures {
 		panic(fmt.Sprintf(format, args...))
 	}
 }
 
 // PushNewBuffer creates a new buffer and sets Buf to it
-func (h *HTMLRenderer) PushNewBuffer() {
-	h.bufs = append(h.bufs, h.Buf)
-	h.Buf = &bytes.Buffer{}
+func (r *HTMLRenderer) PushNewBuffer() {
+	r.bufs = append(r.bufs, r.Buf)
+	r.Buf = &bytes.Buffer{}
 }
 
 // PopBuffer pops a buffer
-func (h *HTMLRenderer) PopBuffer() *bytes.Buffer {
-	res := h.Buf
-	n := len(h.bufs)
-	h.Buf = h.bufs[n-1]
-	h.bufs = h.bufs[:n-1]
+func (r *HTMLRenderer) PopBuffer() *bytes.Buffer {
+	res := r.Buf
+	n := len(r.bufs)
+	r.Buf = r.bufs[n-1]
+	r.bufs = r.bufs[:n-1]
 	return res
 }
 
 // Newline writes a newline to the buffer. It'll suppress multiple newlines.
-func (h *HTMLRenderer) Newline() {
-	d := h.Buf.Bytes()
+func (r *HTMLRenderer) Newline() {
+	d := r.Buf.Bytes()
 	n := len(d)
 	if n > 0 && d[n-1] != '\n' {
-		h.Buf.WriteByte('\n')
+		r.Buf.WriteByte('\n')
 	}
 }
 
 // WriteIndent writes 2 * Level spaces
-func (h *HTMLRenderer) WriteIndent() {
-	for n := 0; n < h.Level; n++ {
-		h.Buf.WriteString("  ")
+func (r *HTMLRenderer) WriteIndent() {
+	for n := 0; n < r.Level; n++ {
+		r.Buf.WriteString("  ")
 	}
 }
 
-func (h *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
-	if h.AppendID {
+func (r *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
+	if r.AppendID {
 		return ""
 	}
 	return block.ID
@@ -103,37 +103,37 @@ func (h *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
 
 // WriteElementWithContent is a helper class that writes HTML
 // with optional class, optional id and optional content
-func (h *HTMLRenderer) WriteElementWithContent(block *notionapi.Block, el string, class string, content string, entering bool) {
+func (r *HTMLRenderer) WriteElementWithContent(block *notionapi.Block, el string, class string, content string, entering bool) {
 	if !entering {
-		h.Buf.WriteString("</" + el + ">")
-		h.Newline()
+		r.Buf.WriteString("</" + el + ">")
+		r.Newline()
 		return
 	}
 	s := "<" + el
 	if class != "" {
 		s += ` class="` + class + `"`
 	}
-	id := h.maybeGetID(block)
+	id := r.maybeGetID(block)
 	if id != "" {
 		s += ` id="` + id + `"`
 	}
 	s += ">"
-	h.Buf.WriteString(s)
-	h.Newline()
-	h.Buf.WriteString(content)
-	h.Newline()
-	h.RenderInlines(block.InlineContent)
-	h.Newline()
+	r.Buf.WriteString(s)
+	r.Newline()
+	r.Buf.WriteString(content)
+	r.Newline()
+	r.RenderInlines(block.InlineContent)
+	r.Newline()
 }
 
 // WriteElement is a helper class that writes HTML with
 // optional class, optional id and optional content
-func (h *HTMLRenderer) WriteElement(block *notionapi.Block, el string, class string, entering bool) {
-	h.WriteElementWithContent(block, el, class, "", entering)
+func (r *HTMLRenderer) WriteElement(block *notionapi.Block, el string, class string, entering bool) {
+	r.WriteElementWithContent(block, el, class, "", entering)
 }
 
 // RenderInline renders inline block
-func (h *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
+func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	var start, close string
 	if b.AttrFlags&notionapi.AttrBold != 0 {
 		start += "<b>"
@@ -170,22 +170,22 @@ func (h *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	if !skipText {
 		start += b.Text
 	}
-	h.Buf.WriteString(start + close)
+	r.Buf.WriteString(start + close)
 }
 
 // RenderInlines renders inline blocks
-func (h *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
-	h.Level++
+func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
+	r.Level++
 	for _, block := range blocks {
-		h.RenderInline(block)
+		r.RenderInline(block)
 	}
-	h.Level--
+	r.Level--
 }
 
-func (h *HTMLRenderer) renderCode(block *notionapi.Block, entering bool) bool {
+func (r *HTMLRenderer) RenderCode(block *notionapi.Block, entering bool) bool {
 	if !entering {
-		h.Buf.WriteString("</code></pre>")
-		h.Newline()
+		r.Buf.WriteString("</code></pre>")
+		r.Newline()
 		return true
 	}
 	cls := "notion-code"
@@ -195,159 +195,165 @@ func (h *HTMLRenderer) renderCode(block *notionapi.Block, entering bool) bool {
 	}
 	code := template.HTMLEscapeString(block.Code)
 	s := fmt.Sprintf(`<pre class="%s"><code>%s`, cls, code)
-	h.Buf.WriteString(s)
+	r.Buf.WriteString(s)
 	return true
 }
 
-func (h *HTMLRenderer) renderPage(block *notionapi.Block, entering bool) bool {
-	h.WriteElement(block, "div", "notion-page", entering)
+func (r *HTMLRenderer) RenderPage(block *notionapi.Block, entering bool) bool {
+	r.WriteElement(block, "div", "notion-page", entering)
 	return true
 }
 
-func (h *HTMLRenderer) renderText(block *notionapi.Block, entering bool) bool {
-	h.WriteElement(block, "p", "notion-text", entering)
+func (r *HTMLRenderer) RenderText(block *notionapi.Block, entering bool) bool {
+	r.WriteElement(block, "p", "notion-text", entering)
 	return true
 }
 
-func (h *HTMLRenderer) renderNumberedList(block *notionapi.Block, entering bool) bool {
-	h.WriteElement(block, "ol", "notion-numbered-list", entering)
+func (r *HTMLRenderer) RenderNumberedList(block *notionapi.Block, entering bool) bool {
+	r.WriteElement(block, "ol", "notion-numbered-list", entering)
 	return true
 }
 
-func (h *HTMLRenderer) renderBulletedList(block *notionapi.Block, entering bool) bool {
-	h.WriteElement(block, "li", "notion-bulleted-list", entering)
+func (r *HTMLRenderer) RenderBulletedList(block *notionapi.Block, entering bool) bool {
+	r.WriteElement(block, "li", "notion-bulleted-list", entering)
 	return true
 }
 
-func (h *HTMLRenderer) renderHeaderLevel(block *notionapi.Block, level int, entering bool) bool {
+func (r *HTMLRenderer) RenderHeaderLevel(block *notionapi.Block, level int, entering bool) bool {
 	el := fmt.Sprintf("h%d", level)
 	cls := fmt.Sprintf("notion-header-%d", level)
-	h.WriteElement(block, el, cls, entering)
+	r.WriteElement(block, el, cls, entering)
 	return true
 }
 
-func (h *HTMLRenderer) renderHeader(block *notionapi.Block, entering bool) bool {
-	return h.renderHeaderLevel(block, 1, entering)
+func (r *HTMLRenderer) RenderHeader(block *notionapi.Block, entering bool) bool {
+	return r.RenderHeaderLevel(block, 1, entering)
 }
 
-func (h *HTMLRenderer) renderSubHeader(block *notionapi.Block, entering bool) bool {
-	return h.renderHeaderLevel(block, 2, entering)
+func (r *HTMLRenderer) RenderSubHeader(block *notionapi.Block, entering bool) bool {
+	return r.RenderHeaderLevel(block, 2, entering)
 }
 
-func (h *HTMLRenderer) renderSubSubHeader(block *notionapi.Block, entering bool) bool {
-	return h.renderHeaderLevel(block, 3, entering)
+func (r *HTMLRenderer) RenderSubSubHeader(block *notionapi.Block, entering bool) bool {
+	return r.RenderHeaderLevel(block, 3, entering)
 }
 
-func (h *HTMLRenderer) renderTodo(block *notionapi.Block, entering bool) bool {
+func (r *HTMLRenderer) RenderTodo(block *notionapi.Block, entering bool) bool {
 	cls := "notion-todo"
 	if block.IsChecked {
 		cls = "notion-todo-checked"
 	}
 
-	h.WriteElement(block, "div", cls, entering)
+	r.WriteElement(block, "div", cls, entering)
 	return true
 }
 
-func (h *HTMLRenderer) renderToggle(block *notionapi.Block, entering bool) bool {
-	h.maybePanic("NYI")
+func (r *HTMLRenderer) RenderToggle(block *notionapi.Block, entering bool) bool {
+	r.maybePanic("NYI")
 	return true
 }
 
-func (h *HTMLRenderer) renderQuote(block *notionapi.Block, entering bool) bool {
-	h.maybePanic("NYI")
+func (r *HTMLRenderer) RenderQuote(block *notionapi.Block, entering bool) bool {
+	cls := "notion-quote"
+	r.WriteElement(block, "quote", cls, entering)
 	return true
 }
 
-func (h *HTMLRenderer) renderDivider(block *notionapi.Block, entering bool) bool {
+func (r *HTMLRenderer) RenderDivider(block *notionapi.Block, entering bool) bool {
 	if !entering {
 		return true
 	}
-	h.Buf.WriteString(`<hr class="notion-divider">`)
-	h.Newline()
+	r.Buf.WriteString(`<hr class="notion-divider">`)
+	r.Newline()
 	return true
 }
-func (h *HTMLRenderer) renderBookmark(block *notionapi.Block, entering bool) bool {
+func (r *HTMLRenderer) RenderBookmark(block *notionapi.Block, entering bool) bool {
 	content := fmt.Sprintf(`<a href="%s">%s</a>`, block.Link, block.Link)
 	cls := "notion-bookmark"
 	// TODO: don't render inlines (which seems to be title of the bookmarked page)
 	// TODO: support caption
 	// TODO: maybe support comments
-	h.WriteElementWithContent(block, "div", cls, content, entering)
+	r.WriteElementWithContent(block, "div", cls, content, entering)
 	return true
 }
 
-func (h *HTMLRenderer) renderGist(block *notionapi.Block, entering bool) bool {
-	h.maybePanic("NYI")
+func (r *HTMLRenderer) RenderGist(block *notionapi.Block, entering bool) bool {
+	content := fmt.Sprintf(`Embedded gist <a href="%s">%s</a>`, block.Source, block.Source)
+	cls := "notion-gist"
+	// TODO: don't render inlines (which seems to be title of the bookmarked page)
+	// TODO: support caption
+	// TODO: maybe support comments
+	r.WriteElementWithContent(block, "div", cls, content, entering)
 	return true
 }
 
-func (h *HTMLRenderer) renderImage(block *notionapi.Block, entering bool) bool {
-	h.maybePanic("NYI")
+func (r *HTMLRenderer) RenderImage(block *notionapi.Block, entering bool) bool {
+	r.maybePanic("NYI")
 	return true
 }
 
-func (h *HTMLRenderer) renderColumnList(block *notionapi.Block, entering bool) bool {
-	h.maybePanic("NYI")
+func (r *HTMLRenderer) RenderColumnList(block *notionapi.Block, entering bool) bool {
+	r.maybePanic("NYI")
 	return true
 }
 
-func (h *HTMLRenderer) renderCollectionView(block *notionapi.Block, entering bool) bool {
-	h.maybePanic("NYI")
+func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering bool) bool {
+	r.maybePanic("NYI")
 	return true
 }
 
-func (h *HTMLRenderer) renderEmbed(block *notionapi.Block, entering bool) bool {
-	h.maybePanic("NYI")
+func (r *HTMLRenderer) RenderEmbed(block *notionapi.Block, entering bool) bool {
+	r.maybePanic("NYI")
 	return true
 }
 
 // DefaultRenderFunc returns a defult rendering function for a type of
 // a given block
-func (h *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
+func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 	switch blockType {
 	case notionapi.BlockPage:
-		return h.renderPage
+		return r.RenderPage
 	case notionapi.BlockText:
-		return h.renderText
+		return r.RenderText
 	case notionapi.BlockNumberedList:
-		return h.renderBulletedList
+		return r.RenderBulletedList
 	case notionapi.BlockBulletedList:
-		return h.renderBulletedList
+		return r.RenderBulletedList
 	case notionapi.BlockHeader:
-		return h.renderHeader
+		return r.RenderHeader
 	case notionapi.BlockSubHeader:
-		return h.renderSubHeader
+		return r.RenderSubHeader
 	case notionapi.BlockSubSubHeader:
-		return h.renderSubSubHeader
+		return r.RenderSubSubHeader
 	case notionapi.BlockTodo:
-		return h.renderTodo
+		return r.RenderTodo
 	case notionapi.BlockToggle:
-		return h.renderToggle
+		return r.RenderToggle
 	case notionapi.BlockQuote:
-		return h.renderQuote
+		return r.RenderQuote
 	case notionapi.BlockDivider:
-		return h.renderDivider
+		return r.RenderDivider
 	case notionapi.BlockCode:
-		return h.renderCode
+		return r.RenderCode
 	case notionapi.BlockBookmark:
-		return h.renderBookmark
+		return r.RenderBookmark
 	case notionapi.BlockGist:
-		return h.renderGist
+		return r.RenderGist
 	case notionapi.BlockImage:
-		return h.renderImage
+		return r.RenderImage
 	case notionapi.BlockColumnList:
-		return h.renderColumnList
+		return r.RenderColumnList
 	case notionapi.BlockCollectionView:
-		return h.renderCollectionView
+		return r.RenderCollectionView
 	case notionapi.BlockEmbed:
-		return h.renderEmbed
+		return r.RenderEmbed
 	default:
-		h.maybePanic("DefaultRenderFunc: unsupported block type '%s'\n", blockType)
+		r.maybePanic("DefaultRenderFunc: unsupported block type '%s'\n", blockType)
 	}
 	return nil
 }
 
-func (h *HTMLRenderer) blockHasChildren(blockType string) bool {
+func (r *HTMLRenderer) blockHasChildren(blockType string) bool {
 	switch blockType {
 	case notionapi.BlockPage, notionapi.BlockNumberedList,
 		notionapi.BlockBulletedList:
@@ -355,21 +361,21 @@ func (h *HTMLRenderer) blockHasChildren(blockType string) bool {
 	case notionapi.BlockText:
 		return false
 	default:
-		h.maybePanic("unrecognized block type '%s'", blockType)
+		r.maybePanic("unrecognized block type '%s'", blockType)
 	}
 	return false
 }
 
 // RenderBlock renders a block to html
-func (h *HTMLRenderer) RenderBlock(block *notionapi.Block) {
+func (r *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 	if block == nil {
 		// a missing block
 		return
 	}
-	def := h.DefaultRenderFunc(block.Type)
+	def := r.DefaultRenderFunc(block.Type)
 	handled := false
-	if h.RenderBlockOverride != nil {
-		handled = h.RenderBlockOverride(block, true)
+	if r.RenderBlockOverride != nil {
+		handled = r.RenderBlockOverride(block, true)
 	}
 	if !handled && def != nil {
 		def(block, true)
@@ -377,24 +383,24 @@ func (h *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 
 	// TODO: probably need to handle notionapi.BlockNumberedList
 	// and notionapi.BlockBulletedList in a special way
-	h.Level++
+	r.Level++
 	for _, child := range block.Content {
-		h.RenderBlock(child)
+		r.RenderBlock(child)
 	}
-	h.Level--
+	r.Level--
 
 	/// TODO: not sure if this is needed
 	/*
-		if !h.blockHasChildren(block.Type) {
+		if !r.blockHasChildren(block.Type) {
 			if len(block.Content) != 0 {
-				h.maybePanic("block has children but blockHasChildren() says it doesn't have children")
+				r.maybePanic("block has children but blockHasChildren() says it doesn't have children")
 			}
 		}
 	*/
 
 	handled = false
-	if h.RenderBlockOverride != nil {
-		handled = h.RenderBlockOverride(block, false)
+	if r.RenderBlockOverride != nil {
+		handled = r.RenderBlockOverride(block, false)
 	}
 	if !handled && def != nil {
 		def(block, false)
@@ -402,12 +408,12 @@ func (h *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 }
 
 // ToHTML renders a page to html
-func (h *HTMLRenderer) ToHTML() []byte {
-	h.Level = 0
-	h.PushNewBuffer()
+func (r *HTMLRenderer) ToHTML() []byte {
+	r.Level = 0
+	r.PushNewBuffer()
 
-	h.RenderBlock(h.Page.Root)
-	buf := h.PopBuffer()
+	r.RenderBlock(r.Page.Root)
+	buf := r.PopBuffer()
 	return buf.Bytes()
 }
 
