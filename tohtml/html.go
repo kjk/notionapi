@@ -454,13 +454,11 @@ func (r *HTMLRenderer) RenderTweet(block *notionapi.Block, entering bool) bool {
 // RenderGist renders BlockGist
 func (r *HTMLRenderer) RenderGist(block *notionapi.Block, entering bool) bool {
 	uri := block.Source
-	content := fmt.Sprintf(`Embedded gist <a href="%s">%s</a>`, uri, uri)
-	cls := "notion-embed"
-	// TODO: don't render inlines (which seems to be title of the bookmarked page)
+	cls := "notion-embed-gist"
+	attrs := []string{"src", uri, "class", cls}
 	// TODO: support caption
 	// TODO: maybe support comments
-	attrs := []string{"class", cls}
-	r.WriteElement(block, "div", attrs, content, entering)
+	r.WriteElement(block, "script", attrs, "", entering)
 	return true
 }
 
