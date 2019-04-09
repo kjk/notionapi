@@ -19,12 +19,22 @@ body {
   text-decoration: line-through;
 }
 
-div.notion-todo-checked:before {
+.notion-todo-checked:before {
   content: "\2612";
 }
 
 .notion-todo::before {
   content: "\2610";
+}
+
+hr.notion-divider {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
+div.notion-bookmark {
+  border: 1px solid #eee;
+  padding: 1em;
 }
 
 .lvl1 {
@@ -49,11 +59,6 @@ div.notion-todo-checked:before {
 
 .lvl6 {
   margin-left: 96px;
-}
-
-hr {
-  border: 0;
-  border-top: 1px solid #eee;
 }
 
 /*

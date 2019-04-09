@@ -101,9 +101,9 @@ func (h *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
 	return block.ID
 }
 
-// WriteElement is a helper class that writes HTML with a given
-// class (optional) and id (also optional)
-func (h *HTMLRenderer) WriteElement(block *notionapi.Block, el string, class string, entering bool) {
+// WriteElementWithContent is a helper class that writes HTML
+// with optional class, optional id and optional content
+func (h *HTMLRenderer) WriteElementWithContent(block *notionapi.Block, el string, class string, content string, entering bool) {
 	if !entering {
 		h.Buf.WriteString("</" + el + ">")
 		h.Newline()
@@ -120,8 +120,16 @@ func (h *HTMLRenderer) WriteElement(block *notionapi.Block, el string, class str
 	s += ">"
 	h.Buf.WriteString(s)
 	h.Newline()
+	h.Buf.WriteString(content)
+	h.Newline()
 	h.RenderInlines(block.InlineContent)
 	h.Newline()
+}
+
+// WriteElement is a helper class that writes HTML with
+// optional class, optional id and optional content
+func (h *HTMLRenderer) WriteElement(block *notionapi.Block, el string, class string, entering bool) {
+	h.WriteElementWithContent(block, el, class, "", entering)
 }
 
 // RenderInline renders inline block
@@ -172,6 +180,23 @@ func (h *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 		h.RenderInline(block)
 	}
 	h.Level--
+}
+
+func (h *HTMLRenderer) renderCode(block *notionapi.Block, entering bool) bool {
+	if !entering {
+		h.Buf.WriteString("</code></pre>")
+		h.Newline()
+		return true
+	}
+	cls := "notion-code"
+	lang := strings.ToLower(strings.TrimSpace(block.CodeLanguage))
+	if lang != "" {
+		cls += " notion-lang-" + lang
+	}
+	code := template.HTMLEscapeString(block.Code)
+	s := fmt.Sprintf(`<pre class="%s"><code>%s`, cls, code)
+	h.Buf.WriteString(s)
+	return true
 }
 
 func (h *HTMLRenderer) renderPage(block *notionapi.Block, entering bool) bool {
@@ -234,30 +259,20 @@ func (h *HTMLRenderer) renderQuote(block *notionapi.Block, entering bool) bool {
 }
 
 func (h *HTMLRenderer) renderDivider(block *notionapi.Block, entering bool) bool {
-	h.maybePanic("NYI")
-	return true
-}
-
-func (h *HTMLRenderer) renderCode(block *notionapi.Block, entering bool) bool {
 	if !entering {
-		h.Buf.WriteString("</code></pre>")
-		h.Newline()
 		return true
 	}
-
-	cls := "notion-code"
-	lang := strings.ToLower(strings.TrimSpace(block.CodeLanguage))
-	if lang != "" {
-		cls += " notion-lang-" + lang
-	}
-	code := template.HTMLEscapeString(block.Code)
-	s := fmt.Sprintf(`<pre class="%s"><code>%s`, cls, code)
-	h.Buf.WriteString(s)
+	h.Buf.WriteString(`<hr class="notion-divider">`)
+	h.Newline()
 	return true
 }
-
 func (h *HTMLRenderer) renderBookmark(block *notionapi.Block, entering bool) bool {
-	h.maybePanic("NYI")
+	content := fmt.Sprintf(`<a href="%s">%s</a>`, block.Link, block.Link)
+	cls := "notion-bookmark"
+	// TODO: don't render inlines (which seems to be title of the bookmarked page)
+	// TODO: support caption
+	// TODO: maybe support comments
+	h.WriteElementWithContent(block, "div", cls, content, entering)
 	return true
 }
 
