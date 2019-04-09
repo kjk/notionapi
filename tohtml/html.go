@@ -553,7 +553,7 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 	case notionapi.BlockTweet:
 		return r.RenderTweet
 	default:
-		r.maybePanic("DefaultRenderFunc: unsupported block type '%s'\n", blockType)
+		r.maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, r.Page.NotionURL())
 	}
 	return nil
 }

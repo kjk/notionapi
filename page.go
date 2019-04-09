@@ -202,6 +202,15 @@ func parseFormat(block *Block) error {
 	return nil
 }
 
+// NotionURL returns url of this page on notion.so
+func (p *Page) NotionURL() string {
+	if p == nil {
+		return ""
+	}
+	id := ToNoDashID(p.ID)
+	return "https://notion.so/" + id
+}
+
 func panicIf(cond bool, args ...interface{}) {
 	if !cond {
 		return
