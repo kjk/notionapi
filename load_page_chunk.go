@@ -163,12 +163,16 @@ type Date struct {
 	// "2018-07-12"
 	StartDate string `json:"start_date"`
 	// "09:00"
-	StartTime *string `json:"start_time,omitempty"`
+	StartTime string `json:"start_time,omitempty"`
+	// "2018-07-12"
+	EndDate string `json:"end_date,omitempty"`
+	// "09:00"
+	EndTime string `json:"end_time,omitempty"`
 	// "America/Los_Angeles"
 	TimeZone *string `json:"time_zone,omitempty"`
 	// "H:mm" for 24hr, not given for 12hr
-	TimeFormat *string `json:"time_format,omitempty"`
-	// "date", "datetime"
+	TimeFormat string `json:"time_format,omitempty"`
+	// "date", "datetime", "datetimerange", "daterange"
 	Type string `json:"type"`
 }
 

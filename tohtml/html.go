@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/kjk/notionapi"
 )
@@ -187,21 +188,80 @@ func (r *HTMLRenderer) NextBlock() *notionapi.Block {
 	return r.CurrBlocks[r.CurrBlockIdx+1]
 }
 
+// ParseNotionDateTime parses date and time as sent in JSON by notion
+// server and returns time.Time
+// date is sent in "2019-04-09" format
+// time is optional and sent in "00:35" format
+func (r *HTMLRenderer) ParseNotionDateTime(date string, t string) time.Time {
+	s := date
+	fmt := "2006-01-02"
+	if t != "" {
+		fmt += " 15:04"
+		s += " " + t
+	}
+	dt, err := time.Parse(fmt, s)
+	if err != nil {
+		r.maybePanic("time.Parse('%s', '%s') failed with %s", fmt, s, err)
+	}
+	return dt
+}
+
+// ConvertNotionTimeFormatToGoFormat converts a date format sent from Notion
+// server, e.g. "MMM DD, YYYY" to Go time format like "02 01, 2006"
+// YYYY is numeric year => 2006 in Go
+// MM is numeric month => 01 in Go
+// DD is numeric day => 02 in Go
+// MMM is named month => Jan in Go
+func (r *HTMLRenderer) ConvertNotionTimeFormatToGoFormat(d *notionapi.Date, withTime bool) string {
+	format := d.DateFormat
+	// we don't support relative time, so use this fixed format
+	if format == "relative" {
+		format = "MMM DD, YYYY"
+	}
+	s := format
+	s = strings.Replace(s, "MMM", "Jan", -1)
+	s = strings.Replace(s, "MM", "01", -1)
+	s = strings.Replace(s, "DD", "02", -1)
+	s = strings.Replace(s, "YYYY", "2006", -1)
+	if withTime {
+		// this is 24 hr format
+		if d.TimeFormat == "H:mm" {
+			s += " 15:04"
+		} else {
+			// use 12 hr format
+			s += " 3:04 PM"
+		}
+	}
+	return s
+}
+
+// FormatDateTime formats date/time from Notion canonical format to
+// user-requested format
+func (r *HTMLRenderer) FormatDateTime(d *notionapi.Date, date string, t string) string {
+	withTime := t != ""
+	dt := r.ParseNotionDateTime(date, t)
+	goFormat := r.ConvertNotionTimeFormatToGoFormat(d, withTime)
+	return dt.Format(goFormat)
+}
+
 // DefaultFormatDate is default formatting of date
 // "date_format": "relative",
 // "start_date": "2019-03-26",
 // "type": "date"
-func DefaultFormatDate(d *notionapi.Date) string {
-	if d.DateFormat == "relative" {
-		return d.StartDate
+// TODO: add time zone, maybe
+func (r *HTMLRenderer) DefaultFormatDate(d *notionapi.Date) string {
+	s := r.FormatDateTime(d, d.StartDate, d.StartTime)
+	if strings.Contains(d.Type, "range") {
+		s2 := r.FormatDateTime(d, d.EndDate, d.EndTime)
+		s += " → " + s2
 	}
-	return "@TODO: date"
+	return fmt.Sprintf(`<span class="notion-date">@%s</span>`, s)
 }
 
 // FormatDate formats the data
 func (r *HTMLRenderer) FormatDate(d *notionapi.Date) string {
 	// TODO: allow over-riding date formatting
-	return DefaultFormatDate(d)
+	return r.DefaultFormatDate(d)
 }
 
 // DefaultRenderInlineLink returns default HTML for inline links
@@ -261,8 +321,14 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 	r.Level++
 	r.WriteIndent()
+	bufLen := r.Buf.Len()
 	for _, block := range blocks {
 		r.RenderInline(block)
+	}
+
+	// if text was empty, write &nbsp; so that empty blocks show up
+	if bufLen == r.Buf.Len() {
+		r.WriteString("&nbsp;")
 	}
 	r.Level--
 }

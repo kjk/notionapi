@@ -73,6 +73,10 @@ div.notion-wrap {
   margin-left: 1.3em;
 }
 
+.notion-date {
+  opacity: 0.5;
+}
+
 hr.notion-divider {
   border: 0;
   border-top: 1px solid #eee;
