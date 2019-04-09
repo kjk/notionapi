@@ -3,6 +3,7 @@ package tohtml
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"html/template"
 	"strings"
 
@@ -502,9 +503,89 @@ func (r *HTMLRenderer) RenderColumn(block *notionapi.Block, entering bool) bool 
 	return true
 }
 
+// v is expected to be
+// [
+// 	[
+// 		"foo"
+// 	]
+// ]
+// and we want to return "foo"
+// If not present or unexpected shape, return ""
+// is still visible
+// TODO: this mabye belongs to notionapi
+func propsValueToText(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+
+	// [ [ "foo" ]]
+	a, ok := v.([]interface{})
+	if !ok {
+		return fmt.Sprintf("type1: %T", v)
+	}
+	// [ "foo" ]
+	if len(a) == 0 {
+		return ""
+	}
+	v = a[0]
+	a, ok = v.([]interface{})
+	if !ok {
+		return fmt.Sprintf("type2: %T", v)
+	}
+	// "foo"
+	if len(a) == 0 {
+		return ""
+	}
+	v = a[0]
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Sprintf("type3: %T", v)
+	}
+	return str
+}
+
 // RenderCollectionView renders BlockCollectionView
+// TODO: it renders all views, should render just one
+// TODO: maybe add alternating background color for rows
 func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering bool) bool {
-	r.maybePanic("NYI")
+	viewInfo := block.CollectionViews[0]
+	view := viewInfo.CollectionView
+	columns := view.Format.TableProperties
+	s := `<table class="notion-collection-view">`
+
+	// generate header row
+	s += `<thead><tr>`
+	for _, col := range columns {
+		colName := col.Property
+		colInfo := viewInfo.Collection.CollectionSchema[colName]
+		name := colInfo.Name
+		s += `<th>` + html.EscapeString(name) + `</th>`
+	}
+	s += `</tr></thead>`
+	s += `<tbody>`
+
+	for _, row := range viewInfo.CollectionRows {
+		s += `<tr>`
+		props := row.Properties
+		for _, col := range columns {
+			colName := col.Property
+			v := props[colName]
+			colVal := propsValueToText(v)
+			if colVal == "" {
+				// use &nbsp; so that empty row still shows up
+				// could also set a min-height to 1em or sth. like that
+				s += `<td>&nbsp;</td>`
+			} else {
+				//colInfo := viewInfo.Collection.CollectionSchema[colName]
+				// TODO: format colVal according to colInfo
+				s += `<td>` + html.EscapeString(colVal) + `</td>`
+			}
+		}
+		s += `</tr>`
+	}
+	s += `</tbody>`
+	s += `</table>`
+	r.WriteString(s)
 	return true
 }
 

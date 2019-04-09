@@ -19,9 +19,10 @@ body {
   text-decoration: line-through;
 }
 
-.notion-page-content {
+.notion-page-title {
   font-size: 2em;
   font-weight: bold;
+  padding: 4px 0;
 }
 
 .notion-sub-page::before {
@@ -82,6 +83,27 @@ div.notion-column-list {
 /* size all columns equally */
 div.notion-column {
   flex: 1;
+}
+
+table.notion-collection-view {
+  background-color: white;
+}
+
+table.notion-collection-view th {
+  color: rgb(165, 165, 165);
+  font-weight: normal;
+  border-right: 1px solid rgb(243, 243, 243);
+  border-bottom: 1px solid rgb(221, 225, 227);
+  border-top: 1px solid rgb(221, 225, 227);
+  padding: 1px 8px 1px;
+  margin: 0px;
+}
+
+table.notion-collection-view td {
+  border-right: 1px solid rgb(243, 243, 243);
+  border-bottom: 1px solid rgb(221, 225, 227);
+  padding: 1px 8px 1px;
+  margin: 0px;
 }
 
 div.notion-embed {
