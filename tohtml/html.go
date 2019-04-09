@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"path"
 	"strings"
 
 	"github.com/kjk/notionapi"
@@ -498,8 +499,47 @@ func (r *HTMLRenderer) RenderGist(block *notionapi.Block, entering bool) bool {
 
 // RenderEmbed renders BlockEmbed
 func (r *HTMLRenderer) RenderEmbed(block *notionapi.Block, entering bool) bool {
+	// TODO: best effort at making the URL readable
 	uri := block.FormatEmbed.DisplaySource
-	content := fmt.Sprintf(`Oembed: <a href="%s">%s</a>`, uri, uri)
+	title := block.Title
+	if title == "" {
+		title = path.Base(uri)
+	}
+	title = html.EscapeString(title)
+	content := fmt.Sprintf(`Oembed: <a href="%s">%s</a>`, uri, title)
+	cls := "notion-embed"
+	attrs := []string{"class", cls}
+	r.WriteElement(block, "div", attrs, content, entering)
+	return true
+}
+
+// RenderFile renders BlockFile
+func (r *HTMLRenderer) RenderFile(block *notionapi.Block, entering bool) bool {
+	// TODO: best effort at making the URL readable
+	uri := block.Source
+	title := block.Title
+	if title == "" {
+		title = path.Base(uri)
+	}
+	title = html.EscapeString(title)
+	content := fmt.Sprintf(`Embedded file: <a href="%s">%s</a>`, uri, title)
+	fmt.Printf("File: '%s'\n", content)
+	cls := "notion-embed"
+	attrs := []string{"class", cls}
+	r.WriteElement(block, "div", attrs, content, entering)
+	return true
+}
+
+// RenderPDF renders BlockPDF
+func (r *HTMLRenderer) RenderPDF(block *notionapi.Block, entering bool) bool {
+	// TODO: best effort at making the URL readable
+	uri := block.Source
+	title := block.Title
+	if title == "" {
+		title = path.Base(uri)
+	}
+	title = html.EscapeString(title)
+	content := fmt.Sprintf(`Embedded PDF: <a href="%s">%s</a>`, uri, title)
 	cls := "notion-embed"
 	attrs := []string{"class", cls}
 	r.WriteElement(block, "div", attrs, content, entering)
@@ -668,6 +708,10 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 		return r.RenderTweet
 	case notionapi.BlockVideo:
 		return r.RenderVideo
+	case notionapi.BlockFile:
+		return r.RenderFile
+	case notionapi.BlockPDF:
+		return r.RenderPDF
 	default:
 		r.maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, r.Page.NotionURL())
 	}

@@ -51,6 +51,8 @@ const (
 	BlockVideo = "video"
 	// BlockFile is an embedded file
 	BlockFile = "file"
+	// BlockPdf is an embedded pdf file
+	BlockPDF = "pdf"
 	// BlockGist is embedded gist block
 	BlockGist = "gist"
 	// BlockTweet is embedded gist block
