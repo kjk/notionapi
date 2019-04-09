@@ -104,18 +104,6 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 	}
 
 	switch block.Type {
-	case notionapi.BlockToggle:
-		start := fmt.Sprintf(`<div class="toggle%s">`, levelCls)
-		close := `</div>`
-		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.BlockBulletedList:
-		start := fmt.Sprintf(`<div class="bullet-list%s">`, levelCls)
-		close := `</div>`
-		genBlockSurroudedHTML(f, block, start, close, level)
-	case notionapi.BlockNumberedList:
-		start := fmt.Sprintf(`<div class="numbered-list%s">`, levelCls)
-		close := `</div>`
-		genBlockSurroudedHTML(f, block, start, close, level)
 	case notionapi.BlockPage:
 		id := strings.TrimSpace(block.ID)
 		cls := "page"

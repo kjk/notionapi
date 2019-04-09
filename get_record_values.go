@@ -29,8 +29,22 @@ type BlockWithRole struct {
 	Value *Block `json:"value"`
 }
 
+// BlockPageType defines a type of BlockPage block
+type BlockPageType int
+
+const (
+	// BlockPageTopLevel is top-level block for the whole page
+	BlockPageTopLevel BlockPageType = iota
+	// BlockPageSubPage is a sub-page
+	BlockPageSubPage
+	// BlockPageLink a link to a page
+	BlockPageLink
+)
+
 // Block describes a block
 type Block struct {
+	// a unique ID of the block
+	ID string `json:"id"`
 	// values that come from JSON
 	// if false, the page is deleted
 	Alive bool `json:"alive"`
@@ -48,8 +62,6 @@ type Block struct {
 	// https://s3-us-west-2.amazonaws.com/secure.notion-static.com/${id}/${name}
 	FileIDs   []string        `json:"file_ids,omitempty"`
 	FormatRaw json.RawMessage `json:"format,omitempty"`
-	// a unique ID of the block
-	ID string `json:"id"`
 
 	// TODO: don't know what this means
 	IgnoreBlockCount bool `json:"ignore_block_count,omitempty"`
@@ -70,6 +82,9 @@ type Block struct {
 	ViewIDs []string `json:"view_ids,omitempty"`
 
 	// Values calculated by us
+
+	// Parent of this block
+	Parent *Block `json:"-"`
 
 	// maps ContentIDs array
 	Content []*Block `json:"content_resolved,omitempty"`
@@ -135,8 +150,8 @@ func (b *Block) UpdatedOn() time.Time {
 	return time.Unix(b.LastEditedTime/1000, 0)
 }
 
-// IsLinkToPage returns true if block element is a link to existing page
-// (as opposed to )
+// IsLinkToPage returns true if block element is a link to a page
+// (as opposed to embedded page)
 func (b *Block) IsLinkToPage() bool {
 	if b.Type != BlockPage {
 		return false
@@ -144,8 +159,19 @@ func (b *Block) IsLinkToPage() bool {
 	return b.ParentTable == TableSpace
 }
 
-// IsPage returns true if block represents a page (either a sub-page or
-// a link to a page)
+// GetPageType returns type of this page
+func (b *Block) GetPageType() BlockPageType {
+	if b.Parent == nil {
+		return BlockPageTopLevel
+	}
+	if b.ParentID == b.Parent.ID {
+		return BlockPageSubPage
+	}
+	return BlockPageLink
+}
+
+// IsPage returns true if block represents a page (either a
+// sub-page or a link to a page)
 func (b *Block) IsPage() bool {
 	return b.Type == BlockPage
 }

@@ -254,8 +254,30 @@ func (r *HTMLRenderer) RenderCode(block *notionapi.Block, entering bool) bool {
 
 // RenderPage renders BlockPage
 func (r *HTMLRenderer) RenderPage(block *notionapi.Block, entering bool) bool {
-	attrs := []string{"class", "notion-page"}
-	r.WriteElement(block, "div", attrs, "", entering)
+	tp := block.GetPageType()
+	if tp == notionapi.BlockPageTopLevel {
+		title := template.HTMLEscapeString(block.Title)
+		content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
+		attrs := []string{"class", "notion-page"}
+		r.WriteElement(block, "div", attrs, content, entering)
+		return true
+	}
+
+	if !entering {
+		return true
+	}
+
+	cls := "notion-page-link"
+	if tp == notionapi.BlockPageSubPage {
+		cls = "notion-sub-page"
+	}
+	id := notionapi.ToNoDashID(block.ID)
+	uri := "https://notion.so/" + id
+	title := template.HTMLEscapeString(block.Title)
+	s := fmt.Sprintf(`<div class="%s"><a href="%s">%s</a></div>`, cls, uri, title)
+	r.WriteIndent()
+	r.WriteString(s)
+	r.Newline()
 	return true
 }
 
@@ -416,13 +438,37 @@ func (r *HTMLRenderer) RenderBookmark(block *notionapi.Block, entering bool) boo
 	return true
 }
 
-// RenderGist renders BlockGist
-func (r *HTMLRenderer) RenderGist(block *notionapi.Block, entering bool) bool {
-	content := fmt.Sprintf(`Embedded gist <a href="%s">%s</a>`, block.Source, block.Source)
-	cls := "notion-gist"
+// RenderTweet renders BlockTweet
+func (r *HTMLRenderer) RenderTweet(block *notionapi.Block, entering bool) bool {
+	uri := block.Source
+	content := fmt.Sprintf(`Embedded tweet <a href="%s">%s</a>`, uri, uri)
+	cls := "notion-embed"
 	// TODO: don't render inlines (which seems to be title of the bookmarked page)
 	// TODO: support caption
 	// TODO: maybe support comments
+	attrs := []string{"class", cls}
+	r.WriteElement(block, "div", attrs, content, entering)
+	return true
+}
+
+// RenderGist renders BlockGist
+func (r *HTMLRenderer) RenderGist(block *notionapi.Block, entering bool) bool {
+	uri := block.Source
+	content := fmt.Sprintf(`Embedded gist <a href="%s">%s</a>`, uri, uri)
+	cls := "notion-embed"
+	// TODO: don't render inlines (which seems to be title of the bookmarked page)
+	// TODO: support caption
+	// TODO: maybe support comments
+	attrs := []string{"class", cls}
+	r.WriteElement(block, "div", attrs, content, entering)
+	return true
+}
+
+// RenderEmbed renders BlockEmbed
+func (r *HTMLRenderer) RenderEmbed(block *notionapi.Block, entering bool) bool {
+	uri := block.FormatEmbed.DisplaySource
+	content := fmt.Sprintf(`Oembed: <a href="%s">%s</a>`, uri, uri)
+	cls := "notion-embed"
 	attrs := []string{"class", cls}
 	r.WriteElement(block, "div", attrs, content, entering)
 	return true
@@ -444,12 +490,6 @@ func (r *HTMLRenderer) RenderColumnList(block *notionapi.Block, entering bool) b
 
 // RenderCollectionView renders BlockCollectionView
 func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering bool) bool {
-	r.maybePanic("NYI")
-	return true
-}
-
-// RenderEmbed renders BlockEmbed
-func (r *HTMLRenderer) RenderEmbed(block *notionapi.Block, entering bool) bool {
 	r.maybePanic("NYI")
 	return true
 }
@@ -484,8 +524,6 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 		return r.RenderCode
 	case notionapi.BlockBookmark:
 		return r.RenderBookmark
-	case notionapi.BlockGist:
-		return r.RenderGist
 	case notionapi.BlockImage:
 		return r.RenderImage
 	case notionapi.BlockColumnList:
@@ -494,6 +532,10 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 		return r.RenderCollectionView
 	case notionapi.BlockEmbed:
 		return r.RenderEmbed
+	case notionapi.BlockGist:
+		return r.RenderGist
+	case notionapi.BlockTweet:
+		return r.RenderTweet
 	default:
 		r.maybePanic("DefaultRenderFunc: unsupported block type '%s'\n", blockType)
 	}
@@ -517,6 +559,7 @@ func (r *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 
 	r.Level++
 	for i, child := range block.Content {
+		child.Parent = block
 		r.CurrBlocks = block.Content
 		r.CurrBlockIdx = i
 		r.RenderBlock(child)

@@ -14,8 +14,6 @@ const (
 	BlockText = "text"
 	// BlockBookmark is a bookmark block
 	BlockBookmark = "bookmark"
-	// BlockGist is a gist block
-	BlockGist = "gist"
 	// BlockBulletedList is a bulleted list block
 	BlockBulletedList = "bulleted_list"
 	// BlockNumberedList is a numbered list block
@@ -53,6 +51,10 @@ const (
 	BlockVideo = "video"
 	// BlockFile is an embedded file
 	BlockFile = "file"
+	// BlockGist is embedded gist block
+	BlockGist = "gist"
+	// BlockTweet is embedded gist block
+	BlockTweet = "tweet"
 	// BlockEmbed is a generic oembed link
 	BlockEmbed = "embed"
 )

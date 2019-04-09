@@ -15,11 +15,14 @@ to make it fully stand-alone page
 var (
 	htmlWrap = `
 <html>
-	<meta>
-	<style>
-{{ css }}
-	</style>
-	</meta>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+
+		<style>
+	{{ css }}
+		</style>
+	</head>
 
 <body>
 {{ htmlBody }}

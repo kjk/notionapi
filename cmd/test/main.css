@@ -19,6 +19,21 @@ body {
   text-decoration: line-through;
 }
 
+.notion-page-content {
+  font-size: 2em;
+  font-weight: bold;
+}
+
+.notion-sub-page::before {
+  content: "\1f5cf";
+  margin-right: 0.4em;
+}
+
+.notion-page-link::before {
+  content: "\1f5cf\2197";
+  margin-right: 0.4em;
+}
+
 .notion-todo-checked:before {
   content: "\2612";
 }
@@ -59,7 +74,7 @@ div.notion-bookmark {
   padding: 1em;
 }
 
-div.notion-gist {
+div.notion-embed {
   border: 1px solid #eee;
   padding: 1em;
 }
