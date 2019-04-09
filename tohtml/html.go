@@ -453,7 +453,7 @@ func (r *HTMLRenderer) RenderTweet(block *notionapi.Block, entering bool) bool {
 
 // RenderGist renders BlockGist
 func (r *HTMLRenderer) RenderGist(block *notionapi.Block, entering bool) bool {
-	uri := block.Source
+	uri := block.Source + ".js"
 	cls := "notion-embed-gist"
 	attrs := []string{"src", uri, "class", cls}
 	// TODO: support caption
