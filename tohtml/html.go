@@ -481,8 +481,24 @@ func (r *HTMLRenderer) RenderImage(block *notionapi.Block, entering bool) bool {
 }
 
 // RenderColumnList renders BlockColumnList
+// it's children are BlockColumn
 func (r *HTMLRenderer) RenderColumnList(block *notionapi.Block, entering bool) bool {
-	r.maybePanic("NYI")
+	nColumns := len(block.Content)
+	if nColumns == 0 {
+		r.maybePanic("has no columns")
+		return true
+	}
+	attrs := []string{"class", "notion-column-list"}
+	r.WriteElement(block, "div", attrs, "", entering)
+	return true
+}
+
+// RenderColumn renders BlockColumn
+// it's parent is BlockColumnList
+func (r *HTMLRenderer) RenderColumn(block *notionapi.Block, entering bool) bool {
+	// TODO: get column ration from col.FormatColumn.ColumnRation, which is float 0...1
+	attrs := []string{"class", "notion-column"}
+	r.WriteElement(block, "div", attrs, "", entering)
 	return true
 }
 
@@ -526,6 +542,8 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 		return r.RenderImage
 	case notionapi.BlockColumnList:
 		return r.RenderColumnList
+	case notionapi.BlockColumn:
+		return r.RenderColumn
 	case notionapi.BlockCollectionView:
 		return r.RenderCollectionView
 	case notionapi.BlockEmbed:

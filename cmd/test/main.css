@@ -74,6 +74,16 @@ div.notion-bookmark {
   padding: 1em;
 }
 
+div.notion-column-list {
+  display: flex;
+  width: 100%;
+}
+
+/* size all columns equally */
+div.notion-column {
+  flex: 1;
+}
+
 div.notion-embed {
   border: 1px solid #eee;
   padding: 1em;
