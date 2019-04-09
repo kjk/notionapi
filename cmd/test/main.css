@@ -19,6 +19,11 @@ body {
   text-decoration: line-through;
 }
 
+/* sometimes we render children inside notion-wrap to provide indent */
+div.notion-wrap {
+  margin-left: 1em;
+}
+
 .notion-video {
   max-width: 100%;
 }

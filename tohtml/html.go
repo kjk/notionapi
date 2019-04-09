@@ -185,6 +185,23 @@ func (r *HTMLRenderer) NextBlock() *notionapi.Block {
 	return r.CurrBlocks[r.CurrBlockIdx+1]
 }
 
+// DefaultFormatDate is default formatting of date
+// "date_format": "relative",
+// "start_date": "2019-03-26",
+// "type": "date"
+func DefaultFormatDate(d *notionapi.Date) string {
+	if d.DateFormat == "relative" {
+		return d.StartDate
+	}
+	return "@TODO: date"
+}
+
+// FormatDate formats the data
+func (r *HTMLRenderer) FormatDate(d *notionapi.Date) string {
+	// TODO: allow over-riding date formatting
+	return DefaultFormatDate(d)
+}
+
 // RenderInline renders inline block
 func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	var start, close string
@@ -217,7 +234,7 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	}
 	if b.Date != nil {
 		// TODO: serialize date properly
-		start += fmt.Sprintf(`<span class="notion-date">@TODO: date</span>`)
+		start += r.FormatDate(b.Date)
 		skipText = true
 	}
 	if !skipText {
@@ -523,7 +540,6 @@ func (r *HTMLRenderer) RenderFile(block *notionapi.Block, entering bool) bool {
 	}
 	title = html.EscapeString(title)
 	content := fmt.Sprintf(`Embedded file: <a href="%s">%s</a>`, uri, title)
-	fmt.Printf("File: '%s'\n", content)
 	cls := "notion-embed"
 	attrs := []string{"class", cls}
 	r.WriteElement(block, "div", attrs, content, entering)
@@ -718,6 +734,15 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 	return nil
 }
 
+func needsWrapper(block *notionapi.Block) bool {
+	switch block.Type {
+	// TODO: maybe more block types need this
+	case notionapi.BlockText:
+		return true
+	}
+	return false
+}
+
 // RenderBlock renders a block to html
 func (r *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 	if block == nil {
@@ -733,6 +758,10 @@ func (r *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 		def(block, true)
 	}
 
+	// .notion-wrap provides indentation for children
+	if needsWrapper(block) {
+		r.WriteString(`<div class="notion-wrap">`)
+	}
 	r.Level++
 	for i, child := range block.Content {
 		child.Parent = block
@@ -741,6 +770,9 @@ func (r *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 		r.RenderBlock(child)
 	}
 	r.Level--
+	if needsWrapper(block) {
+		r.WriteString(`</div>`)
+	}
 
 	handled = false
 	if r.RenderBlockOverride != nil {
