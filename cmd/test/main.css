@@ -32,6 +32,20 @@ hr.notion-divider {
   border-top: 1px solid #eee;
 }
 
+/*
+style of an image <img> tag:
+- centered horizontally
+- limit width to container (i.e. the page)
+*/
+img.notion-image {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
+  display: block; /* needed for margin-left/margin-right to work */
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
 div.notion-bookmark {
   border: 1px solid #eee;
   padding: 1em;

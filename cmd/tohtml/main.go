@@ -127,9 +127,6 @@ func genBlockHTML(f io.Writer, block *notionapi.Block, level int) {
 		url += ".html"
 		html := fmt.Sprintf(`<div class="%s%s"><a href="%s">%s</a></div>`, cls, levelCls, url, title)
 		fmt.Fprintf(f, "%s\n", html)
-	case notionapi.BlockImage:
-		link := block.ImageURL
-		fmt.Fprintf(f, `<img class="%s" src="%s" />`+"\n", levelCls, link)
 	case notionapi.BlockColumnList:
 		// TODO: implement me
 	case notionapi.BlockCollectionView:
