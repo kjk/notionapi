@@ -439,6 +439,39 @@ func (r *HTMLRenderer) RenderBookmark(block *notionapi.Block, entering bool) boo
 	return true
 }
 
+// RenderVideo renders BlockTweet
+func (r *HTMLRenderer) RenderVideo(block *notionapi.Block, entering bool) bool {
+	f := block.FormatVideo
+	ws := fmt.Sprintf("%d", f.BlockWidth)
+	uri := f.DisplaySource
+	if uri == "" {
+		// TODO: not sure if this is needed
+		uri = block.Source
+	}
+	// TODO: get more info from format
+	attrs := []string{
+		"class", "notion-video",
+		"width", ws,
+		"src", uri,
+		"frameborder", "0",
+		"allow", "encrypted-media",
+		"allowfullscreen", "true",
+	}
+	// TODO: can it be that f.BlockWidth is 0 and we need to
+	// calculate it from f.BlockHeight
+	h := f.BlockHeight
+	if h == 0 {
+		h = int64(float64(f.BlockWidth) * f.BlockAspectRatio)
+	}
+	if h > 0 {
+		hs := fmt.Sprintf("%d", h)
+		attrs = append(attrs, "height", hs)
+	}
+
+	r.WriteElement(block, "iframe", attrs, "", entering)
+	return true
+}
+
 // RenderTweet renders BlockTweet
 func (r *HTMLRenderer) RenderTweet(block *notionapi.Block, entering bool) bool {
 	uri := block.Source
@@ -633,6 +666,8 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 		return r.RenderGist
 	case notionapi.BlockTweet:
 		return r.RenderTweet
+	case notionapi.BlockVideo:
+		return r.RenderVideo
 	default:
 		r.maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, r.Page.NotionURL())
 	}

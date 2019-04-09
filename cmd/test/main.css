@@ -19,6 +19,10 @@ body {
   text-decoration: line-through;
 }
 
+.notion-video {
+  max-width: 100%;
+}
+
 .notion-page-title {
   font-size: 2em;
   font-weight: bold;
