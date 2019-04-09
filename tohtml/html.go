@@ -128,9 +128,9 @@ func (r *HTMLRenderer) WriteIndent() {
 
 func (r *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
 	if r.AddIDAttribute {
-		return ""
+		return notionapi.ToNoDashID(block.ID)
 	}
-	return notionapi.ToNoDashID(block.ID)
+	return ""
 }
 
 // WriteElement is a helper class that writes HTML with
