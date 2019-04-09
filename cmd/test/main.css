@@ -27,6 +27,14 @@ body {
   content: "\2610";
 }
 
+.notion-toggle::before {
+  content: "\2BC6";
+}
+
+.notion-toggle-wrapper {
+  margin-left: 1.3em;
+}
+
 hr.notion-divider {
   border: 0;
   border-top: 1px solid #eee;

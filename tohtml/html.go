@@ -116,6 +116,7 @@ func (r *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
 func (r *HTMLRenderer) WriteElement(block *notionapi.Block, tag string, attrs []string, content string, entering bool) {
 	if !entering {
 		if !isSelfClosing(tag) {
+			r.WriteIndent()
 			r.Buf.WriteString("</" + tag + ">")
 			r.Newline()
 		}
@@ -135,10 +136,14 @@ func (r *HTMLRenderer) WriteElement(block *notionapi.Block, tag string, attrs []
 		s += ` id="` + id + `"`
 	}
 	s += ">"
+	r.WriteIndent()
 	r.Buf.WriteString(s)
 	r.Newline()
-	r.Buf.WriteString(content)
-	r.Newline()
+	if len(content) > 0 {
+		r.WriteIndent()
+		r.Buf.WriteString(content)
+		r.Newline()
+	}
 	r.RenderInlines(block.InlineContent)
 	r.Newline()
 }
@@ -187,6 +192,7 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 // RenderInlines renders inline blocks
 func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 	r.Level++
+	r.WriteIndent()
 	for _, block := range blocks {
 		r.RenderInline(block)
 	}
@@ -276,7 +282,21 @@ func (r *HTMLRenderer) RenderTodo(block *notionapi.Block, entering bool) bool {
 
 // RenderToggle renders BlockToggle
 func (r *HTMLRenderer) RenderToggle(block *notionapi.Block, entering bool) bool {
-	r.maybePanic("NYI")
+	if entering {
+		attrs := []string{"class", "notion-toggle"}
+		r.WriteElement(block, "div", attrs, "", entering)
+
+		s := `<div class="notion-toggle-wrapper">`
+		r.Buf.WriteString(s)
+		r.Newline()
+	} else {
+		s := `</div>`
+		r.Buf.WriteString(s)
+		r.Newline()
+		attrs := []string{"class", "notion-toggle"}
+		r.WriteElement(block, "div", attrs, "", entering)
+	}
+
 	return true
 }
 
