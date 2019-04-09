@@ -32,6 +32,8 @@ type HTMLRenderer struct {
 	// return false for default rendering
 	RenderBlockOverride BlockRenderFunc
 
+	RenderInlineLinkOverride func(*notionapi.InlineBlock) (string, bool)
+
 	// data provided by they caller, useful when providing
 	// RenderBlockOverride
 	Data interface{}
@@ -202,6 +204,13 @@ func (r *HTMLRenderer) FormatDate(d *notionapi.Date) string {
 	return DefaultFormatDate(d)
 }
 
+// DefaultRenderInlineLink returns default HTML for inline links
+func DefaultRenderInlineLink(b *notionapi.InlineBlock) string {
+	link := b.Link
+	text := html.EscapeString(b.Text)
+	return fmt.Sprintf(`<a class="notion-link" href="%s">%s</a>`, link, text)
+}
+
 // RenderInline renders inline block
 func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	var start, close string
@@ -222,10 +231,15 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 		close += "</code>"
 	}
 	skipText := false
-	// TODO: allow over-riding rendering of links, user ids, dates etc.
+	// TODO: colors
 	if b.Link != "" {
-		link := b.Link
-		start += fmt.Sprintf(`<a class="notion-link" href="%s">%s</a>`, link, b.Text)
+		s := DefaultRenderInlineLink(b)
+		if r.RenderInlineLinkOverride != nil {
+			if s2, ok := r.RenderInlineLinkOverride(b); ok {
+				s = s2
+			}
+		}
+		start += s
 		skipText = true
 	}
 	if b.UserID != "" {
