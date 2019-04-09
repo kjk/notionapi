@@ -21,7 +21,7 @@ type HTMLRenderer struct {
 	Page *notionapi.Page
 
 	// if true, adds id=${NotionID} attribute to HTML nodes
-	AppendID bool
+	AddIDAttribute bool
 
 	// mostly for debugging. If true will panic when encounters
 	// structure it cannot handle (e.g. when Notion adds another
@@ -125,10 +125,10 @@ func (r *HTMLRenderer) WriteIndent() {
 }
 
 func (r *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
-	if r.AppendID {
+	if r.AddIDAttribute {
 		return ""
 	}
-	return block.ID
+	return notionapi.ToNoDashID(block.ID)
 }
 
 // WriteElement is a helper class that writes HTML with
