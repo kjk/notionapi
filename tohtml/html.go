@@ -17,13 +17,19 @@ type HTMLRenderer struct {
 	// Buf is where HTML is being written to
 	Buf  *bytes.Buffer
 	Page *notionapi.Page
-	// Level is current depth of the tree. Useuful for pretty-printing indentation
-	Level int
+
 	// if true, adds id=${NotionID} attribute to HTML nodes
 	AppendID bool
+
+	// mostly for debugging. If true will panic when encounters
+	// structure it cannot handle (e.g. when Notion adds another
+	// type of block)
+	PanicOnFailures bool
+
 	// allows over-riding rendering of specific blocks
 	// return false for default rendering
 	RenderBlockOverride BlockRenderFunc
+
 	// data provided by they caller, useful when providing
 	// RenderBlockOverride
 	Data interface{}
@@ -31,10 +37,17 @@ type HTMLRenderer struct {
 	// mostly for debugging, if set we'll log to it when encountering
 	// structure we can't handle
 	Log func(format string, args ...interface{})
-	// mostly for debugging. If true will panic when encounters
-	// structure it cannot handle (e.g. when Notion adds another
-	// type of block)
-	PanicOnFailures bool
+
+	// Level is current depth of the tree. Useuful for pretty-printing indentation
+	Level int
+
+	// we need this to properly render ordered and numbered lists
+	CurrBlocks   []*notionapi.Block
+	CurrBlockIdx int
+
+	// keeps a nesting stack of numbered / bulleted list
+	// we need this because they are not nested in data model
+	ListStack []string
 
 	bufs []*bytes.Buffer
 }
@@ -97,10 +110,15 @@ func (r *HTMLRenderer) Newline() {
 	}
 }
 
+// WriteString writes a string to the buffer
+func (r *HTMLRenderer) WriteString(s string) {
+	r.Buf.WriteString(s)
+}
+
 // WriteIndent writes 2 * Level spaces
 func (r *HTMLRenderer) WriteIndent() {
 	for n := 0; n < r.Level; n++ {
-		r.Buf.WriteString("  ")
+		r.WriteString("  ")
 	}
 }
 
@@ -117,7 +135,7 @@ func (r *HTMLRenderer) WriteElement(block *notionapi.Block, tag string, attrs []
 	if !entering {
 		if !isSelfClosing(tag) {
 			r.WriteIndent()
-			r.Buf.WriteString("</" + tag + ">")
+			r.WriteString("</" + tag + ">")
 			r.Newline()
 		}
 		return
@@ -137,15 +155,32 @@ func (r *HTMLRenderer) WriteElement(block *notionapi.Block, tag string, attrs []
 	}
 	s += ">"
 	r.WriteIndent()
-	r.Buf.WriteString(s)
+	r.WriteString(s)
 	r.Newline()
 	if len(content) > 0 {
 		r.WriteIndent()
-		r.Buf.WriteString(content)
+		r.WriteString(content)
 		r.Newline()
 	}
 	r.RenderInlines(block.InlineContent)
 	r.Newline()
+}
+
+// PrevBlock is a block preceding current block
+func (r *HTMLRenderer) PrevBlock() *notionapi.Block {
+	if r.CurrBlockIdx == 0 {
+		return nil
+	}
+	return r.CurrBlocks[r.CurrBlockIdx-1]
+}
+
+// NextBlock is a block preceding current block
+func (r *HTMLRenderer) NextBlock() *notionapi.Block {
+	lastIdx := len(r.CurrBlocks) - 1
+	if r.CurrBlockIdx+1 > lastIdx {
+		return nil
+	}
+	return r.CurrBlocks[r.CurrBlockIdx+1]
 }
 
 // RenderInline renders inline block
@@ -186,7 +221,7 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	if !skipText {
 		start += b.Text
 	}
-	r.Buf.WriteString(start + close)
+	r.WriteString(start + close)
 }
 
 // RenderInlines renders inline blocks
@@ -202,7 +237,7 @@ func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 // RenderCode renders BlockCode
 func (r *HTMLRenderer) RenderCode(block *notionapi.Block, entering bool) bool {
 	if !entering {
-		r.Buf.WriteString("</code></pre>")
+		r.WriteString("</code></pre>")
 		r.Newline()
 		return true
 	}
@@ -213,7 +248,7 @@ func (r *HTMLRenderer) RenderCode(block *notionapi.Block, entering bool) bool {
 	}
 	code := template.HTMLEscapeString(block.Code)
 	s := fmt.Sprintf(`<pre class="%s"><code>%s`, cls, code)
-	r.Buf.WriteString(s)
+	r.WriteString(s)
 	return true
 }
 
@@ -227,21 +262,72 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block, entering bool) bool {
 // RenderText renders BlockText
 func (r *HTMLRenderer) RenderText(block *notionapi.Block, entering bool) bool {
 	attrs := []string{"class", "notion-text"}
-	r.WriteElement(block, "p", attrs, "", entering)
+	r.WriteElement(block, "div", attrs, "", entering)
 	return true
 }
 
-// RenderNumberedList renders BlcokNumberedList
+// IsPrevBlockOfType returns true if previous block is of a given type
+func (r *HTMLRenderer) IsPrevBlockOfType(t string) bool {
+	prev := r.PrevBlock()
+	if prev == nil {
+		return false
+	}
+	return prev.Type == t
+}
+
+// IsNextBlockOfType returns true if next block is of a given type
+func (r *HTMLRenderer) IsNextBlockOfType(t string) bool {
+	prev := r.NextBlock()
+	if prev == nil {
+		return false
+	}
+	return prev.Type == t
+}
+
+// RenderNumberedList renders BlockNumberedList
 func (r *HTMLRenderer) RenderNumberedList(block *notionapi.Block, entering bool) bool {
-	attrs := []string{"class", "notion-numbered-list"}
-	r.WriteElement(block, "ol", attrs, "", entering)
+	if entering {
+		isPrevSame := r.IsPrevBlockOfType(notionapi.BlockNumberedList)
+		if !isPrevSame {
+			r.WriteIndent()
+			r.WriteString(`<ol class="notion-numbered-list">`)
+		}
+		attrs := []string{"class", "notion-numbered-list"}
+		r.WriteElement(block, "li", attrs, "", entering)
+	} else {
+		r.WriteIndent()
+		r.WriteString(`</li>`)
+		isNextSame := r.IsNextBlockOfType(notionapi.BlockNumberedList)
+		if !isNextSame {
+			r.WriteIndent()
+			r.WriteString(`</ol>`)
+		}
+		r.Newline()
+	}
 	return true
 }
 
 // RenderBulletedList renders BlockBulletedList
 func (r *HTMLRenderer) RenderBulletedList(block *notionapi.Block, entering bool) bool {
-	attrs := []string{"class", "notion-bulleted-list"}
-	r.WriteElement(block, "li", attrs, "", entering)
+
+	if entering {
+		isPrevSame := r.IsPrevBlockOfType(notionapi.BlockBulletedList)
+		if !isPrevSame {
+			r.WriteIndent()
+			r.WriteString(`<ul class="notion-bulleted-list">`)
+		}
+		attrs := []string{"class", "notion-bulleted-list"}
+		r.WriteElement(block, "li", attrs, "", entering)
+	} else {
+		r.WriteIndent()
+		r.WriteString(`</li>`)
+		isNextSame := r.IsNextBlockOfType(notionapi.BlockBulletedList)
+		if !isNextSame {
+			r.WriteIndent()
+			r.WriteString(`</ul>`)
+		}
+		r.Newline()
+	}
 	return true
 }
 
@@ -287,11 +373,11 @@ func (r *HTMLRenderer) RenderToggle(block *notionapi.Block, entering bool) bool 
 		r.WriteElement(block, "div", attrs, "", entering)
 
 		s := `<div class="notion-toggle-wrapper">`
-		r.Buf.WriteString(s)
+		r.WriteString(s)
 		r.Newline()
 	} else {
 		s := `</div>`
-		r.Buf.WriteString(s)
+		r.WriteString(s)
 		r.Newline()
 		attrs := []string{"class", "notion-toggle"}
 		r.WriteElement(block, "div", attrs, "", entering)
@@ -300,7 +386,7 @@ func (r *HTMLRenderer) RenderToggle(block *notionapi.Block, entering bool) bool 
 	return true
 }
 
-// RenderQuote renders BlockrQuote
+// RenderQuote renders BlockQuote
 func (r *HTMLRenderer) RenderQuote(block *notionapi.Block, entering bool) bool {
 	cls := "notion-quote"
 	attrs := []string{"class", cls}
@@ -313,7 +399,7 @@ func (r *HTMLRenderer) RenderDivider(block *notionapi.Block, entering bool) bool
 	if !entering {
 		return true
 	}
-	r.Buf.WriteString(`<hr class="notion-divider">`)
+	r.WriteString(`<hr class="notion-divider">`)
 	r.Newline()
 	return true
 }
@@ -377,7 +463,7 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 	case notionapi.BlockText:
 		return r.RenderText
 	case notionapi.BlockNumberedList:
-		return r.RenderBulletedList
+		return r.RenderNumberedList
 	case notionapi.BlockBulletedList:
 		return r.RenderBulletedList
 	case notionapi.BlockHeader:
@@ -414,19 +500,6 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 	return nil
 }
 
-func (r *HTMLRenderer) blockHasChildren(blockType string) bool {
-	switch blockType {
-	case notionapi.BlockPage, notionapi.BlockNumberedList,
-		notionapi.BlockBulletedList:
-		return true
-	case notionapi.BlockText:
-		return false
-	default:
-		r.maybePanic("unrecognized block type '%s'", blockType)
-	}
-	return false
-}
-
 // RenderBlock renders a block to html
 func (r *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 	if block == nil {
@@ -442,22 +515,13 @@ func (r *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 		def(block, true)
 	}
 
-	// TODO: probably need to handle notionapi.BlockNumberedList
-	// and notionapi.BlockBulletedList in a special way
 	r.Level++
-	for _, child := range block.Content {
+	for i, child := range block.Content {
+		r.CurrBlocks = block.Content
+		r.CurrBlockIdx = i
 		r.RenderBlock(child)
 	}
 	r.Level--
-
-	/// TODO: not sure if this is needed
-	/*
-		if !r.blockHasChildren(block.Type) {
-			if len(block.Content) != 0 {
-				r.maybePanic("block has children but blockHasChildren() says it doesn't have children")
-			}
-		}
-	*/
 
 	handled = false
 	if r.RenderBlockOverride != nil {
