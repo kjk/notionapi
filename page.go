@@ -211,6 +211,16 @@ func (p *Page) NotionURL() string {
 	return "https://notion.so/" + id
 }
 
+// ForEachBlock traverses the tree of blocks and calls cb on every block
+// in depth-first order. To traverse every blocks in a Page, do:
+// ForEachBlock([]*notionapi.Block{page.Root}, cb)
+func ForEachBlock(blocks []*Block, cb func(*Block)) {
+	for _, block := range blocks {
+		cb(block)
+		ForEachBlock(block.Content, cb)
+	}
+}
+
 func panicIf(cond bool, args ...interface{}) {
 	if !cond {
 		return
