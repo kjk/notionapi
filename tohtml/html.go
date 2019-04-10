@@ -200,13 +200,10 @@ func (r *HTMLRenderer) IsPrevBlockOfType(t string) bool {
 
 // IsNextBlockOfType returns true if next block is of a given type
 func (r *HTMLRenderer) IsNextBlockOfType(t string) bool {
-	fmt.Printf("IsNextBlockOfType: %s, r.CurrBlockIdx: %d, len(r.CurrBlocks): %d\n", t, r.CurrBlockIdx, len(r.CurrBlocks))
 	b := r.NextBlock()
 	if b == nil {
-		fmt.Printf("r.NextBlock() returned nil\n")
 		return false
 	}
-	fmt.Printf("r.NextBlock() returned block of type: %s, isSame: %v\n", b.Type, b.Type == t)
 	return b.Type == t
 }
 
