@@ -127,10 +127,51 @@ var (
 	noDashIDLen = len("2131b10cebf64938a1277089ff02dbe4")
 )
 
-// NormalizeID is deprecated. Use ToDashID instead.
-func NormalizeID(id string) (string, bool) {
-	id = ToDashID(id)
-	return id, isValidDashID(id)
+// only hex chars seem to be valid
+func isValidNoDashIDChar(c byte) bool {
+	switch {
+	case c >= '0' && c <= '9':
+		return true
+	case c >= 'a' && c <= 'f':
+		return true
+	case c >= 'A' && c <= 'F':
+		// currently not used but just in case notion starts using them
+		return true
+	}
+	return false
+}
+
+func isValidDashIDChar(c byte) bool {
+	if c == '-' {
+		return true
+	}
+	return isValidNoDashIDChar(c)
+}
+
+// IsValidDashID returns true if id looks like a valid Notion dash id
+func IsValidDashID(id string) bool {
+	if len(id) != dashIDLen {
+		return false
+	}
+	for i := range id {
+		if !isValidDashIDChar(id[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// IsValidNoDashID returns true if id looks like a valid Notion no dash id
+func IsValidNoDashID(id string) bool {
+	if len(id) != noDashIDLen {
+		return false
+	}
+	for i := range id {
+		if !isValidNoDashIDChar(id[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // ToNoDashID converts  2131b10c-ebf6-4938-a127-7089ff02dbe4
@@ -144,16 +185,11 @@ func ToNoDashID(id string) string {
 	return s
 }
 
-func isValidDashID(id string) bool {
-	// TODO: more strict validation
-	return len(id) == dashIDLen
-}
-
 // ToDashID convert id in format bb760e2dd6794b64b2a903005b21870a
 // to bb760e2d-d679-4b64-b2a9-03005b21870a
 // If id is not in that format, we leave it untouched.
 func ToDashID(id string) string {
-	if isValidDashID(id) {
+	if IsValidDashID(id) {
 		return id
 	}
 	s := strings.Replace(id, "-", "", -1)
@@ -162,6 +198,35 @@ func ToDashID(id string) string {
 	}
 	res := id[:8] + "-" + id[8:12] + "-" + id[12:16] + "-" + id[16:20] + "-" + id[20:]
 	return res
+}
+
+// ExtractNoDashIDFromNotionURL tries to extract notion page id from
+// notion URL, e.g. given:
+// https://www.notion.so/Advanced-web-spidering-with-Puppeteer-ea07db1b9bff415ab180b0525f3898f6
+// returns ea07db1b9bff415ab180b0525f3898f6
+// returns "" if didn't detect valid notion id in the url
+func ExtractNoDashIDFromNotionURL(uri string) string {
+	maybeID := ToNoDashID(uri)
+	if IsValidNoDashID(maybeID) {
+		return maybeID
+	}
+	trimmed := strings.TrimPrefix(uri, "https://www.notion.so/")
+	if uri == trimmed {
+		return ""
+	}
+	// could be c674bebe8adf44d18c3a36cc18c131e2 from https://www.notion.so/c674bebe8adf44d18c3a36cc18c131e2
+	id := trimmed
+	parts := strings.Split(trimmed, "-")
+	n := len(parts)
+	if n >= 2 {
+		// could be ea07db1b9bff415ab180b0525f3898f6 from Advanced-web-spidering-with-Puppeteer-ea07db1b9bff415ab180b0525f3898f6
+		id = parts[n-1]
+	}
+	id = ToNoDashID(id)
+	if IsValidNoDashID(id) {
+		return id
+	}
+	return ""
 }
 
 func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
@@ -242,11 +307,11 @@ func findMissingBlocks(startIds []string, idToBlock map[string]*Block, blocksToS
 
 // DownloadPage returns Notion page data given its id
 func (c *Client) DownloadPage(pageID string) (*Page, error) {
-	normalizedPageID, ok := NormalizeID(pageID)
-	if !ok {
-		return nil, fmt.Errorf("%s is not a valid Notion page id", pageID)
+	id := ToDashID(pageID)
+	if !IsValidDashID(id) {
+		return nil, fmt.Errorf("%s is not a valid Notion page id", id)
 	}
-	pageID = normalizedPageID
+	pageID = id
 
 	page := &Page{
 		client: c,

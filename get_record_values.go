@@ -279,7 +279,7 @@ func (c *Client) GetRecordValues(ids []string) (*GetRecordValuesResponse, error)
 
 	for _, id := range ids {
 		dashID := ToDashID(id)
-		if !isValidDashID(dashID) {
+		if !IsValidDashID(dashID) {
 			return nil, fmt.Errorf("'%s' is not a valid notion id", id)
 		}
 		v := getRecordValuesRequestInner{
