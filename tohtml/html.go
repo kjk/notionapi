@@ -181,11 +181,33 @@ func (r *HTMLRenderer) PrevBlock() *notionapi.Block {
 
 // NextBlock is a block preceding current block
 func (r *HTMLRenderer) NextBlock() *notionapi.Block {
+	nextIdx := r.CurrBlockIdx + 1
 	lastIdx := len(r.CurrBlocks) - 1
-	if r.CurrBlockIdx+1 > lastIdx {
+	if nextIdx > lastIdx {
 		return nil
 	}
-	return r.CurrBlocks[r.CurrBlockIdx+1]
+	return r.CurrBlocks[nextIdx]
+}
+
+// IsPrevBlockOfType returns true if previous block is of a given type
+func (r *HTMLRenderer) IsPrevBlockOfType(t string) bool {
+	b := r.PrevBlock()
+	if b == nil {
+		return false
+	}
+	return b.Type == t
+}
+
+// IsNextBlockOfType returns true if next block is of a given type
+func (r *HTMLRenderer) IsNextBlockOfType(t string) bool {
+	fmt.Printf("IsNextBlockOfType: %s, r.CurrBlockIdx: %d, len(r.CurrBlocks): %d\n", t, r.CurrBlockIdx, len(r.CurrBlocks))
+	b := r.NextBlock()
+	if b == nil {
+		fmt.Printf("r.NextBlock() returned nil\n")
+		return false
+	}
+	fmt.Printf("r.NextBlock() returned block of type: %s, isSame: %v\n", b.Type, b.Type == t)
+	return b.Type == t
 }
 
 // ParseNotionDateTime parses date and time as sent in JSON by notion
@@ -387,24 +409,6 @@ func (r *HTMLRenderer) RenderText(block *notionapi.Block, entering bool) bool {
 	return true
 }
 
-// IsPrevBlockOfType returns true if previous block is of a given type
-func (r *HTMLRenderer) IsPrevBlockOfType(t string) bool {
-	prev := r.PrevBlock()
-	if prev == nil {
-		return false
-	}
-	return prev.Type == t
-}
-
-// IsNextBlockOfType returns true if next block is of a given type
-func (r *HTMLRenderer) IsNextBlockOfType(t string) bool {
-	prev := r.NextBlock()
-	if prev == nil {
-		return false
-	}
-	return prev.Type == t
-}
-
 // RenderNumberedList renders BlockNumberedList
 func (r *HTMLRenderer) RenderNumberedList(block *notionapi.Block, entering bool) bool {
 	if entering {
@@ -436,6 +440,8 @@ func (r *HTMLRenderer) RenderBulletedList(block *notionapi.Block, entering bool)
 		if !isPrevSame {
 			r.WriteIndent()
 			r.WriteString(`<ul class="notion-bulleted-list">`)
+			r.Newline()
+			r.Level++
 		}
 		attrs := []string{"class", "notion-bulleted-list"}
 		r.WriteElement(block, "li", attrs, "", entering)
@@ -444,6 +450,8 @@ func (r *HTMLRenderer) RenderBulletedList(block *notionapi.Block, entering bool)
 		r.WriteString(`</li>`)
 		isNextSame := r.IsNextBlockOfType(notionapi.BlockBulletedList)
 		if !isNextSame {
+			r.Level--
+			r.Newline()
 			r.WriteIndent()
 			r.WriteString(`</ul>`)
 		}
@@ -815,6 +823,9 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 }
 
 func needsWrapper(block *notionapi.Block) bool {
+	if len(block.Content) == 0 {
+		return false
+	}
 	switch block.Type {
 	// TODO: maybe more block types need this
 	case notionapi.BlockText:
@@ -840,18 +851,30 @@ func (r *HTMLRenderer) RenderBlock(block *notionapi.Block) {
 
 	// .notion-wrap provides indentation for children
 	if needsWrapper(block) {
+		r.Newline()
+		r.WriteIndent()
 		r.WriteString(`<div class="notion-wrap">`)
+		r.Newline()
 	}
+
 	r.Level++
+	currIdx := r.CurrBlockIdx
+	currBlocks := r.CurrBlocks
+	r.CurrBlocks = block.Content
 	for i, child := range block.Content {
 		child.Parent = block
-		r.CurrBlocks = block.Content
 		r.CurrBlockIdx = i
 		r.RenderBlock(child)
 	}
+	r.CurrBlockIdx = currIdx
+	r.CurrBlocks = currBlocks
 	r.Level--
+
 	if needsWrapper(block) {
+		r.Newline()
+		r.WriteIndent()
 		r.WriteString(`</div>`)
+		r.Newline()
 	}
 
 	handled = false
