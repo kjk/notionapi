@@ -7,10 +7,17 @@ import (
 	"html/template"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/kjk/notionapi"
 )
+
+func maybePanic(format string, args ...interface{}) {
+	notionapi.MaybePanic(format, args...)
+}
+
+func log(format string, args ...interface{}) {
+	notionapi.Log(format, args...)
+}
 
 // BlockRenderFunc is a function for rendering a particular
 type BlockRenderFunc func(block *notionapi.Block, entering bool) bool
@@ -24,11 +31,6 @@ type HTMLRenderer struct {
 	// if true, adds id=${NotionID} attribute to HTML nodes
 	AddIDAttribute bool
 
-	// mostly for debugging. If true will panic when encounters
-	// structure it cannot handle (e.g. when Notion adds another
-	// type of block)
-	PanicOnFailures bool
-
 	// allows over-riding rendering of specific blocks
 	// return false for default rendering
 	RenderBlockOverride BlockRenderFunc
@@ -38,10 +40,6 @@ type HTMLRenderer struct {
 	// data provided by they caller, useful when providing
 	// RenderBlockOverride
 	Data interface{}
-
-	// mostly for debugging, if set we'll log to it when encountering
-	// structure we can't handle
-	Log func(format string, args ...interface{})
 
 	// Level is current depth of the tree. Useuful for pretty-printing indentation
 	Level int
@@ -71,23 +69,6 @@ func isSelfClosing(tag string) bool {
 func NewHTMLRenderer(page *notionapi.Page) *HTMLRenderer {
 	return &HTMLRenderer{
 		Page: page,
-	}
-}
-
-// TODO: not sure if I want to keep this or always use maybePanic
-// (which also logs)
-func (r *HTMLRenderer) log(format string, args ...interface{}) {
-	if r.Log != nil {
-		r.Log(format, args...)
-	}
-}
-
-func (r *HTMLRenderer) maybePanic(format string, args ...interface{}) {
-	if r.Log != nil {
-		r.Log(format, args...)
-	}
-	if r.PanicOnFailures {
-		panic(fmt.Sprintf(format, args...))
 	}
 }
 
@@ -217,80 +198,11 @@ func (r *HTMLRenderer) IsNextBlockOfType(t string) bool {
 	return b.Type == t
 }
 
-// ParseNotionDateTime parses date and time as sent in JSON by notion
-// server and returns time.Time
-// date is sent in "2019-04-09" format
-// time is optional and sent in "00:35" format
-func (r *HTMLRenderer) ParseNotionDateTime(date string, t string) time.Time {
-	s := date
-	fmt := "2006-01-02"
-	if t != "" {
-		fmt += " 15:04"
-		s += " " + t
-	}
-	dt, err := time.Parse(fmt, s)
-	if err != nil {
-		r.maybePanic("time.Parse('%s', '%s') failed with %s", fmt, s, err)
-	}
-	return dt
-}
-
-// ConvertNotionTimeFormatToGoFormat converts a date format sent from Notion
-// server, e.g. "MMM DD, YYYY" to Go time format like "02 01, 2006"
-// YYYY is numeric year => 2006 in Go
-// MM is numeric month => 01 in Go
-// DD is numeric day => 02 in Go
-// MMM is named month => Jan in Go
-func (r *HTMLRenderer) ConvertNotionTimeFormatToGoFormat(d *notionapi.Date, withTime bool) string {
-	format := d.DateFormat
-	// we don't support relative time, so use this fixed format
-	if format == "relative" || format == "" {
-		format = "MMM DD, YYYY"
-	}
-	s := format
-	s = strings.Replace(s, "MMM", "Jan", -1)
-	s = strings.Replace(s, "MM", "01", -1)
-	s = strings.Replace(s, "DD", "02", -1)
-	s = strings.Replace(s, "YYYY", "2006", -1)
-	if withTime {
-		// this is 24 hr format
-		if d.TimeFormat == "H:mm" {
-			s += " 15:04"
-		} else {
-			// use 12 hr format
-			s += " 3:04 PM"
-		}
-	}
-	return s
-}
-
-// FormatDateTime formats date/time from Notion canonical format to
-// user-requested format
-func (r *HTMLRenderer) FormatDateTime(d *notionapi.Date, date string, t string) string {
-	withTime := t != ""
-	dt := r.ParseNotionDateTime(date, t)
-	goFormat := r.ConvertNotionTimeFormatToGoFormat(d, withTime)
-	return dt.Format(goFormat)
-}
-
-// DefaultFormatDate is default formatting of date
-// "date_format": "relative",
-// "start_date": "2019-03-26",
-// "type": "date"
-// TODO: add time zone, maybe
-func (r *HTMLRenderer) DefaultFormatDate(d *notionapi.Date) string {
-	s := r.FormatDateTime(d, d.StartDate, d.StartTime)
-	if strings.Contains(d.Type, "range") {
-		s2 := r.FormatDateTime(d, d.EndDate, d.EndTime)
-		s += " → " + s2
-	}
-	return fmt.Sprintf(`<span class="notion-date">@%s</span>`, s)
-}
-
 // FormatDate formats the data
 func (r *HTMLRenderer) FormatDate(d *notionapi.Date) string {
 	// TODO: allow over-riding date formatting
-	return r.DefaultFormatDate(d)
+	s := notionapi.FormatDate(d)
+	return fmt.Sprintf(`<span class="notion-date">@%s</span>`, s)
 }
 
 // DefaultRenderInlineLink returns default HTML for inline links
@@ -686,7 +598,7 @@ func (r *HTMLRenderer) RenderImage(block *notionapi.Block, entering bool) bool {
 func (r *HTMLRenderer) RenderColumnList(block *notionapi.Block, entering bool) bool {
 	nColumns := len(block.Content)
 	if nColumns == 0 {
-		r.maybePanic("has no columns")
+		maybePanic("has no columns")
 		return true
 	}
 	attrs := []string{"class", "notion-column-list"}
@@ -755,7 +667,7 @@ func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering boo
 			//fmt.Printf("inline: '%s'\n", fmt.Sprintf("%v", v))
 			inlineContent, err := notionapi.ParseInlineBlocks(v)
 			if err != nil {
-				r.maybePanic("ParseInlineBlocks of '%v' failed with %s\n", v, err)
+				maybePanic("ParseInlineBlocks of '%v' failed with %s\n", v, err)
 			}
 			//pretty.Print(inlineContent)
 			colVal := r.GetInlineContent(inlineContent)
@@ -833,7 +745,7 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 	case notionapi.BlockPDF:
 		return r.RenderPDF
 	default:
-		r.maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, r.Page.NotionURL())
+		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, r.Page.NotionURL())
 	}
 	return nil
 }

@@ -203,7 +203,7 @@ func toHTML(pageID string) {
 	}
 
 	r := tohtml.NewHTMLRenderer(page)
-	r.PanicOnFailures = true
+	notionapi.PanicOnFailures = true
 	html := r.ToHTML()
 
 	html = makeFullHTML(html)
