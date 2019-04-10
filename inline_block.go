@@ -171,6 +171,9 @@ func parseInlineBlock(a []interface{}) (*InlineBlock, error) {
 
 // ParseInlineBlocks parses content from JSON into an easier to use form
 func ParseInlineBlocks(raw interface{}) ([]*InlineBlock, error) {
+	if raw == nil {
+		return nil, nil
+	}
 	var res []*InlineBlock
 	a, ok := raw.([]interface{})
 	if !ok {

@@ -364,6 +364,9 @@ func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 // GetInlineContent is like RenderInlines but instead of writing to
 // output buffer, we return it as string
 func (r *HTMLRenderer) GetInlineContent(blocks []*notionapi.InlineBlock) string {
+	if len(blocks) == 0 {
+		return "&nbsp;"
+	}
 	r.PushNewBuffer()
 	for _, block := range blocks {
 		r.RenderInline(block)
