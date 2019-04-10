@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html"
-	"html/template"
+
 	"path"
 	"strings"
 
@@ -35,7 +35,9 @@ type HTMLRenderer struct {
 	// return false for default rendering
 	RenderBlockOverride BlockRenderFunc
 
-	RenderInlineLinkOverride func(*notionapi.InlineBlock) (string, bool)
+	// RewriteURL allows re-writing URLs e.g. to convert inter-notion URLs
+	// to destination URLs
+	RewriteURL func(url string) string
 
 	// data provided by they caller, useful when providing
 	// RenderBlockOverride
@@ -205,13 +207,6 @@ func (r *HTMLRenderer) FormatDate(d *notionapi.Date) string {
 	return fmt.Sprintf(`<span class="notion-date">@%s</span>`, s)
 }
 
-// DefaultRenderInlineLink returns default HTML for inline links
-func DefaultRenderInlineLink(b *notionapi.InlineBlock) string {
-	link := b.Link
-	text := html.EscapeString(b.Text)
-	return fmt.Sprintf(`<a class="notion-link" href="%s">%s</a>`, link, text)
-}
-
 // RenderInline renders inline block
 func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	var start, close string
@@ -234,12 +229,12 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	skipText := false
 	// TODO: colors
 	if b.Link != "" {
-		s := DefaultRenderInlineLink(b)
-		if r.RenderInlineLinkOverride != nil {
-			if s2, ok := r.RenderInlineLinkOverride(b); ok {
-				s = s2
-			}
+		uri := b.Link
+		if r.RewriteURL != nil {
+			uri = r.RewriteURL(uri)
 		}
+		text := html.EscapeString(b.Text)
+		s := fmt.Sprintf(`<a class="notion-link" href="%s">%s</a>`, uri, text)
 		start += s
 		skipText = true
 	}
@@ -302,7 +297,7 @@ func (r *HTMLRenderer) RenderCode(block *notionapi.Block, entering bool) bool {
 	if lang != "" {
 		cls += " notion-lang-" + lang
 	}
-	code := template.HTMLEscapeString(block.Code)
+	code := html.EscapeString(block.Code)
 	s := fmt.Sprintf(`<pre class="%s"><code>%s`, cls, code)
 	r.WriteString(s)
 	return true
@@ -312,7 +307,7 @@ func (r *HTMLRenderer) RenderCode(block *notionapi.Block, entering bool) bool {
 func (r *HTMLRenderer) RenderPage(block *notionapi.Block, entering bool) bool {
 	tp := block.GetPageType()
 	if tp == notionapi.BlockPageTopLevel {
-		title := template.HTMLEscapeString(block.Title)
+		title := html.EscapeString(block.Title)
 		content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
 		attrs := []string{"class", "notion-page"}
 		r.WriteElement(block, "div", attrs, content, entering)
@@ -329,7 +324,7 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block, entering bool) bool {
 	}
 	id := notionapi.ToNoDashID(block.ID)
 	uri := "https://notion.so/" + id
-	title := template.HTMLEscapeString(block.Title)
+	title := html.EscapeString(block.Title)
 	s := fmt.Sprintf(`<div class="%s"><a href="%s">%s</a></div>`, cls, uri, title)
 	r.WriteIndent()
 	r.WriteString(s)
