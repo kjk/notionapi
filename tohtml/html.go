@@ -363,9 +363,15 @@ func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 
 // GetInlineContent is like RenderInlines but instead of writing to
 // output buffer, we return it as string
-func (r *HTMLRenderer) GetInlineContent(inlineBlocks []*notionapi.InlineBlock) string {
+func (r *HTMLRenderer) GetInlineContent(blocks []*notionapi.InlineBlock) string {
 	r.PushNewBuffer()
-	r.RenderInlines(inlineBlocks)
+	for _, block := range blocks {
+		r.RenderInline(block)
+	}
+	// if text was empty, write &nbsp; so that empty blocks show up
+	if r.Buf.Len() == 0 {
+		r.WriteString("&nbsp;")
+	}
 	return r.PopBuffer().String()
 }
 
@@ -748,19 +754,14 @@ func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering boo
 			if err != nil {
 				r.maybePanic("ParseInlineBlocks of '%v' failed with %s\n", v, err)
 			}
+			//pretty.Print(inlineContent)
 			colVal := r.GetInlineContent(inlineContent)
 			//fmt.Printf("colVal: '%s'\n", colVal)
 			r.Level++
 			r.WriteIndent()
-			if colVal == "" {
-				// use &nbsp; so that empty row still shows up
-				// could also set a min-height to 1em or sth. like that
-				r.WriteString(`<td>&nbsp;</td>`)
-			} else {
-				//colInfo := viewInfo.Collection.CollectionSchema[colName]
-				// TODO: format colVal according to colInfo
-				r.WriteString(`<td>` + colVal + `</td>`)
-			}
+			//colInfo := viewInfo.Collection.CollectionSchema[colName]
+			// TODO: format colVal according to colInfo
+			r.WriteString(`<td>` + colVal + `</td>`)
 			r.Newline()
 			r.Level--
 		}
