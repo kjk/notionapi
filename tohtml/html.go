@@ -120,8 +120,18 @@ func (r *HTMLRenderer) WriteString(s string) {
 	r.Buf.WriteString(s)
 }
 
+// WriteIndentPlus writes 2 * (Level + add) spaces
+func (r *HTMLRenderer) WriteIndentPlus(add int) {
+	for n := 0; n < r.Level+add; n++ {
+		r.WriteString("  ")
+	}
+}
+
 // WriteIndent writes 2 * Level spaces
 func (r *HTMLRenderer) WriteIndent() {
+	if r.Level < 0 {
+		panic("r.Level is < 0")
+	}
 	for n := 0; n < r.Level; n++ {
 		r.WriteString("  ")
 	}
@@ -234,7 +244,7 @@ func (r *HTMLRenderer) ParseNotionDateTime(date string, t string) time.Time {
 func (r *HTMLRenderer) ConvertNotionTimeFormatToGoFormat(d *notionapi.Date, withTime bool) string {
 	format := d.DateFormat
 	// we don't support relative time, so use this fixed format
-	if format == "relative" {
+	if format == "relative" || format == "" {
 		format = "MMM DD, YYYY"
 	}
 	s := format
@@ -326,7 +336,6 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 		skipText = true
 	}
 	if b.Date != nil {
-		// TODO: serialize date properly
 		start += r.FormatDate(b.Date)
 		skipText = true
 	}
@@ -350,6 +359,14 @@ func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 		r.WriteString("&nbsp;")
 	}
 	r.Level--
+}
+
+// GetInlineContent is like RenderInlines but instead of writing to
+// output buffer, we return it as string
+func (r *HTMLRenderer) GetInlineContent(inlineBlocks []*notionapi.InlineBlock) string {
+	r.PushNewBuffer()
+	r.RenderInlines(inlineBlocks)
+	return r.PopBuffer().String()
 }
 
 // RenderCode renders BlockCode
@@ -677,47 +694,6 @@ func (r *HTMLRenderer) RenderColumn(block *notionapi.Block, entering bool) bool 
 	return true
 }
 
-// v is expected to be
-// [
-// 	[
-// 		"foo"
-// 	]
-// ]
-// and we want to return "foo"
-// If not present or unexpected shape, return ""
-// is still visible
-// TODO: this mabye belongs to notionapi
-func propsValueToText(v interface{}) string {
-	if v == nil {
-		return ""
-	}
-
-	// [ [ "foo" ]]
-	a, ok := v.([]interface{})
-	if !ok {
-		return fmt.Sprintf("type1: %T", v)
-	}
-	// [ "foo" ]
-	if len(a) == 0 {
-		return ""
-	}
-	v = a[0]
-	a, ok = v.([]interface{})
-	if !ok {
-		return fmt.Sprintf("type2: %T", v)
-	}
-	// "foo"
-	if len(a) == 0 {
-		return ""
-	}
-	v = a[0]
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Sprintf("type3: %T", v)
-	}
-	return str
-}
-
 // RenderCollectionView renders BlockCollectionView
 // TODO: it renders all views, should render just one
 // TODO: maybe add alternating background color for rows
@@ -725,41 +701,80 @@ func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering boo
 	viewInfo := block.CollectionViews[0]
 	view := viewInfo.CollectionView
 	columns := view.Format.TableProperties
-	s := `<table class="notion-collection-view">`
+
+	r.Newline()
+	r.WriteIndent()
+	r.WriteString("\n" + `<table class="notion-collection-view">` + "\n")
 
 	// generate header row
-	s += `<thead><tr>`
+	r.Level++
+	r.WriteIndent()
+	r.WriteString("<thead>\n")
+
+	r.Level++
+	r.WriteIndent()
+	r.WriteString("<tr>\n")
+
 	for _, col := range columns {
 		colName := col.Property
 		colInfo := viewInfo.Collection.CollectionSchema[colName]
 		name := colInfo.Name
-		s += `<th>` + html.EscapeString(name) + `</th>`
+		r.Level++
+		r.WriteIndent()
+		r.WriteString(`<th>` + html.EscapeString(name) + "</th>\n")
+		r.Level--
 	}
-	s += `</tr></thead>`
-	s += `<tbody>`
+	r.WriteIndent()
+	r.WriteString("</tr>\n")
+
+	r.Level--
+	r.WriteIndent()
+	r.WriteString("</thead>\n\n")
+
+	r.WriteIndent()
+	r.WriteString("<tbody>\n")
 
 	for _, row := range viewInfo.CollectionRows {
-		s += `<tr>`
+		r.Level++
+		r.WriteIndent()
+		r.WriteString("<tr>\n")
+
 		props := row.Properties
 		for _, col := range columns {
 			colName := col.Property
 			v := props[colName]
-			colVal := propsValueToText(v)
+			//fmt.Printf("inline: '%s'\n", fmt.Sprintf("%v", v))
+			inlineContent, err := notionapi.ParseInlineBlocks(v)
+			if err != nil {
+				r.maybePanic("ParseInlineBlocks of '%v' failed with %s\n", v, err)
+			}
+			colVal := r.GetInlineContent(inlineContent)
+			//fmt.Printf("colVal: '%s'\n", colVal)
+			r.Level++
+			r.WriteIndent()
 			if colVal == "" {
 				// use &nbsp; so that empty row still shows up
 				// could also set a min-height to 1em or sth. like that
-				s += `<td>&nbsp;</td>`
+				r.WriteString(`<td>&nbsp;</td>`)
 			} else {
 				//colInfo := viewInfo.Collection.CollectionSchema[colName]
 				// TODO: format colVal according to colInfo
-				s += `<td>` + html.EscapeString(colVal) + `</td>`
+				r.WriteString(`<td>` + colVal + `</td>`)
 			}
+			r.Newline()
+			r.Level--
 		}
-		s += `</tr>`
+		r.WriteIndent()
+		r.WriteString("</tr>\n")
+		r.Level--
 	}
-	s += `</tbody>`
-	s += `</table>`
-	r.WriteString(s)
+
+	r.WriteIndent()
+	r.WriteString("</tbody>\n")
+
+	r.Level--
+	r.WriteIndent()
+	r.WriteString("</table>\n")
 	return true
 }
 
@@ -890,6 +905,9 @@ func (r *HTMLRenderer) ToHTML() []byte {
 
 	r.RenderBlock(r.Page.Root)
 	buf := r.PopBuffer()
+	if r.Level != 0 {
+		panic(fmt.Sprintf("r.Level is %d, should be 0", r.Level))
+	}
 	return buf.Bytes()
 }
 

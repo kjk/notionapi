@@ -11,7 +11,7 @@ func parseBlocks(t *testing.T, s string) []*InlineBlock {
 	var m map[string]interface{}
 	err := json.Unmarshal([]byte(s), &m)
 	assert.NoError(t, err)
-	blocks, err := parseInlineBlocks(m["title"])
+	blocks, err := ParseInlineBlocks(m["title"])
 	assert.NoError(t, err)
 	return blocks
 }

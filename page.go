@@ -65,7 +65,7 @@ func getFirstInline(inline []*InlineBlock) string {
 }
 
 func getFirstInlineBlock(v interface{}) (string, error) {
-	inline, err := parseInlineBlocks(v)
+	inline, err := ParseInlineBlocks(v)
 	if err != nil {
 		return "", err
 	}
@@ -95,7 +95,7 @@ func parseProperties(block *Block) error {
 		} else if block.Type == BlockCode {
 			block.Code, err = getFirstInlineBlock(title)
 		} else {
-			block.InlineContent, err = parseInlineBlocks(title)
+			block.InlineContent, err = ParseInlineBlocks(title)
 		}
 		if err != nil {
 			return err

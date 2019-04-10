@@ -107,12 +107,12 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 			panic(err.Error())
 		}
 		//dbg("date in js:\n%s\n", string(js))
-		var d Date
+		var d *Date
 		err = json.Unmarshal(js, &d)
 		if err != nil {
 			panic(err.Error())
 		}
-		b.Date = &d
+		b.Date = d
 	default:
 		return fmt.Errorf("unexpected attribute '%s'", s)
 	}
@@ -169,7 +169,8 @@ func parseInlineBlock(a []interface{}) (*InlineBlock, error) {
 	return res, nil
 }
 
-func parseInlineBlocks(raw interface{}) ([]*InlineBlock, error) {
+// ParseInlineBlocks parses content from JSON into an easier to use form
+func ParseInlineBlocks(raw interface{}) ([]*InlineBlock, error) {
 	var res []*InlineBlock
 	a, ok := raw.([]interface{})
 	if !ok {
