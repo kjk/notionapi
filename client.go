@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 )
 
 const (
@@ -17,30 +18,13 @@ const (
 	acceptLang = "en-US,en;q=0.9"
 )
 
-// HTTPInterceptor allows intercepting HTTP request so that a client
-// of this library can provide e.g. a caching system for requests
-// instead
-type HTTPInterceptor interface {
-	// OnRequest is called before http request is sent tot he server
-	// If it returns non-nil response, it'll be used instead of sending
-	// a request to the server
-	OnRequest(*http.Request) *http.Response
-	// OnResponse is called after getting a response from the server
-	// to allow e.g. caching of responses
-	// Only called if the request was sent to the server (i.e. doesn't come
-	// from OnRequest)
-	OnResponse(*http.Response)
-}
-
 // Client is client for invoking Notion API
 type Client struct {
 	// AuthToken allows accessing non-public pages.
 	AuthToken string
-	// HTTPClient allows over-riding http.Client
+	// HTTPClient allows over-riding http.Client to e.g. implement caching
+	// on a per-request level
 	HTTPClient *http.Client
-	// HTTPIntercept allows intercepting http requests
-	// e.g. to implement caching
-	HTTPIntercept HTTPInterceptor
 	// Logger is used to log requests and responses for debugging.
 	// By default is not set.
 	Logger io.Writer
@@ -53,8 +37,9 @@ func (c *Client) getHTTPClient() *http.Client {
 		return c.HTTPClient
 	}
 	// TODO: better defaults (timeouts)
-	httpClient := http.DefaultClient
-	return httpClient
+	httpClient := *http.DefaultClient
+	httpClient.Timeout = time.Second * 15
+	return &httpClient
 }
 
 func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) ([]byte, error) {
@@ -84,23 +69,13 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 		req.Header.Set("cookie", fmt.Sprintf("token_v2=%v", c.AuthToken))
 	}
 	var rsp *http.Response
-	if c.HTTPIntercept != nil {
-		rsp = c.HTTPIntercept.OnRequest(req)
-	}
 
-	realHTTPRequest := false
-	if rsp == nil {
-		realHTTPRequest = true
-		httpClient := c.getHTTPClient()
-		rsp, err = httpClient.Do(req)
-	}
+	httpClient := c.getHTTPClient()
+	rsp, err = httpClient.Do(req)
 
 	if err != nil {
 		log(c, "http.DefaultClient.Do() failed with %s\n", err)
 		return nil, err
-	}
-	if c.HTTPIntercept != nil && realHTTPRequest {
-		c.HTTPIntercept.OnResponse(rsp)
 	}
 	defer rsp.Body.Close()
 	if rsp.StatusCode != 200 {
