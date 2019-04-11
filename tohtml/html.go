@@ -612,10 +612,17 @@ func (r *HTMLRenderer) RenderColumn(block *notionapi.Block, entering bool) bool 
 
 // RenderCollectionView renders BlockCollectionView
 // TODO: it renders all views, should render just one
-// TODO: maybe add alternating background color for rows
 func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering bool) bool {
 	viewInfo := block.CollectionViews[0]
 	view := viewInfo.CollectionView
+	if view.Format == nil {
+		id := ""
+		if r.Page != nil {
+			id = r.Page.ID
+		}
+		log("missing view.Format for block %s %s in page %s\n", block.ID, block.Type, id)
+		return true
+	}
 	columns := view.Format.TableProperties
 
 	r.Newline()
