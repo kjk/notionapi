@@ -211,20 +211,20 @@ func (r *HTMLRenderer) FormatDate(d *notionapi.Date) string {
 func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	var start, close string
 	if b.AttrFlags&notionapi.AttrBold != 0 {
-		start += "<b>"
-		close += "</b>"
+		start += `<b>`
+		close += `</b>`
 	}
 	if b.AttrFlags&notionapi.AttrItalic != 0 {
-		start += "<i>"
-		close += "</i>"
+		start += `<i>`
+		close += `</i>`
 	}
 	if b.AttrFlags&notionapi.AttrStrikeThrought != 0 {
-		start += "<strike>"
-		close += "</strike>"
+		start += `<strike>`
+		close += `</strike>`
 	}
 	if b.AttrFlags&notionapi.AttrCode != 0 {
-		start += "<code>"
-		close += "</code>"
+		start += `<code class="notion-code-inline">`
+		close += `</code>`
 	}
 	skipText := false
 	// TODO: colors
@@ -247,7 +247,7 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 		skipText = true
 	}
 	if !skipText {
-		start += b.Text
+		start += html.EscapeString(b.Text)
 	}
 	r.WriteString(start + close)
 }

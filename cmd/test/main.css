@@ -27,6 +27,12 @@ body {
   background-color: #fdfdfd;
 }
 
+.notion-code-inline {
+  color: #657b83;
+  /* background-color: #f9f9f9; */
+  background-color: #fdfdfd;
+}
+
 .notion-todo-checked {
   color: lightgray;
   text-decoration: line-through;
