@@ -618,7 +618,7 @@ func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering boo
 	if view.Format == nil {
 		id := ""
 		if r.Page != nil {
-			id = r.Page.ID
+			id = notionapi.ToNoDashID(r.Page.ID)
 		}
 		log("missing view.Format for block %s %s in page %s\n", block.ID, block.Type, id)
 		return true
