@@ -634,11 +634,18 @@ func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering boo
 	for _, col := range columns {
 		colName := col.Property
 		colInfo := viewInfo.Collection.CollectionSchema[colName]
-		name := colInfo.Name
-		r.Level++
-		r.WriteIndent()
-		r.WriteString(`<th>` + html.EscapeString(name) + "</th>\n")
-		r.Level--
+		if colInfo != nil {
+			name := colInfo.Name
+			r.Level++
+			r.WriteIndent()
+			r.WriteString(`<th>` + html.EscapeString(name) + "</th>\n")
+			r.Level--
+		} else {
+			r.Level++
+			r.WriteIndent()
+			r.WriteString(`<th>&nbsp;` + "</th>\n")
+			r.Level--
+		}
 	}
 	r.WriteIndent()
 	r.WriteString("</tr>\n")
