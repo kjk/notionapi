@@ -68,9 +68,15 @@ func maybeProxyImageURL(uri string) string {
 		return signedURLPrefix + url.PathEscape(uri)
 	}
 
-	if uri == "" || strings.Contains(uri, "//www.notion.so/image/") {
+	// don't proxy external images
+	if !strings.Contains(uri, "notion.so") {
 		return uri
 	}
+
+	if strings.Contains(uri, "//www.notion.so/image/") {
+		return uri
+	}
+
 	// if the url has https://, it's already in s3.
 	// If not, it's only a relative URL (like those for built-in
 	// cover pages)
