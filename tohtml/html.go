@@ -50,10 +50,6 @@ type HTMLRenderer struct {
 	CurrBlocks   []*notionapi.Block
 	CurrBlockIdx int
 
-	// keeps a nesting stack of numbered / bulleted list
-	// we need this because they are not nested in data model
-	ListStack []string
-
 	bufs []*bytes.Buffer
 }
 
@@ -428,10 +424,21 @@ func (r *HTMLRenderer) RenderTodo(block *notionapi.Block, entering bool) bool {
 // RenderToggle renders BlockToggle
 func (r *HTMLRenderer) RenderToggle(block *notionapi.Block, entering bool) bool {
 	if entering {
-		r.WriteString(`<details class="notion-toggle">`)
+		s := `<details class="notion-toggle"`
+		id := r.maybeGetID(block)
+		if id != "" {
+			s += fmt.Sprintf(` id="%s"`, id)
+		}
+		r.WriteString(s + `>`)
 		r.Newline()
+
+		// we don't want id on summary but on <details> above
+		prevAddID := r.AddIDAttribute
+		r.AddIDAttribute = false
 		r.WriteElement(block, "summary", nil, "", entering)
 		r.WriteString(`</summary>`)
+		r.AddIDAttribute = prevAddID
+
 		r.Newline()
 	} else {
 		r.WriteString(`</details>`)

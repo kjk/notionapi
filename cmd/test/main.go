@@ -203,6 +203,7 @@ func toHTML(pageID string) {
 	}
 
 	r := tohtml.NewHTMLRenderer(page)
+	r.AddIDAttribute = true
 	notionapi.PanicOnFailures = true
 	html := r.ToHTML()
 
