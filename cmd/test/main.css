@@ -71,12 +71,18 @@ div.notion-wrap {
   content: "\2610";
 }
 
-.notion-toggle::before {
-  content: "\2BC6";
+/* Note: there might be more elements we need to add here */
+details.notion-toggle > div,
+details.notion-toggle > details {
+  margin-left: 1.3em;
 }
 
-.notion-toggle-wrapper {
-  margin-left: 1.3em;
+/* neutralize dy margin at the top and the bottom of lists
+   when nested inside toggle list */
+details.notion-toggle > ul,
+details.notion-toggle > ol {
+  margin-block-start: 0;
+  margin-block-end: 0;
 }
 
 .notion-date {

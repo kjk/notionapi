@@ -428,20 +428,15 @@ func (r *HTMLRenderer) RenderTodo(block *notionapi.Block, entering bool) bool {
 // RenderToggle renders BlockToggle
 func (r *HTMLRenderer) RenderToggle(block *notionapi.Block, entering bool) bool {
 	if entering {
-		attrs := []string{"class", "notion-toggle"}
-		r.WriteElement(block, "div", attrs, "", entering)
-
-		s := `<div class="notion-toggle-wrapper">`
-		r.WriteString(s)
+		r.WriteString(`<details class="notion-toggle">`)
+		r.Newline()
+		r.WriteElement(block, "summary", nil, "", entering)
+		r.WriteString(`</summary>`)
 		r.Newline()
 	} else {
-		s := `</div>`
-		r.WriteString(s)
+		r.WriteString(`</details>`)
 		r.Newline()
-		attrs := []string{"class", "notion-toggle"}
-		r.WriteElement(block, "div", attrs, "", entering)
 	}
-
 	return true
 }
 
