@@ -613,8 +613,11 @@ func (r *HTMLRenderer) RenderColumn(block *notionapi.Block, entering bool) bool 
 }
 
 // RenderCollectionView renders BlockCollectionView
-// TODO: it renders all views, should render just one
 func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block, entering bool) bool {
+	if !entering {
+		return true
+	}
+
 	viewInfo := block.CollectionViews[0]
 	view := viewInfo.CollectionView
 	if view.Format == nil {

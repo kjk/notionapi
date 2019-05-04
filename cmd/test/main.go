@@ -226,6 +226,11 @@ func main() {
 
 	emptyLogDir()
 
+	if false {
+		toHTML("99031183f223417988241fdad218ceba")
+		return
+	}
+
 	if flgDownloadPage != "" {
 		downloadPageMaybeCached(flgDownloadPage)
 		return
