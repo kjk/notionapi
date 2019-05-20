@@ -71,6 +71,31 @@ div.notion-wrap {
   content: "\2610";
 }
 
+.notion-header-anchor svg {
+  opacity: 0.2;
+}
+
+.notion-header-anchor:hover svg {
+  opacity: 1;
+}
+
+/* Must explicitly size the "anchor" svg icon inside h* elements.
+The sizes are chosen to look ok next to a lower-case letter, which is likely
+to be at the end. The downside is that it won't look good if the last letter
+is upper-case.
+*/
+h1 a.notion-header-anchor svg {
+  height: 17px;
+}
+
+h2 a.notion-header-anchor svg {
+  height: 14px;
+}
+
+h3 a.notion-header-anchor svg {
+  height: 12px;
+}
+
 /* Note: there might be more elements we need to add here */
 details.notion-toggle > div,
 details.notion-toggle > details {
@@ -154,4 +179,3 @@ div.notion-embed {
   border: 1px solid #eee;
   padding: 1em;
 }
-
