@@ -204,6 +204,7 @@ func toHTML(pageID string) {
 
 	r := tohtml.NewHTMLRenderer(page)
 	r.AddIDAttribute = true
+	r.AddHeaderAnchor = true
 	notionapi.PanicOnFailures = true
 	html := r.ToHTML()
 
