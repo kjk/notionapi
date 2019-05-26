@@ -25,4 +25,5 @@ You can see the code at https://github.com/kjk/blog and https://github.com/essen
 # Implementations for other languages
 
 * https://github.com/jamalex/notion-py : library for Python
+* https://github.com/petersamokhin/knotion-api : library for Kotlin / Java
 
