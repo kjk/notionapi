@@ -465,6 +465,14 @@ func (r *HTMLRenderer) RenderQuote(block *notionapi.Block, entering bool) bool {
 	return true
 }
 
+// RenderCallout renders BlockCallout
+func (r *HTMLRenderer) RenderCallout(block *notionapi.Block, entering bool) bool {
+	cls := "notion-callout"
+	attrs := []string{"class", cls}
+	r.WriteElement(block, "div", attrs, "", entering)
+	return true
+}
+
 // RenderDivider renders BlockDivider
 func (r *HTMLRenderer) RenderDivider(block *notionapi.Block, entering bool) bool {
 	if !entering {
@@ -768,6 +776,8 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) BlockRenderFunc {
 		return r.RenderFile
 	case notionapi.BlockPDF:
 		return r.RenderPDF
+	case notionapi.BlockCallout:
+		return r.RenderCallout
 	default:
 		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, r.Page.NotionURL())
 	}

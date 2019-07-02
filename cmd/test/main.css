@@ -10,6 +10,17 @@ body {
   padding: 1em 2em;
 }
 
+.notion-callout {
+  background-color: rgba(235, 236, 237, 0.3);
+  padding: 16px 16px 16px 12px;
+  width: 100%;
+  display: flex;
+  border-radius: 3px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: transparent;
+}
+
 /* set on <pre> element in <pre><code> sequence */
 .notion-code {
   display: block;
