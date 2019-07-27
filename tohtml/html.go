@@ -257,15 +257,10 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 	r.Level++
 	r.WriteIndent()
-	bufLen := r.Buf.Len()
 	for _, block := range blocks {
 		r.RenderInline(block)
 	}
 
-	// if text was empty, write &nbsp; so that empty blocks show up
-	if bufLen == r.Buf.Len() {
-		r.WriteString("&nbsp;")
-	}
 	r.Level--
 }
 
@@ -273,15 +268,11 @@ func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 // output buffer, we return it as string
 func (r *HTMLRenderer) GetInlineContent(blocks []*notionapi.InlineBlock) string {
 	if len(blocks) == 0 {
-		return "&nbsp;"
+		return ""
 	}
 	r.PushNewBuffer()
 	for _, block := range blocks {
 		r.RenderInline(block)
-	}
-	// if text was empty, write &nbsp; so that empty blocks show up
-	if r.Buf.Len() == 0 {
-		r.WriteString("&nbsp;")
 	}
 	return r.PopBuffer().String()
 }
