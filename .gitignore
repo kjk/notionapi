@@ -4,3 +4,4 @@ www/
 log/
 cache/
 *.exe
+testdata/

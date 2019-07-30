@@ -57,6 +57,16 @@ func (p *Page) SetFormat(args map[string]interface{}) error {
 	return p.client.SubmitTransaction(ops)
 }
 
+// GetInlineText returns flattened content of inline blocks, without formatting
+func GetInlineText(blocks []*InlineBlock) string {
+	s := ""
+	for _, block := range blocks {
+		// TODO: how to handle dates, users etc.?
+		s += block.Text
+	}
+	return s
+}
+
 func getFirstInline(inline []*InlineBlock) string {
 	if len(inline) == 0 {
 		return ""
@@ -70,6 +80,14 @@ func getFirstInlineBlock(v interface{}) (string, error) {
 		return "", err
 	}
 	return getFirstInline(inline), nil
+}
+
+func getInlineText(v interface{}) (string, error) {
+	inline, err := ParseInlineBlocks(v)
+	if err != nil {
+		return "", err
+	}
+	return GetInlineText(inline), nil
 }
 
 func getProp(block *Block, name string, toSet *string) bool {
@@ -90,8 +108,9 @@ func parseProperties(block *Block) error {
 	props := block.Properties
 
 	if title, ok := props["title"]; ok {
-		if block.Type == BlockPage {
-			block.Title, err = getFirstInlineBlock(title)
+		if block.Type == BlockPage || block.Type == BlockFile {
+			block.Title, err = getInlineText(title)
+			block.TitleFull, err = ParseInlineBlocks(title)
 		} else if block.Type == BlockCode {
 			block.Code, err = getFirstInlineBlock(title)
 		} else {

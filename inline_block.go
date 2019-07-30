@@ -73,6 +73,13 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 			b.AttrFlags |= AttrStrikeThrought
 		case "c":
 			b.AttrFlags |= AttrCode
+		case "a":
+			// this happened in https://www.notion.so/5fea966407204d9080a5b989360b205f
+			// a link without url, not sure what to do. I recognize lnks by
+			// b.Link != ""
+			// maybe should have AttrLink as well or just keep b.Attribute
+			// as char (assuming there can't be more than one)
+			b.Link = " "
 		default:
 			return fmt.Errorf("unexpected attribute '%s'", s)
 		}
