@@ -310,3 +310,42 @@ func TestParseInlineBlock6(t *testing.T) {
 		assert.Equal(t, b.Highlight, "blue")
 	}
 }
+
+const title7 = `{
+	"title": [
+	  [
+		"You can log in at: "
+	  ],
+	  [
+		"http",
+		[
+		  [
+			"a",
+			"https://www.google.com/a/blendle.com"
+		  ]
+		]
+	  ],
+	  [
+		"s",
+		[
+		  [
+			"a"
+		  ]
+		]
+	  ],
+	  [
+		"://www.google.com/a/blendle.com",
+		[
+		  [
+			"a",
+			"https://www.google.com/a/blendle.com"
+		  ]
+		]
+	  ]
+	]
+  }`
+
+func TestParseInlineBlock7(t *testing.T) {
+	blocks := parseBlocks(t, title7)
+	assert.Equal(t, 4, len(blocks))
+}

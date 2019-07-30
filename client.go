@@ -387,8 +387,13 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 					blocksToSkip[expectedID] = struct{}{}
 					if n > 0 {
 						prevBlock := recVals.Results[n-1]
-						prevBlockID := prevBlock.Value.ID
-						dbg(c, "block is nil at position n = %v with expected id %s. Prev block id: %s\n", n, expectedID, prevBlockID)
+						if prevBlock == nil || prevBlock.Value == nil {
+							// this can happen if we don't have access to this page
+							dbg(c, "prevBlock.Value is nil at position n = %d with expected id %s.\n", n, expectedID)
+						} else {
+							prevBlockID := prevBlock.Value.ID
+							dbg(c, "block is nil at position n = %d with expected id %s. Prev block id: %s\n", n, expectedID, prevBlockID)
+						}
 					} else {
 						dbg(c, "block is nil at position n = %v with expected id %s.\n", n, expectedID)
 					}
@@ -431,7 +436,8 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			}
 			collection, ok := idToCollection[collectionID]
 			if !ok {
-				return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
+				//return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
+				continue
 			}
 			var agg []*AggregateQuery
 			if collectionView.Query != nil {

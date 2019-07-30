@@ -19,7 +19,7 @@ func log(format string, args ...interface{}) {
 	notionapi.Log(format, args...)
 }
 
-// BlockRenderFunc is a function for rendering a particular
+// BlockRenderFunc is a function for rendering a particular block
 type BlockRenderFunc func(block *notionapi.Block, entering bool) bool
 
 // HTMLRenderer converts a Page to HTML
@@ -103,12 +103,14 @@ func (r *HTMLRenderer) WriteString(s string) {
 	r.Buf.WriteString(s)
 }
 
+/*
 // WriteIndentPlus writes 2 * (Level + add) spaces
 func (r *HTMLRenderer) WriteIndentPlus(add int) {
 	for n := 0; n < r.Level+add; n++ {
 		r.WriteString("  ")
 	}
 }
+*/
 
 // WriteIndent writes 2 * Level spaces
 func (r *HTMLRenderer) WriteIndent() {
