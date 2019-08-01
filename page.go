@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -257,4 +258,36 @@ func panicIf(cond bool, args ...interface{}) {
 		panic(format)
 	}
 	panic(fmt.Sprintf(format, args[1:]))
+}
+
+// GetSubPages return list of ids for pages reachable from those block
+func GetSubPages(blocks []*Block) []string {
+	pageIDs := map[string]struct{}{}
+	seen := map[string]struct{}{}
+	toVisit := blocks
+	for len(toVisit) > 0 {
+		block := toVisit[0]
+		toVisit = toVisit[1:]
+		id := ToNoDashID(block.ID)
+		if block.Type == BlockPage {
+			pageIDs[id] = struct{}{}
+			seen[id] = struct{}{}
+		}
+		for _, b := range block.Content {
+			if b == nil {
+				continue
+			}
+			id := ToNoDashID(block.ID)
+			if _, ok := seen[id]; ok {
+				continue
+			}
+			toVisit = append(toVisit, b)
+		}
+	}
+	res := []string{}
+	for id := range pageIDs {
+		res = append(res, id)
+	}
+	sort.Strings(res)
+	return res
 }

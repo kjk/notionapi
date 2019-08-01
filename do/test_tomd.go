@@ -51,7 +51,7 @@ func testToMdRecur(startPageID string, referenceFiles map[string][]byte) {
 		}
 		if bytes.Equal(pageMd, expData) {
 			fmt.Printf(" ok\n")
-			pages = append(pages, findSubPageIDs(page.Root.Content)...)
+			pages = append(pages, notionapi.GetSubPages(page.Root.Content)...)
 			continue
 		}
 		if len(pageMd) == len(expData) {
