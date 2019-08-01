@@ -47,17 +47,19 @@ func loadCSS() string {
 	if len(cssFromFile) > 0 {
 		return cssFromFile
 	}
-	path1 := filepath.Join("cmd", "test", "main.css")
+	currDir, err := filepath.Abs(".")
+	must(err)
+	path1 := filepath.Join("main.css")
 	cssFromFile = loadFile(path1)
 	if len(cssFromFile) > 0 {
 		return cssFromFile
 	}
-	path2 := filepath.Join("test", "main.css")
-	cssFromFile = loadFile(path1)
+	path2 := filepath.Join("do", "main.css")
+	cssFromFile = loadFile(path2)
 	if len(cssFromFile) > 0 {
 		return cssFromFile
 	}
-	log("couldn't load css from the following files:\n%s\n%s\n", path1, path2)
+	log("couldn't load css from the following files:\n'%s'\n'%s'\nCurr directory: %s\n", path1, path2, currDir)
 	os.Exit(1)
 	return ""
 }

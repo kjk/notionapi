@@ -1,6 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+
+	"github.com/kjk/notionapi"
+)
 
 func pageURL(pageID string) string {
 	return "https://notion.so/" + pageID

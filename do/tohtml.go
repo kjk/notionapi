@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,47 +12,6 @@ import (
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml"
 )
-
-const (
-	logDir = "log"
-)
-
-var (
-	// id of notion page looks like this:
-	// 4c6a54c68b3e4ea2af9cfaabcc88d58d
-
-	// id of notion page to download
-	flgDownloadPage string
-
-	// id of notion page to download and convert to HTML
-	flgToHTML string
-
-	// if true, will try to avoid downloading the page by using
-	// cached version sved in log/ directory
-	flgUseCache bool
-
-	// if true, will not automatically open a browser to display
-	// html generated for a page
-	flgNoOpen bool
-)
-
-func parseFlags() {
-	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
-	flag.StringVar(&flgToHTML, "tohtml", "", "id of notion page to download and convert to html")
-	flag.BoolVar(&flgUseCache, "use-cache", false, "if true will try to avoid downloading the page by using cached version saved in log/ directory")
-	flag.BoolVar(&flgNoOpen, "no-open", false, "if true will not automatically open the browser with html file generated with -tohtml")
-	flag.Parse()
-
-	// normalize ids early on
-	flgDownloadPage = notionapi.ToNoDashID(flgDownloadPage)
-	flgToHTML = notionapi.ToNoDashID(flgToHTML)
-}
-
-func usageAndExit() {
-	flag.Usage()
-	fmt.Print("Notion page id looks like: 4c6a54c68b3e4ea2af9cfaabcc88d58d\n")
-	os.Exit(1)
-}
 
 func notionURLForPageID(pageID string) string {
 	return "https://notion.so/" + pageID
@@ -81,16 +38,6 @@ func htmlFilePathForPageID(pageID string) string {
 func simpleStructureFilePathForPageID(pageID string) string {
 	name := fmt.Sprintf("%s.page.structure.txt", pageID)
 	return filepath.Join(logDir, name)
-}
-
-func openLogFileForPageID(pageID string) (io.WriteCloser, error) {
-	path := logFilePathForPageID(pageID)
-	f, err := os.Create(path)
-	if err != nil {
-		fmt.Printf("os.Create('%s') failed with %s\n", path, err)
-		return nil, err
-	}
-	return f, nil
 }
 
 func emptyLogDir() {
@@ -220,26 +167,4 @@ func toHTML(pageID string) {
 		log("Opening browser with %s\n", uri)
 		openBrowser(uri)
 	}
-}
-
-func main() {
-	parseFlags()
-
-	emptyLogDir()
-
-	if false {
-		toHTML("99031183f223417988241fdad218ceba")
-		return
-	}
-
-	if flgDownloadPage != "" {
-		downloadPageMaybeCached(flgDownloadPage)
-		return
-	}
-	if flgToHTML != "" {
-		toHTML(flgToHTML)
-		return
-	}
-
-	usageAndExit()
 }

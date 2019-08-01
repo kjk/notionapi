@@ -1,5 +1,14 @@
 package main
 
+import (
+	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/kjk/notionapi"
+	"github.com/kjk/notionapi/tomd"
+)
 
 func toMD(page *notionapi.Page) (string, []byte) {
 	name := tomd.MarkdownFileNameForPage(page)
@@ -55,7 +64,7 @@ func testToMdRecur(startPageID string, referenceFiles map[string][]byte) {
 			}
 		}
 	endloop:
-		if isWhitelisted(pageID) {
+		if isMdWhitelisted(pageID) {
 			fmt.Printf(" doesn't match but whitelisted\n")
 			continue
 		}
