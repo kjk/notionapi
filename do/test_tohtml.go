@@ -13,6 +13,7 @@ import (
 func toHTML2(page *notionapi.Page) (string, []byte) {
 	name := tohtml2.HTMLFileNameForPage(page)
 	r := tohtml2.NewHTMLRenderer(page)
+	r.FullHTML = true
 	d := r.ToHTML()
 	return name, d
 }
@@ -71,9 +72,18 @@ func testToHTMLRecur(startPageID string, referenceFiles map[string][]byte) {
 		fmt.Printf("\nHTML in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
 		writeFile("exp.html", expData)
 		writeFile("got.html", pageMd)
+		if shouldFormat() {
+			log("formatting HTML\n")
+			formatHTMLFile("exp.html")
+			formatHTMLFile("got.html")
+		}
 		openCodeDiff(`.\exp.html`, `.\got.html`)
 		os.Exit(1)
 	}
+}
+
+func shouldFormat() bool {
+	return !flgNoFormat
 }
 
 var htmlWhiteListed = []string{}
@@ -88,6 +98,9 @@ func isHTMLWhitelisted(pageID string) bool {
 }
 
 func testToHTML() int {
+	if shouldFormat() {
+		ensurePrettierExists()
+	}
 	zipPath := filepath.Join(topDir(), "data", "testdata", "Export-html-6f6dae04-a337-419e-81ca-f82de3202b9e.zip")
 	zipFiles := readZipFile(zipPath)
 	fmt.Printf("There are %d files in zip file\n", len(zipFiles))

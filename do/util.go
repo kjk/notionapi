@@ -83,3 +83,19 @@ func openNotepadWithFile(path string) {
 	err := cmd.Start()
 	must(err)
 }
+
+func formatHTMLFile(path string) {
+	cmd := exec.Command("prettier", "--write", path)
+	err := cmd.Run()
+	must(err)
+}
+
+func ensurePrettierExists() {
+	cmd := exec.Command("prettier", "-v")
+	err := cmd.Run()
+	if err != nil {
+		log("prettier doesn't seem to be installed. Either run with -no-reformat or install prettier with:\n")
+		log("npm install --global prettier\n")
+		os.Exit(1)
+	}
+}

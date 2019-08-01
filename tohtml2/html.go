@@ -91,6 +91,10 @@ type HTMLRenderer struct {
 	// Level is current depth of the tree. Useuful for pretty-printing indentation
 	Level int
 
+	// if true, generates stand-alone HTML with inline CSS
+	// otherwise it's just the inner part going inside the body
+	FullHTML bool
+
 	// we need this to properly render ordered and numbered lists
 	CurrBlocks   []*notionapi.Block
 	CurrBlockIdx int
@@ -137,6 +141,14 @@ func (r *HTMLRenderer) Newline() {
 	if n > 0 && d[n-1] != '\n' {
 		r.Buf.WriteByte('\n')
 	}
+}
+
+func (r *HTMLRenderer) Printf(format string, args ...interface{}) {
+	if len(args) == 0 {
+		r.Buf.WriteString(format)
+		return
+	}
+	r.Buf.WriteString(fmt.Sprintf(format, args...))
 }
 
 // WriteString writes a string to the buffer
@@ -326,16 +338,35 @@ func (r *HTMLRenderer) RenderCode(block *notionapi.Block) {
 	r.Newline()
 }
 
+func escapeHTML(s string) string {
+	s = html.EscapeString(s)
+	// don't get why this is needed but it happens in
+	// https://www.notion.so/Blendle-s-Employee-Handbook-3b617da409454a52bc3a920ba8832bf7
+	s = strings.Replace(s, "&#39;", "&#x27;", -1)
+	return s
+}
+
 // RenderPage renders BlockPage
 func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 	tp := block.GetPageType()
 	if tp == notionapi.BlockPageTopLevel {
-		title := html.EscapeString(block.Title)
-		content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
-		attrs := []string{"class", "notion-page"}
-		r.WriteElement(block, "div", attrs, content, true)
-		r.RenderChildren(block)
-		r.WriteElement(block, "div", attrs, content, false)
+		if r.FullHTML {
+			r.Printf(`<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
+			r.Printf(`<title>%s</title>`, escapeHTML(block.Title))
+			r.Printf(`<style>%s</style>`, cssNotion)
+			r.Printf(`</head><body>`)
+			// TODO: sans could be mono, depending on format
+			r.Printf(`<article id="%s" class="page sans">`, block.ID)
+			r.RenderChildren(block)
+			r.Printf(`</article></body></html>`)
+		} else {
+			title := html.EscapeString(block.Title)
+			content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
+			attrs := []string{"class", "notion-page"}
+			r.WriteElement(block, "div", attrs, content, true)
+			r.RenderChildren(block)
+			r.WriteElement(block, "div", attrs, content, false)
+		}
 		return
 	}
 

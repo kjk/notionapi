@@ -82,6 +82,7 @@ var (
 
 	flgTestToMd   bool
 	flgTestToHTML bool
+	flgNoFormat   bool
 )
 
 var (
@@ -94,6 +95,7 @@ var (
 )
 
 func parseFlags() {
+	flag.BoolVar(&flgNoFormat, "no-format", false, "if true, doesn't try to reformat/prettify HTML files during HTML testing")
 	flag.BoolVar(&flgTestToMd, "test-to-md", false, "test markdown generation")
 	flag.BoolVar(&flgTestToHTML, "test-to-html", false, "test html generation")
 	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
