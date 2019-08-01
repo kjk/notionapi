@@ -175,6 +175,38 @@ func ToDashID(id string) string {
 	return res
 }
 
+func isSafeChar(r rune) bool {
+	if r >= '0' && r <= '9' {
+		return true
+	}
+	if r >= 'a' && r <= 'z' {
+		return true
+	}
+	if r >= 'A' && r <= 'Z' {
+		return true
+	}
+	return false
+}
+
+// SafeName returns a file-system safe name
+func SafeName(s string) string {
+	var res string
+	for _, r := range s {
+		if !isSafeChar(r) {
+			res += "-"
+		} else {
+			res += string(r)
+		}
+	}
+	// replace multi-dash with single dash
+	for strings.Contains(res, "--") {
+		res = strings.Replace(res, "--", "-", -1)
+	}
+	res = strings.TrimLeft(res, "-")
+	res = strings.TrimRight(res, "-")
+	return res
+}
+
 // ExtractNoDashIDFromNotionURL tries to extract notion page id from
 // notion URL, e.g. given:
 // https://www.notion.so/Advanced-web-spidering-with-Puppeteer-ea07db1b9bff415ab180b0525f3898f6

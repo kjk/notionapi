@@ -15,6 +15,47 @@ func maybePanic(format string, args ...interface{}) {
 	notionapi.MaybePanic(format, args...)
 }
 
+func isSafeChar(r rune) bool {
+	if r >= '0' && r <= '9' {
+		return true
+	}
+	if r >= 'a' && r <= 'z' {
+		return true
+	}
+	if r >= 'A' && r <= 'Z' {
+		return true
+	}
+	return false
+}
+
+// safeName returns a file-system safe name
+func safeName(s string) string {
+	var res string
+	for _, r := range s {
+		if !isSafeChar(r) {
+			res += " "
+		} else {
+			res += string(r)
+		}
+	}
+	// replace multi-dash with single dash
+	for strings.Contains(res, "  ") {
+		res = strings.Replace(res, "  ", " ", -1)
+	}
+	res = strings.TrimLeft(res, " ")
+	res = strings.TrimRight(res, " ")
+	return res
+}
+
+func htmlFileName(title string) string {
+	s := safeName(title)
+	return s + ".html"
+}
+
+// HTMLFileNameForPage returns file name for html file
+func HTMLFileNameForPage(page *notionapi.Page) string {
+	return htmlFileName(page.Root.Title)
+}
 func log(format string, args ...interface{}) {
 	notionapi.Log(format, args...)
 }

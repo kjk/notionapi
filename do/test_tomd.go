@@ -137,7 +137,7 @@ func isMdWhitelisted(pageID string) bool {
 }
 
 func testToMarkdown() int {
-	zipPath := filepath.Join(topDir(), "testdata", "Export-b676ebbf-10ea-465f-aa21-158fc9b2ec82.zip")
+	zipPath := filepath.Join(topDir(), "data", "testdata", "Export-b676ebbf-10ea-465f-aa21-158fc9b2ec82.zip")
 	zipFiles := readZipFile(zipPath)
 	fmt.Printf("There are %d files in zip file\n", len(zipFiles))
 

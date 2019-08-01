@@ -80,12 +80,13 @@ var (
 	// html generated for a page
 	flgNoOpen bool
 
-	flgTestToMd bool
+	flgTestToMd   bool
+	flgTestToHTML bool
 )
 
-const (
-	logDir   = "log"
-	cacheDir = "cache"
+var (
+	logDir   = filepath.Join("data", "log")
+	cacheDir = filepath.Join("data", "cache")
 )
 
 var (
@@ -94,6 +95,7 @@ var (
 
 func parseFlags() {
 	flag.BoolVar(&flgTestToMd, "test-to-md", false, "test markdown generation")
+	flag.BoolVar(&flgTestToHTML, "test-to-html", false, "test html generation")
 	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
 	flag.StringVar(&flgToHTML, "tohtml", "", "id of notion page to download and convert to html")
 	flag.BoolVar(&flgUseCache, "use-cache", false, "if true will try to avoid downloading the page by using cached version saved in log/ directory")
@@ -128,6 +130,11 @@ func main() {
 	parseFlags()
 	if flgTestToMd {
 		testToMarkdown()
+		return
+	}
+
+	if flgTestToHTML {
+		testToHTML()
 		return
 	}
 

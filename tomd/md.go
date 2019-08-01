@@ -16,45 +16,12 @@ func maybePanic(format string, args ...interface{}) {
 	notionapi.MaybePanic(format, args...)
 }
 
-func isSafeChar(r rune) bool {
-	if r >= '0' && r <= '9' {
-		return true
-	}
-	if r >= 'a' && r <= 'z' {
-		return true
-	}
-	if r >= 'A' && r <= 'Z' {
-		return true
-	}
-	return false
-}
-
-func safeName(s string) string {
-	var res string
-	for _, r := range s {
-		if !isSafeChar(r) {
-			res += "-"
-		} else {
-			res += string(r)
-		}
-	}
-	return res
-}
-
 func markdownFileName(title, pageID string) string {
-	s := safeName(title)
-
-	// replace multi-dash with single dash
-	for strings.Contains(s, "--") {
-		s = strings.Replace(s, "--", "-", -1)
-	}
-	s = strings.TrimLeft(s, "-")
-	s = strings.TrimRight(s, "-")
+	s := notionapi.SafeName(title)
 	return s + "-" + notionapi.ToDashID(pageID) + ".md"
 }
 
 // MarkdownFileNameForPage returns file name for markdown file
-// "Blendle's Employee Handbook" =>
 func MarkdownFileNameForPage(page *notionapi.Page) string {
 	return markdownFileName(page.Root.Title, page.ID)
 }
