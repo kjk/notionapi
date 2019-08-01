@@ -133,7 +133,7 @@ func main() {
 		return
 	}
 
-	if flgTestToHTML {
+	if true || flgTestToHTML {
 		testToHTML()
 		return
 	}

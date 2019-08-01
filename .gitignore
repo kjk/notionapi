@@ -1,7 +1,5 @@
-*.log.txt
-./tohtml
+data/
 www/
-log/
-cache/
+exp.*
+got.*
 *.exe
-testdata/

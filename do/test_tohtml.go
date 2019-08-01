@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 
 	"github.com/kjk/notionapi"
-	"github.com/kjk/notionapi/tohtml"
+	"github.com/kjk/notionapi/tohtml2"
 )
 
 func toHTML2(page *notionapi.Page) (string, []byte) {
-	name := tohtml.HTMLFileNameForPage(page)
-	r := tohtml.NewHTMLRenderer(page)
+	name := tohtml2.HTMLFileNameForPage(page)
+	r := tohtml2.NewHTMLRenderer(page)
 	d := r.ToHTML()
 	return name, d
 }
@@ -64,14 +64,14 @@ func testToHTMLRecur(startPageID string, referenceFiles map[string][]byte) {
 			}
 		}
 	endloop:
-		if isMdWhitelisted(pageID) {
+		if isHTMLWhitelisted(pageID) {
 			fmt.Printf(" doesn't match but whitelisted\n")
 			continue
 		}
-		fmt.Printf("\nMarkdown in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
-		writeFile("exp.md", expData)
-		writeFile("got.md", pageMd)
-		openCodeDiff(`.\exp.md`, `.\got.md`)
+		fmt.Printf("\nHTML in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
+		writeFile("exp.html", expData)
+		writeFile("got.html", pageMd)
+		openCodeDiff(`.\exp.html`, `.\got.html`)
 		os.Exit(1)
 	}
 }
@@ -94,6 +94,6 @@ func testToHTML() int {
 
 	startPage := "3b617da409454a52bc3a920ba8832bf7" // top-level page for blendle handbok
 	//startPage := "2bf22b99850b402882bb885a41cfd981"
-	testToMdRecur(startPage, zipFiles)
+	testToHTMLRecur(startPage, zipFiles)
 	return 0
 }
