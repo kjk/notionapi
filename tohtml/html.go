@@ -315,6 +315,7 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 func (r *HTMLRenderer) RenderText(block *notionapi.Block) {
 	attrs := []string{"class", "notion-text"}
 	r.WriteElement(block, "div", attrs, "", true)
+	r.RenderChildren(block)
 	r.WriteElement(block, "div", attrs, "", false)
 }
 
@@ -783,6 +784,10 @@ func needsWrapper(block *notionapi.Block) bool {
 }
 
 func (r *HTMLRenderer) RenderChildren(block *notionapi.Block) {
+	if len(block.Content) == 0 {
+		return
+	}
+
 	// .notion-wrap provides indentation for children
 	if needsWrapper(block) {
 		r.Newline()
