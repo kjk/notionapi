@@ -235,6 +235,7 @@ type FormatPage struct {
 	// or emoji like "✉️"
 	PageIcon      string `json:"page_icon"`
 	PageSmallText bool   `json:"page_small_text"`
+	BlockColor    string `json:"block_color"`
 
 	// calculated by us
 	PageCoverURL string `json:"page_cover_url,omitempty"`
@@ -273,7 +274,7 @@ type FormatVideo struct {
 // FormatText describes format for BlockText
 // TODO: possibly more?
 type FormatText struct {
-	BlockColor *string `json:"block_color,omitempty"`
+	BlockColor string `json:"block_color,omitempty"`
 }
 
 // FormatTable describes format for BlockTable

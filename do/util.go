@@ -11,6 +11,7 @@ import (
 
 func must(err error) {
 	if err != nil {
+		fmt.Printf("err: %s\n", err)
 		panic(err)
 	}
 }
@@ -86,8 +87,10 @@ func openNotepadWithFile(path string) {
 
 func formatHTMLFile(path string) {
 	cmd := exec.Command("prettier", "--write", path)
-	err := cmd.Run()
-	must(err)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("prettier failed with:\n%s\n", string(out))
+	}
 }
 
 func ensurePrettierExists() {
