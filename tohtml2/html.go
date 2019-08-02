@@ -54,6 +54,10 @@ func fileNameFromPageCoverURL(uri string) string {
 }
 
 func filePathFromPageCoverURL(uri string, block *notionapi.Block) string {
+	// TODO: not sure about this heuristic
+	if strings.HasPrefix(uri, "https://cdn.dutchcowboys.nl/uploads") {
+		return uri
+	}
 	fileName := fileNameFromPageCoverURL(uri)
 	// TODO: probably need to build mulitple dirs
 	dir := safeName(block.Title)
@@ -96,6 +100,9 @@ type HTMLRenderer struct {
 
 	// if true, adds id=${NotionID} attribute to HTML nodes
 	AddIDAttribute bool
+
+	// tracks current number of numbered lists
+	ListNo int
 
 	// if true, adds <a href="#{$NotionID}">svg(anchor-icon)</a>
 	// to h1/h2/h3
@@ -289,6 +296,19 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 		start += fmt.Sprintf(`<mark class="highlight-%s">`, b.Highlight)
 		close = append(close, `</mark>`)
 	}
+	skipText := false
+	if b.Link != "" {
+		uri := b.Link
+		if r.RewriteURL != nil {
+			uri = r.RewriteURL(uri)
+		}
+		// TODO: notion escapes url but it seems to be wrong
+		uri = escapeHTML(uri)
+		s := fmt.Sprintf(`<a href="%s">`, uri)
+		start += s
+		close = append(close, `</a>`)
+	}
+
 	if b.AttrFlags&notionapi.AttrBold != 0 {
 		start += `<strong>`
 		close = append(close, `</strong>`)
@@ -305,20 +325,7 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 		start += `<code class="">`
 		close = append(close, `</code>`)
 	}
-	skipText := false
 	// TODO: colors
-	if b.Link != "" {
-		uri := b.Link
-		if r.RewriteURL != nil {
-			uri = r.RewriteURL(uri)
-		}
-		text := escapeHTML(b.Text)
-		// TODO: notion escapes url but it seems to be wrong
-		uri = escapeHTML(uri)
-		s := fmt.Sprintf(`<a href="%s">%s</a>`, uri, text)
-		start += s
-		skipText = true
-	}
 	if b.UserID != "" {
 		start += fmt.Sprintf(`<span class="notion-user">@TODO: user with id%s</span>`, b.UserID)
 		skipText = true
@@ -379,6 +386,7 @@ func escapeHTML(s string) string {
 	// don't get why this is needed but it happens in
 	// https://www.notion.so/Blendle-s-Employee-Handbook-3b617da409454a52bc3a920ba8832bf7
 	s = strings.Replace(s, "&#39;", "&#x27;", -1)
+	s = strings.Replace(s, "&#34;", "&quot;", -1)
 	return s
 }
 
@@ -429,6 +437,12 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 		return
 	}
 
+	if block.Parent != nil && block.Parent.Type == notionapi.BlockToggle {
+		// TODO: seem like a bug in Notion exporter
+		// page: https://www.notion.so/Soft-shizzle-13aa42a5a95d4357aa830c3e7ff35ae1
+		return
+	}
+
 	// Blendle s Employee Handbook/To Do Read in your first week.html
 	uri := filePathForPage(block)
 	cls := appendClass(getBlockColorClass(block), "link-to-page")
@@ -476,23 +490,16 @@ func (r *HTMLRenderer) RenderText(block *notionapi.Block) {
 // RenderNumberedList renders BlockNumberedList
 func (r *HTMLRenderer) RenderNumberedList(block *notionapi.Block) {
 	isPrevSame := r.IsPrevBlockOfType(notionapi.BlockNumberedList)
-	if !isPrevSame {
-		r.WriteIndent()
-		r.WriteString(`<ol class="notion-numbered-list">`)
+	if isPrevSame {
+		r.ListNo++
+	} else {
+		r.ListNo = 1
 	}
-	attrs := []string{"class", "notion-numbered-list"}
-	r.WriteElement(block, "li", attrs, "", true)
 
+	r.Printf(`<ol id="%s" class="numbered-list" start="%d"><li>`, block.ID, r.ListNo)
+	r.RenderInlines(block.InlineContent)
 	r.RenderChildren(block)
-
-	r.WriteIndent()
-	r.WriteString(`</li>`)
-	isNextSame := r.IsNextBlockOfType(notionapi.BlockNumberedList)
-	if !isNextSame {
-		r.WriteIndent()
-		r.WriteString(`</ol>`)
-	}
-	r.Newline()
+	r.Printf(`</li></ol>`)
 }
 
 // RenderBulletedList renders BlockBulletedList
@@ -821,14 +828,19 @@ func (r *HTMLRenderer) RenderColumn(block *notionapi.Block) {
 
 // RenderCollectionView renders BlockCollectionView
 func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block) {
+	pageID := ""
+	if r.Page != nil {
+		pageID = notionapi.ToNoDashID(r.Page.ID)
+	}
+
+	if len(block.CollectionViews) == 0 {
+		log("missing block.CollectionViews for block %s %s in page %s\n", block.ID, block.Type, pageID)
+		return
+	}
 	viewInfo := block.CollectionViews[0]
 	view := viewInfo.CollectionView
 	if view.Format == nil {
-		id := ""
-		if r.Page != nil {
-			id = notionapi.ToNoDashID(r.Page.ID)
-		}
-		log("missing view.Format for block %s %s in page %s\n", block.ID, block.Type, id)
+		log("missing view.Format for block %s %s in page %s\n", block.ID, block.Type, pageID)
 		return
 	}
 	columns := view.Format.TableProperties

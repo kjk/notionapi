@@ -19,6 +19,25 @@ func toHTML2(page *notionapi.Page) (string, []byte) {
 	return name, d
 }
 
+// to speed up iteration, we skip pages that we know we render correctly
+var toSkipHTML = []string{
+	"3b617da409454a52bc3a920ba8832bf7",
+	"023663a53df242f9aaf44f192c952754",
+	"078cc0bf15a6450dac7b6c061f94f86d",
+	"13aa42a5a95d4357aa830c3e7ff35ae1",
+	"23b0ea84114b483b96887f30bc453675",
+}
+
+func shouldSkipHTML(pageID string) bool {
+	pageID = notionapi.ToNoDashID(pageID)
+	for _, s := range toSkipHTML {
+		if pageID == s {
+			return true
+		}
+	}
+	return false
+}
+
 func testToHTMLRecur(startPageID string, referenceFiles map[string][]byte) {
 	client := &notionapi.Client{
 		DebugLog: true,
@@ -41,6 +60,11 @@ func testToHTMLRecur(startPageID string, referenceFiles map[string][]byte) {
 		must(err)
 		name, pageMd := toHTML2(page)
 		fmt.Printf("%02d: %s '%s'", nPage, pageID, name)
+		if shouldSkipHTML(pageID) {
+			fmt.Printf(" skipping known good\n")
+			pages = append(pages, notionapi.GetSubPages(page.Root.Content)...)
+			continue
+		}
 		//fmt.Printf("page as markdown:\n%s\n", string(pageMd))
 		var expData []byte
 		for refName, d := range referenceFiles {
@@ -117,7 +141,7 @@ func testToHTML() int {
 	fmt.Printf("There are %d files in zip file\n", len(zipFiles))
 
 	startPage := "3b617da409454a52bc3a920ba8832bf7" // top-level page for blendle handbok
-	startPage = "13aa42a5a95d4357aa830c3e7ff35ae1"
+	//startPage = "13aa42a5a95d4357aa830c3e7ff35ae1"
 	testToHTMLRecur(startPage, zipFiles)
 	return 0
 }
