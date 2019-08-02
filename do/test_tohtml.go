@@ -69,14 +69,17 @@ func testToHTMLRecur(startPageID string, referenceFiles map[string][]byte) {
 			fmt.Printf(" doesn't match but whitelisted\n")
 			continue
 		}
-		fmt.Printf("\nHTML in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
 		writeFile("exp.html", expData)
 		writeFile("got.html", pageMd)
 		if shouldFormat() {
-			log("formatting HTML\n")
 			formatHTMLFile("exp.html")
 			formatHTMLFile("got.html")
+			if areFilesEuqal("exp.html", "got.html") {
+				fmt.Printf(", files same after formatting\n")
+				continue
+			}
 		}
+		fmt.Printf("\nHTML in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
 		openCodeDiff(`.\exp.html`, `.\got.html`)
 		os.Exit(1)
 	}

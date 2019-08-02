@@ -370,6 +370,18 @@ func filePathFromPageCoverURL(uri string, block *notionapi.Block) string {
 	return path.Join(dir, fileName)
 }
 
+func filePathForPage(block *notionapi.Block) string {
+	name := safeName(block.Title) + ".html"
+	for block.Parent != nil {
+		block = block.Parent
+		if block.Type != notionapi.BlockPage {
+			continue
+		}
+		name = safeName(block.Title) + "/" + name
+	}
+	return name
+}
+
 func (r *HTMLRenderer) renderHeader(block *notionapi.Block) {
 	r.Printf(`<header>`)
 	formatPage := block.FormatPage
@@ -412,17 +424,24 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 		return
 	}
 
-	cls := "notion-page-link"
-	if tp == notionapi.BlockPageSubPage {
-		cls = "notion-sub-page"
+	// Blendle s Employee Handbook/To Do Read in your first week.html
+	uri := filePathForPage(block)
+	cls := appendClass(getBlockColorClass(block), "link-to-page")
+	r.Printf(`<figure id="%s" class="%s"><a href="%s">`, block.ID, cls, uri)
+
+	if block.FormatPage != nil && block.FormatPage.PageIcon != "" {
+		r.Printf(`<span class="icon">%s</span>`, block.FormatPage.PageIcon)
 	}
-	id := notionapi.ToNoDashID(block.ID)
-	uri := "https://notion.so/" + id
-	title := html.EscapeString(block.Title)
-	s := fmt.Sprintf(`<div class="%s"><a href="%s">%s</a></div>`, cls, uri, title)
-	r.WriteIndent()
-	r.WriteString(s)
-	r.Newline()
+	// TODO: possibly r.RenderInlines(block.InlineContent)
+	r.Printf(`%s`, escapeHTML(block.Title))
+	r.Printf(`</a></figure>`)
+}
+
+func appendClass(s, cls string) string {
+	if len(s) == 0 {
+		return cls
+	}
+	return s + " " + cls
 }
 
 func getBlockColorClass(block *notionapi.Block) string {
@@ -433,7 +452,7 @@ func getBlockColorClass(block *notionapi.Block) string {
 	}
 	if block.FormatPage != nil {
 		if block.FormatPage.BlockColor != "" {
-			return "block-color-" + block.FormatText.BlockColor
+			return "block-color-" + block.FormatPage.BlockColor
 		}
 	}
 	return ""

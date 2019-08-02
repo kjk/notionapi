@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -77,6 +78,18 @@ func openCodeDiff(path1, path2 string) {
 	cmd := exec.Command("code", "--new-window", "--diff", path1, path2)
 	err := cmd.Start()
 	must(err)
+}
+
+func loadFileData(path string) []byte {
+	d, err := ioutil.ReadFile(path)
+	must(err)
+	return d
+}
+
+func areFilesEuqal(path1, path2 string) bool {
+	d1 := loadFileData(path1)
+	d2 := loadFileData(path2)
+	return bytes.Equal(d1, d2)
 }
 
 func openNotepadWithFile(path string) {
