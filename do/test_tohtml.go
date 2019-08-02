@@ -40,7 +40,7 @@ func testToHTMLRecur(startPageID string, referenceFiles map[string][]byte) {
 		page, err := dl(client, pageID)
 		must(err)
 		name, pageMd := toHTML2(page)
-		fmt.Printf("%02d: '%s'", nPage, name)
+		fmt.Printf("%02d: %s '%s'", nPage, pageID, name)
 		//fmt.Printf("page as markdown:\n%s\n", string(pageMd))
 		var expData []byte
 		for refName, d := range referenceFiles {
@@ -117,7 +117,7 @@ func testToHTML() int {
 	fmt.Printf("There are %d files in zip file\n", len(zipFiles))
 
 	startPage := "3b617da409454a52bc3a920ba8832bf7" // top-level page for blendle handbok
-	//startPage := "2bf22b99850b402882bb885a41cfd981"
+	startPage = "13aa42a5a95d4357aa830c3e7ff35ae1"
 	testToHTMLRecur(startPage, zipFiles)
 	return 0
 }

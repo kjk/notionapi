@@ -80,6 +80,9 @@ var (
 	// html generated for a page
 	flgNoOpen bool
 
+	// if true, remove cache directories (data/log, data/cache)
+	flgCleanCache bool
+
 	flgTestToMd   bool
 	flgTestToHTML bool
 	flgNoFormat   bool
@@ -96,6 +99,7 @@ var (
 
 func parseFlags() {
 	flag.BoolVar(&flgNoFormat, "no-format", false, "if true, doesn't try to reformat/prettify HTML files during HTML testing")
+	flag.BoolVar(&flgCleanCache, "clean-cache", false, "if true, cleans cache directories (data/log, data/cache")
 	flag.BoolVar(&flgTestToMd, "test-to-md", false, "test markdown generation")
 	flag.BoolVar(&flgTestToHTML, "test-to-html", false, "test html generation")
 	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
@@ -126,16 +130,23 @@ func cdToTopDir() {
 func main() {
 	cdToTopDir()
 	fmt.Printf("topDir: '%s'\n", topDir())
+
+	parseFlags()
+
+	if flgCleanCache {
+		os.RemoveAll(logDir)
+		os.RemoveAll(cacheDir)
+	}
+
 	must(os.MkdirAll(logDir, 0755))
 	must(os.MkdirAll(cacheDir, 0755))
 
-	parseFlags()
 	if flgTestToMd {
 		testToMarkdown()
 		return
 	}
 
-	if true || flgTestToHTML {
+	if false || flgTestToHTML {
 		testToHTML()
 		return
 	}

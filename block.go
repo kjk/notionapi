@@ -168,6 +168,7 @@ type Block struct {
 	FormatTable    *FormatTable    `json:"format_table,omitempty"`
 	FormatVideo    *FormatVideo    `json:"format_video,omitempty"`
 	FormatEmbed    *FormatEmbed    `json:"format_embed,omitempty"`
+	FormatToggle   *FormatToggle   `json:"format_toggle,omitempty"`
 }
 
 // CollectionViewInfo describes a particular view of the collection
@@ -223,7 +224,12 @@ func (b *Block) IsCode() bool {
 	return b.Type == BlockCode
 }
 
-// FormatPage describes format for TypePage
+// FormatToggle describes format for BlockToggle
+type FormatToggle struct {
+	BlockColor string `json:"block_color"`
+}
+
+// FormatPage describes format for BlockPage
 type FormatPage struct {
 	// /images/page-cover/gradients_11.jpg
 	PageCover string `json:"page_cover"`

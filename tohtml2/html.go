@@ -340,11 +340,9 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 // RenderInlines renders inline blocks
 func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 	r.Level++
-	r.WriteIndent()
 	for _, block := range blocks {
 		r.RenderInline(block)
 	}
-
 	r.Level--
 }
 
@@ -452,15 +450,16 @@ func appendClass(s, cls string) string {
 }
 
 func getBlockColorClass(block *notionapi.Block) string {
+	var col string
 	if block.FormatText != nil {
-		if block.FormatText.BlockColor != "" {
-			return "block-color-" + block.FormatText.BlockColor
-		}
+		col = block.FormatText.BlockColor
+	} else if block.FormatPage != nil {
+		col = block.FormatPage.BlockColor
+	} else if block.FormatToggle != nil {
+		col = block.FormatToggle.BlockColor
 	}
-	if block.FormatPage != nil {
-		if block.FormatPage.BlockColor != "" {
-			return "block-color-" + block.FormatPage.BlockColor
-		}
+	if col != "" {
+		return "block-color-" + col
 	}
 	return ""
 }
@@ -561,26 +560,17 @@ func (r *HTMLRenderer) RenderTodo(block *notionapi.Block) {
 
 // RenderToggle renders BlockToggle
 func (r *HTMLRenderer) RenderToggle(block *notionapi.Block) {
-	s := `<details class="notion-toggle"`
-	id := r.maybeGetID(block)
-	if id != "" {
-		s += fmt.Sprintf(` id="%s"`, id)
-	}
-	r.WriteString(s + `>`)
-	r.Newline()
+	cls := getBlockColorClass(block)
+	cls = appendClass(cls, "toggle")
+	r.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
 
-	// we don't want id on summary but on <details> above
-	prevAddID := r.AddIDAttribute
-	r.AddIDAttribute = false
-	r.WriteElement(block, "summary", nil, "", true)
-	r.WriteString(`</summary>`)
-	r.AddIDAttribute = prevAddID
-
-	r.Newline()
+	r.Printf(`<li><details open=""><summary>`)
+	r.RenderInlines(block.InlineContent)
+	r.Printf(`</summary>`)
 
 	r.RenderChildren(block)
 
-	r.WriteString("</details>\n")
+	r.Printf("</details></li></ul>")
 }
 
 // RenderQuote renders BlockQuote

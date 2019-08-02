@@ -213,6 +213,12 @@ func parseFormat(block *Block) error {
 		if err == nil {
 			block.FormatEmbed = &format
 		}
+	case BlockToggle:
+		var format FormatToggle
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatToggle = &format
+		}
 	}
 
 	if err != nil {
