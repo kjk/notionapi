@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml2"
@@ -41,8 +42,14 @@ func testToHTMLRecur(startPageID string, referenceFiles map[string][]byte) {
 		name, pageMd := toHTML2(page)
 		fmt.Printf("%02d: '%s'", nPage, name)
 		//fmt.Printf("page as markdown:\n%s\n", string(pageMd))
-		expData, ok := referenceFiles[name]
-		if !ok {
+		var expData []byte
+		for refName, d := range referenceFiles {
+			if strings.HasSuffix(refName, name) {
+				expData = d
+				break
+			}
+		}
+		if len(expData) == 0 {
 			fmt.Printf("\n'%s' from '%s' doesn't seem correct as it's not present in referenceFiles\n", name, page.Root.Title)
 			fmt.Printf("Names in referenceFiles:\n")
 			for s := range referenceFiles {
@@ -76,6 +83,7 @@ func testToHTMLRecur(startPageID string, referenceFiles map[string][]byte) {
 			formatHTMLFile("got.html")
 			if areFilesEuqal("exp.html", "got.html") {
 				fmt.Printf(", files same after formatting\n")
+				pages = append(pages, notionapi.GetSubPages(page.Root.Content)...)
 				continue
 			}
 		}

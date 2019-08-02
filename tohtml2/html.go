@@ -47,6 +47,31 @@ func safeName(s string) string {
 	return res
 }
 
+func fileNameFromPageCoverURL(uri string) string {
+	parts := strings.Split(uri, "/")
+	lastIdx := len(parts) - 1
+	return parts[lastIdx]
+}
+
+func filePathFromPageCoverURL(uri string, block *notionapi.Block) string {
+	fileName := fileNameFromPageCoverURL(uri)
+	// TODO: probably need to build mulitple dirs
+	dir := safeName(block.Title)
+	return path.Join(dir, fileName)
+}
+
+func filePathForPage(block *notionapi.Block) string {
+	name := safeName(block.Title) + ".html"
+	for block.Parent != nil {
+		block = block.Parent
+		if block.Type != notionapi.BlockPage {
+			continue
+		}
+		name = safeName(block.Title) + "/" + name
+	}
+	return name
+}
+
 func htmlFileName(title string) string {
 	s := safeName(title)
 	return s + ".html"
@@ -288,6 +313,8 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 			uri = r.RewriteURL(uri)
 		}
 		text := escapeHTML(b.Text)
+		// TODO: notion escapes url but it seems to be wrong
+		uri = escapeHTML(uri)
 		s := fmt.Sprintf(`<a href="%s">%s</a>`, uri, text)
 		start += s
 		skipText = true
@@ -357,31 +384,6 @@ func escapeHTML(s string) string {
 	return s
 }
 
-func fileNameFromPageCoverURL(uri string) string {
-	parts := strings.Split(uri, "/")
-	lastIdx := len(parts) - 1
-	return parts[lastIdx]
-}
-
-func filePathFromPageCoverURL(uri string, block *notionapi.Block) string {
-	fileName := fileNameFromPageCoverURL(uri)
-	// TODO: probably need to build mulitple dirs
-	dir := safeName(block.Title)
-	return path.Join(dir, fileName)
-}
-
-func filePathForPage(block *notionapi.Block) string {
-	name := safeName(block.Title) + ".html"
-	for block.Parent != nil {
-		block = block.Parent
-		if block.Type != notionapi.BlockPage {
-			continue
-		}
-		name = safeName(block.Title) + "/" + name
-	}
-	return name
-}
-
 func (r *HTMLRenderer) renderHeader(block *notionapi.Block) {
 	r.Printf(`<header>`)
 	formatPage := block.FormatPage
@@ -391,7 +393,12 @@ func (r *HTMLRenderer) renderHeader(block *notionapi.Block) {
 		r.Printf(`<img class="page-cover-image" src="%s" style="object-position:center %v%%"/>`, coverURL, position)
 	}
 	if formatPage.PageIcon != "" {
-		r.Printf(`<div class="page-header-icon page-header-icon-with-cover"><span class="icon">%s</span></div>`, formatPage.PageIcon)
+		// TODO: "undefined" is bad in Notion export
+		clsCover := "undefined"
+		if formatPage.PageCover != "" {
+			clsCover = "page-header-icon-with-cover"
+		}
+		r.Printf(`<div class="page-header-icon %s"><span class="icon">%s</span></div>`, clsCover, formatPage.PageIcon)
 	}
 	r.Printf(`<h1 class="page-title">%s</h1>`, escapeHTML(block.Title))
 	r.Printf(`</header>`)
@@ -493,27 +500,23 @@ func (r *HTMLRenderer) RenderNumberedList(block *notionapi.Block) {
 func (r *HTMLRenderer) RenderBulletedList(block *notionapi.Block) {
 
 	isPrevSame := r.IsPrevBlockOfType(notionapi.BlockBulletedList)
+	// TODO: looks like a bug in Notion
+	isPrevSame = false
 	if !isPrevSame {
-		r.WriteIndent()
-		r.WriteString(`<ul class="notion-bulleted-list">`)
-		r.Newline()
+		r.Printf(`<ul id="%s" class="bulleted-list">`, block.ID)
 		r.Level++
 	}
-	attrs := []string{"class", "notion-bulleted-list"}
-	r.WriteElement(block, "li", attrs, "", true)
 
+	r.Printf(`<li>`)
+	r.RenderInlines(block.InlineContent)
 	r.RenderChildren(block)
-
-	r.WriteIndent()
-	r.WriteString(`</li>`)
+	r.Printf(`</li>`)
 	isNextSame := r.IsNextBlockOfType(notionapi.BlockBulletedList)
+	isNextSame = false
 	if !isNextSame {
 		r.Level--
-		r.Newline()
-		r.WriteIndent()
-		r.WriteString(`</ul>`)
+		r.Printf(`</ul>`)
 	}
-	r.Newline()
 }
 
 // RenderHeaderLevel renders BlockHeader, SubHeader and SubSubHeader
@@ -654,7 +657,24 @@ func (r *HTMLRenderer) RenderBookmark(block *notionapi.Block) {
 	r.WriteElement(block, "div", attrs, content, false)
 }
 
-// RenderVideo renders BlockTweet
+// RenderVideo renders BlockVideo
+func (r *HTMLRenderer) RenderVideo(block *notionapi.Block) {
+	r.Printf(`<figure id="%s"><div class="source">`, block.ID)
+	source := block.Source
+	fileName := source
+	if len(block.FileIDs) > 0 {
+		fileName = getImageFileName(r.Page, block)
+	}
+	if source == "" {
+		r.Printf(`<a></a>`)
+	} else {
+		r.Printf(`<a href="%s">%s</a>`, fileName, source)
+	}
+	r.Printf(`</div></figure>`)
+}
+
+/*
+// RenderVideo renders BlockVideo
 func (r *HTMLRenderer) RenderVideo(block *notionapi.Block) {
 	f := block.FormatVideo
 	ws := fmt.Sprintf("%d", f.BlockWidth)
@@ -686,6 +706,7 @@ func (r *HTMLRenderer) RenderVideo(block *notionapi.Block) {
 	r.WriteElement(block, "iframe", attrs, "", true)
 	r.WriteElement(block, "iframe", attrs, "", false)
 }
+*/
 
 // RenderTweet renders BlockTweet
 func (r *HTMLRenderer) RenderTweet(block *notionapi.Block) {
@@ -759,12 +780,30 @@ func (r *HTMLRenderer) RenderPDF(block *notionapi.Block) {
 	r.WriteElement(block, "div", attrs, content, false)
 }
 
+func getImageFileName(page *notionapi.Page, block *notionapi.Block) string {
+	uri := block.Source
+	parts := strings.Split(uri, "/")
+	lastIdx := len(parts) - 1
+	fileName := parts[lastIdx]
+	pageName := safeName(page.Root.Title)
+	return pageName + "/" + fileName
+}
+
+func getImageStyle(block *notionapi.Block) string {
+	f := block.FormatImage
+	if f == nil || f.BlockWidth == 0 {
+		return ""
+	}
+	return fmt.Sprintf(`style="width:%dpx" `, int(f.BlockWidth))
+}
+
 // RenderImage renders BlockImage
 func (r *HTMLRenderer) RenderImage(block *notionapi.Block) {
-	link := block.ImageURL
-	attrs := []string{"class", "notion-image", "src", link}
-	r.WriteElement(block, "img", attrs, "", true)
-	r.WriteElement(block, "img", attrs, "", false)
+	r.Printf(`<figure id="%s" class="image">`, block.ID)
+	uri := getImageFileName(r.Page, block)
+	style := getImageStyle(block)
+	r.Printf(`<a href="%s"><img %ssrc="%s"/></a>`, uri, style, uri)
+	r.Printf(`</figure>`)
 }
 
 // RenderColumnList renders BlockColumnList
