@@ -259,8 +259,8 @@ func (r *HTMLRenderer) FormatDate(d *notionapi.Date) string {
 func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 	var start, close string
 	if b.AttrFlags&notionapi.AttrBold != 0 {
-		start += `<b>`
-		close += `</b>`
+		start += `<strong>`
+		close += `</strong>`
 	}
 	if b.AttrFlags&notionapi.AttrItalic != 0 {
 		start += `<i>`
@@ -281,7 +281,7 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 		if r.RewriteURL != nil {
 			uri = r.RewriteURL(uri)
 		}
-		text := html.EscapeString(b.Text)
+		text := escapeHTML(b.Text)
 		s := fmt.Sprintf(`<a class="notion-link" href="%s">%s</a>`, uri, text)
 		start += s
 		skipText = true
@@ -295,7 +295,7 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 		skipText = true
 	}
 	if !skipText {
-		start += html.EscapeString(b.Text)
+		start += escapeHTML(b.Text)
 	}
 	r.WriteString(start + close)
 }
@@ -417,10 +417,10 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 
 // RenderText renders BlockText
 func (r *HTMLRenderer) RenderText(block *notionapi.Block) {
-	attrs := []string{"class", "notion-text"}
-	r.WriteElement(block, "div", attrs, "", true)
+	r.Printf(`<p id="%s" class="">`, block.ID)
+	r.RenderInlines(block.InlineContent)
 	r.RenderChildren(block)
-	r.WriteElement(block, "div", attrs, "", false)
+	r.Printf(`</p>`)
 }
 
 // RenderNumberedList renders BlockNumberedList
@@ -555,19 +555,45 @@ func (r *HTMLRenderer) RenderCallout(block *notionapi.Block) {
 	cls := "notion-callout"
 	attrs := []string{"class", cls}
 	r.WriteElement(block, "div", attrs, "", true)
-
 	r.RenderChildren(block)
 	r.WriteElement(block, "div", attrs, "", false)
 }
 
+func isHeaderBlock(block *notionapi.Block) bool {
+	switch block.Type {
+	case notionapi.BlockHeader, notionapi.BlockSubHeader, notionapi.BlockSubSubHeader:
+		return true
+	}
+	return false
+}
+
+func getHeaderBlocks(blocks []*notionapi.Block) []*notionapi.Block {
+	var res []*notionapi.Block
+	for _, b := range blocks {
+		if isHeaderBlock(b) {
+			res = append(res, b)
+			continue
+		}
+		if len(b.Content) == 0 {
+			continue
+		}
+		sub := getHeaderBlocks(b.Content)
+		res = append(res, sub...)
+	}
+	return res
+}
+
 // RenderTableOfContents renders BlockTableOfContents
 func (r *HTMLRenderer) RenderTableOfContents(block *notionapi.Block) {
-	/*
-		cls := "notion-toc"
-		attrs := []string{"class", cls}
-		r.WriteElement(block, "div", attrs, "", true)
-		r.WriteElement(block, "div", attrs, "", false)
-	*/
+	// TODO: block-color-gray comes from "format": { "block_color" }
+	r.Printf(`<nav id="%s" class="block-color-gray table_of_contents">`, block.ID)
+	blocks := getHeaderBlocks(r.Page.Root.Content)
+	for _, b := range blocks {
+		s := r.GetInlineContent(b.InlineContent)
+		// TODO: "indent-0" might probably be differnt
+		r.Printf(`<div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#%s">%s</a></div>`, b.ID, s)
+	}
+	r.Printf(`</nav>`)
 }
 
 // RenderDivider renders BlockDivider
