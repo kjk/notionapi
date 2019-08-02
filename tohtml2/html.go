@@ -167,7 +167,8 @@ func (r *HTMLRenderer) WriteIndent() {
 }
 
 func (r *HTMLRenderer) maybeGetID(block *notionapi.Block) string {
-	if r.AddIDAttribute {
+	// TODO: notion always adds id
+	if true && r.AddIDAttribute {
 		return notionapi.ToNoDashID(block.ID)
 	}
 	return ""
@@ -346,6 +347,34 @@ func escapeHTML(s string) string {
 	return s
 }
 
+func fileNameFromPageCoverURL(uri string) string {
+	parts := strings.Split(uri, "/")
+	lastIdx := len(parts) - 1
+	return parts[lastIdx]
+}
+
+func filePathFromPageCoverURL(uri string, block *notionapi.Block) string {
+	fileName := fileNameFromPageCoverURL(uri)
+	// TODO: probably need to build mulitple dirs
+	dir := safeName(block.Title)
+	return path.Join(dir, fileName)
+}
+
+func (r *HTMLRenderer) renderHeader(block *notionapi.Block) {
+	r.Printf(`<header>`)
+	formatPage := block.FormatPage
+	if formatPage.PageCover != "" {
+		position := (1 - formatPage.PageCoverPosition) * 100
+		coverURL := filePathFromPageCoverURL(formatPage.PageCover, block)
+		r.Printf(`<img class="page-cover-image" src="%s" style="object-position:center %v%%"/>`, coverURL, position)
+	}
+	if formatPage.PageIcon != "" {
+		r.Printf(`<div class="page-header-icon page-header-icon-with-cover"><span class="icon">%s</span></div>`, formatPage.PageIcon)
+	}
+	r.Printf(`<h1 class="page-title">%s</h1>`, escapeHTML(block.Title))
+	r.Printf(`</header>`)
+}
+
 // RenderPage renders BlockPage
 func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 	tp := block.GetPageType()
@@ -357,7 +386,10 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 			r.Printf(`</head><body>`)
 			// TODO: sans could be mono, depending on format
 			r.Printf(`<article id="%s" class="page sans">`, block.ID)
+			r.renderHeader(block)
+			r.Printf(`<div class="page-body">`)
 			r.RenderChildren(block)
+			r.Printf(`</div>`)
 			r.Printf(`</article></body></html>`)
 		} else {
 			title := html.EscapeString(block.Title)
