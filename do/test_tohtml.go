@@ -16,7 +16,7 @@ func shouldFormat() bool {
 
 func toHTML2(page *notionapi.Page) (string, []byte) {
 	name := tohtml2.HTMLFileNameForPage(page)
-	r := tohtml2.NewHTMLRenderer(page)
+	r := tohtml2.NewConverter(page)
 	r.FullHTML = true
 	d := r.ToHTML()
 	return name, d
