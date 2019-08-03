@@ -125,3 +125,26 @@ func GetSubPages(blocks []*Block) []string {
 	sort.Strings(res)
 	return res
 }
+
+func makeUserName(user *User) string {
+	s := user.GivenName
+	if len(s) > 0 {
+		s += " "
+	}
+	s += user.FamilyName
+	if len(s) > 0 {
+		return s
+	}
+	return user.ID
+}
+
+func ResolveUser(page *Page, userID string) string {
+	// TODO: either scan for user ids when initially downloading a page
+	// or do a query if not found
+	for _, u := range page.Users {
+		if u.ID == userID {
+			return makeUserName(u)
+		}
+	}
+	return userID
+}

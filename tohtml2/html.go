@@ -301,8 +301,8 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.TextSpan) {
 			start += `<em>`
 			close = `</em>` + close
 		case notionapi.AttrStrikeThrought:
-			start += `<strike>`
-			close = `</strike>` + close
+			start += `<del>`
+			close = `</del>` + close
 		case notionapi.AttrCode:
 			start += `<code>`
 			close = `</code>` + close
@@ -321,7 +321,8 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.TextSpan) {
 			close = `</a>` + close
 		case notionapi.AttrUser:
 			userID := notionapi.AttrGetUserID(attr)
-			start += fmt.Sprintf(`<span class="notion-user">@TODO: user with id%s</span>`, userID)
+			userName := notionapi.ResolveUser(r.Page, userID)
+			start += fmt.Sprintf(`<span class="user">@%s</span>`, userName)
 			text = ""
 		case notionapi.AttrDate:
 			date := notionapi.AttrGetDate(attr)
@@ -832,9 +833,12 @@ func (r *HTMLRenderer) RenderColumnList(block *notionapi.Block) {
 // RenderColumn renders BlockColumn
 // it's parent is BlockColumnList
 func (r *HTMLRenderer) RenderColumn(block *notionapi.Block) {
-	// TODO: get column ration from col.FormatColumn.ColumnRation, which is float 0...1
-	// TODO: width probably depends on number of columns
-	r.Printf(`<div id="%s" style="width:50%%" class="column">`, block.ID)
+	var colRatio float64 = 50
+	fc := block.FormatColumn
+	if fc != nil {
+		colRatio = fc.ColumnRatio * 100
+	}
+	r.Printf(`<div id="%s" style="width:%v%%" class="column">`, block.ID, colRatio)
 	r.RenderChildren(block)
 	r.Printf("</div>")
 }

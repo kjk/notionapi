@@ -206,28 +206,6 @@ func shuffleWhitespace(text string) (string, string, string) {
 	return before, text, after
 }
 
-func makeUserName(user *notionapi.User) string {
-	s := user.GivenName
-	if len(s) > 0 {
-		s += " "
-	}
-	s += user.FamilyName
-	if len(s) > 0 {
-		return s
-	}
-	return user.ID
-}
-
-func resolveUser(page *notionapi.Page, userID string) string {
-	for _, u := range page.Users {
-		//log("u: %s, %s, %s\n", u.ID, u.GivenName, u.FamilyName)
-		if u.ID == userID {
-			return makeUserName(u)
-		}
-	}
-	return userID
-}
-
 // RenderInline renders inline block
 func (r *MarkdownRenderer) RenderInline(b *notionapi.TextSpan, isLast bool) {
 	text := b.Text
@@ -257,7 +235,7 @@ func (r *MarkdownRenderer) RenderInline(b *notionapi.TextSpan, isLast bool) {
 			text = fmt.Sprintf(`[%s](%s)`, text, uri)
 		case notionapi.AttrUser:
 			userID := notionapi.AttrGetUserID(attr)
-			text = fmt.Sprintf(`@%s`, resolveUser(r.Page, userID))
+			text = fmt.Sprintf(`@%s`, notionapi.ResolveUser(r.Page, userID))
 		case notionapi.AttrDate:
 			date := notionapi.AttrGetDate(attr)
 			text = r.FormatDate(date)

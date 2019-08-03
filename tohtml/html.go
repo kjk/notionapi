@@ -271,7 +271,8 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.TextSpan) {
 			text = ""
 		case notionapi.AttrUser:
 			userID := notionapi.AttrGetUserID(attr)
-			start += fmt.Sprintf(`<span class="notion-user">@TODO: user with id%s</span>`, userID)
+			userName := notionapi.ResolveUser(r.Page, userID)
+			start += fmt.Sprintf(`<span class="notion-user">@%s</span>`, userName)
 			text = ""
 		case notionapi.AttrDate:
 			date := notionapi.AttrGetDate(attr)

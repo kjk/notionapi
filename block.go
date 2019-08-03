@@ -313,7 +313,7 @@ type TableProperty struct {
 
 // FormatColumn describes format for BlockColumn
 type FormatColumn struct {
-	ColumnRation float64 `json:"column_ratio"` // e.g. 0.5 for half-sized column
+	ColumnRatio float64 `json:"column_ratio"` // e.g. 0.5 for half-sized column
 }
 
 // FormatEmbed describes format for BlockEmbed
