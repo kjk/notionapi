@@ -102,7 +102,18 @@ func getDownloadedFileName(uri string, block *notionapi.Block) string {
 		}
 		name = safeName(block.Title) + "/" + name
 	}
+
+	for strings.Contains(name, "//") {
+		name = strings.Replace(name, "//", "/", -1)
+	}
 	return name
+}
+
+func getFileOrSourceURL(block *notionapi.Block) string {
+	if len(block.FileIDs) > 0 {
+		return getDownloadedFileName(block.Source, block)
+	}
+	return block.Source
 }
 
 func htmlFileName(title string) string {
@@ -747,6 +758,16 @@ func (r *HTMLRenderer) RenderTweet(block *notionapi.Block) {
 	r.Printf(`</figure>`)
 }
 
+func (r *HTMLRenderer) RenderCaption(block *notionapi.Block) {
+	caption := block.GetCaption()
+	if caption == nil {
+		return
+	}
+	r.Printf(`<figcaption>`)
+	r.RenderInlines(caption)
+	r.Printf(`</figcaption>`)
+}
+
 // RenderGist renders BlockGist
 func (r *HTMLRenderer) RenderGist(block *notionapi.Block) {
 	r.Printf(`<figure id="%s">`, block.ID)
@@ -755,14 +776,7 @@ func (r *HTMLRenderer) RenderGist(block *notionapi.Block) {
 		uri := block.Source
 		r.A(uri, uri, "")
 		r.Printf(`</div>`)
-
-		caption := block.GetCaption()
-		if caption != nil {
-			r.Printf(`<figcaption>`)
-			r.RenderInlines(caption)
-			r.Printf(`</figcaption>`)
-
-		}
+		r.RenderCaption(block)
 	}
 	r.Printf(`</figure>`)
 }
@@ -819,11 +833,13 @@ func getImageStyle(block *notionapi.Block) string {
 func (r *HTMLRenderer) RenderImage(block *notionapi.Block) {
 	r.Printf(`<figure id="%s" class="image">`, block.ID)
 	{
-		uri := getDownloadedFileName(block.Source, block)
+		uri := getFileOrSourceURL(block)
 		style := getImageStyle(block)
 		r.Printf(`<a href="%s">`, uri)
 		r.Printf(`<img %s src="%s">`, style, uri)
 		r.Printf(`</a>`)
+
+		r.RenderCaption(block)
 	}
 	r.Printf(`</figure>`)
 }

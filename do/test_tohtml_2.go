@@ -22,6 +22,7 @@ func testToHTML2() {
 		"72fd504c58984cc5a5dfb86b6f8617dc",
 		"7b9cdf3ab2cf405692e9810b0ac8322e",
 		"7e825831be07487e87e756e52914233b",
+		"8511412cbfde432ba226648e9bdfbec2",
 	}
 
 	zipPath := filepath.Join(topDir(), "data", "testdata", "Export-html-a352c43e-0545-481d-a935-57d4a3330bca.zip")
