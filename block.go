@@ -378,6 +378,26 @@ func getProp(block *Block, name string, toSet *string) bool {
 	return true
 }
 
+func (b *Block) GetProperty(name string) []*TextSpan {
+	v, ok := b.Properties[name]
+	if !ok {
+		return nil
+	}
+	ts, err := ParseTextSpans(v)
+	if err != nil {
+		return nil
+	}
+	return ts
+}
+
+func (b *Block) GetCaption() []*TextSpan {
+	return b.GetProperty("caption")
+}
+
+func (b *Block) GetTitle() []*TextSpan {
+	return b.GetProperty("title")
+}
+
 func parseProperties(block *Block) error {
 	var err error
 	props := block.Properties

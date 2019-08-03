@@ -357,16 +357,13 @@ func (r *HTMLRenderer) GetInlineContent(blocks []*notionapi.TextSpan) string {
 
 // RenderCode renders BlockCode
 func (r *HTMLRenderer) RenderCode(block *notionapi.Block) {
-	cls := "notion-code"
-	lang := strings.ToLower(strings.TrimSpace(block.CodeLanguage))
-	if lang != "" {
-		cls += " notion-lang-" + lang
+	cls := "code"
+	r.Printf(`<pre id="%s" class="%s">`, block.ID, cls)
+	{
+		code := escapeHTML(block.Code)
+		r.Printf(`<code>%s</code>`, code)
 	}
-	code := html.EscapeString(block.Code)
-	s := fmt.Sprintf(`<pre class="%s"><code>%s`, cls, code)
-	r.Printf(s)
-
-	r.Printf("</code></pre>")
+	r.Printf("</pre>")
 }
 
 func escapeHTML(s string) string {
@@ -752,8 +749,22 @@ func (r *HTMLRenderer) RenderTweet(block *notionapi.Block) {
 
 // RenderGist renders BlockGist
 func (r *HTMLRenderer) RenderGist(block *notionapi.Block) {
-	r.Printf(`<script class="notion-embed-gist" src="%s">`, block.Source+".js")
-	r.Printf("</script>")
+	r.Printf(`<figure id="%s">`, block.ID)
+	{
+		r.Printf(`<div class="source">`)
+		uri := block.Source
+		r.A(uri, uri, "")
+		r.Printf(`</div>`)
+
+		caption := block.GetCaption()
+		if caption != nil {
+			r.Printf(`<figcaption>`)
+			r.RenderInlines(caption)
+			r.Printf(`</figcaption>`)
+
+		}
+	}
+	r.Printf(`</figure>`)
 }
 
 // RenderEmbed renders BlockEmbed
