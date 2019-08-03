@@ -60,6 +60,10 @@ func panicIfAttrNot(attr TextAttr, fnName string, expectedType string) {
 
 func AttrGetLink(attr TextAttr) string {
 	panicIfAttrNot(attr, "AttrGetLink", AttrLink)
+	// there are links with
+	if len(attr) == 1 {
+		return ""
+	}
 	return attr[1]
 }
 

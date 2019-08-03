@@ -55,6 +55,8 @@ const (
 	BlockPDF = "pdf"
 	// BlockGist is embedded gist block
 	BlockGist = "gist"
+	// BlockDrive is embedded Google Drive file
+	BlockDrive = "drive"
 	// BlockTweet is embedded gist block
 	BlockTweet = "tweet"
 	// BlockEmbed is a generic oembed link
@@ -129,9 +131,6 @@ type Block struct {
 
 	// for BlockPage
 	Title string `json:"title,omitempty"`
-	// TODO: TitleFull should be Title and we should have
-	// GetTitleSimple() function which returns flattened string
-	TitleFull []*TextSpan `json:"title_full,omitempty"`
 
 	// For BlockTodo, a checked state
 	IsChecked bool `json:"is_checked,omitempty"`
@@ -172,6 +171,7 @@ type Block struct {
 	FormatEmbed    *FormatEmbed    `json:"format_embed,omitempty"`
 	FormatToggle   *FormatToggle   `json:"format_toggle,omitempty"`
 	FormatHeader   *FormatHeader   `json:"format_header,omitempty"`
+	FormatList     *FormatList     `json:"format_list,omitempty"`
 }
 
 // CollectionViewInfo describes a particular view of the collection
@@ -229,6 +229,11 @@ func (b *Block) IsCode() bool {
 
 // FormatToggle describes format for BlockToggle
 type FormatToggle struct {
+	BlockColor string `json:"block_color"`
+}
+
+// FormatList describes format for BlockNumberedList and BlockBulletedList
+type FormatList struct {
 	BlockColor string `json:"block_color"`
 }
 
@@ -377,14 +382,16 @@ func parseProperties(block *Block) error {
 	var err error
 	props := block.Properties
 	if title, ok := props["title"]; ok {
+		block.InlineContent, err = ParseTextSpans(title)
+		if err != nil {
+			return err
+		}
 		switch block.Type {
 		case BlockPage, BlockFile, BlockBookmark:
 			block.Title, err = getInlineText(title)
-			block.TitleFull, err = ParseTextSpans(title)
 		case BlockCode:
 			block.Code, err = getFirstInlineBlock(title)
 		default:
-			block.InlineContent, err = ParseTextSpans(title)
 		}
 		if err != nil {
 			return err
@@ -494,6 +501,12 @@ func parseFormat(block *Block) error {
 		err = json.Unmarshal(block.FormatRaw, &format)
 		if err == nil {
 			block.FormatToggle = &format
+		}
+	case BlockNumberedList, BlockBulletedList:
+		var format FormatList
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatList = &format
 		}
 	}
 

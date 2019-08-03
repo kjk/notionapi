@@ -300,7 +300,7 @@ func (r *MarkdownRenderer) RenderCode(block *notionapi.Block) {
 func (r *MarkdownRenderer) RenderPage(block *notionapi.Block) {
 	tp := block.GetPageType()
 	if tp == notionapi.BlockPageTopLevel {
-		title := r.GetInlineContent(block.TitleFull, false)
+		title := r.GetInlineContent(block.InlineContent, false)
 		r.WriteString("# " + title + "\n")
 		r.RenderChildren(block)
 		return
@@ -310,7 +310,7 @@ func (r *MarkdownRenderer) RenderPage(block *notionapi.Block) {
 	}
 	// TODO: if block.Title has "[" or "]" in it, needs to escape
 	fileName := markdownFileName(block.Title, block.ID)
-	title := r.GetInlineContent(block.TitleFull, false)
+	title := r.GetInlineContent(block.InlineContent, false)
 	s := fmt.Sprintf("[%s](./%s)", title, fileName)
 	r.WriteString(s)
 	r.Eol()

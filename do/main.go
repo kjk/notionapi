@@ -146,7 +146,7 @@ func main() {
 		return
 	}
 
-	if false || flgTestToHTML {
+	if true || flgTestToHTML {
 		testToHTML()
 		return
 	}
