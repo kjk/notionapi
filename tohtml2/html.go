@@ -299,64 +299,53 @@ func (r *HTMLRenderer) FormatDate(d *notionapi.Date) string {
 }
 
 // RenderInline renders inline block
-func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
-	var start string
-	var close []string
-	if b.Highlight != "" {
-		// TODO: possibly needs to change b.Highlight
-		start += fmt.Sprintf(`<mark class="highlight-%s">`, b.Highlight)
-		close = append(close, `</mark>`)
-	}
-	skipText := false
-	if b.Link != "" {
-		uri := b.Link
-		if r.RewriteURL != nil {
-			uri = r.RewriteURL(uri)
-		}
-		// TODO: notion escapes url but it seems to be wrong
-		uri = escapeHTML(uri)
-		s := fmt.Sprintf(`<a href="%s">`, uri)
-		start += s
-		close = append(close, `</a>`)
-	}
+func (r *HTMLRenderer) RenderInline(b *notionapi.TextSpan) {
+	var start, close string
+	text := b.Text
+	for _, attr := range b.Attrs {
+		switch notionapi.AttrGetType(attr) {
+		case notionapi.AttrHighlight:
+			// TODO: possibly needs to change b.Highlight
+			hl := notionapi.AttrGetHighlight(attr)
+			start += fmt.Sprintf(`<mark class="highlight-%s">`, hl)
+			close = close + `</mark>`
 
-	if b.AttrFlags&notionapi.AttrBold != 0 {
-		start += `<strong>`
-		close = append(close, `</strong>`)
+		case notionapi.AttrBold:
+			start += `<strong>`
+			close = close + `</strong>`
+		case notionapi.AttrItalic:
+			start += `<em>`
+			close = close + `</em>`
+		case notionapi.AttrStrikeThrought:
+			start += `<strike>`
+			close = close + `</strike>`
+		case notionapi.AttrCode:
+			start += `<code>`
+			close = close + `</code>`
+		case notionapi.AttrLink:
+			uri := notionapi.AttrGetLink(attr)
+			if r.RewriteURL != nil {
+				uri = r.RewriteURL(uri)
+			}
+			// TODO: notion escapes url but it seems to be wrong
+			uri = escapeHTML(uri)
+			start += fmt.Sprintf(`<a href="%s">`, uri)
+			close = close + `</a>`
+		case notionapi.AttrUser:
+			userID := notionapi.AttrGetUserID(attr)
+			start += fmt.Sprintf(`<span class="notion-user">@TODO: user with id%s</span>`, userID)
+			text = ""
+		case notionapi.AttrDate:
+			date := notionapi.AttrGetDate(attr)
+			start += r.FormatDate(date)
+			text = ""
+		}
 	}
-	if b.AttrFlags&notionapi.AttrItalic != 0 {
-		start += `<em>`
-		close = append(close, `</em>`)
-	}
-	if b.AttrFlags&notionapi.AttrStrikeThrought != 0 {
-		start += `<strike>`
-		close = append(close, `</strike>`)
-	}
-	if b.AttrFlags&notionapi.AttrCode != 0 {
-		start += `<code>`
-		close = append(close, `</code>`)
-	}
-	// TODO: colors
-	if b.UserID != "" {
-		start += fmt.Sprintf(`<span class="notion-user">@TODO: user with id%s</span>`, b.UserID)
-		skipText = true
-	}
-	if b.Date != nil {
-		start += r.FormatDate(b.Date)
-		skipText = true
-	}
-	if !skipText {
-		start += escapeHTML(b.Text)
-	}
-	r.WriteString(start)
-	for i := 0; i < len(close); i++ {
-		idx := len(close) - i - 1
-		r.WriteString(close[idx])
-	}
+	r.WriteString(start + html.EscapeString(text) + close)
 }
 
 // RenderInlines renders inline blocks
-func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
+func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.TextSpan) {
 	r.Level++
 	for _, block := range blocks {
 		r.RenderInline(block)
@@ -366,7 +355,7 @@ func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 
 // GetInlineContent is like RenderInlines but instead of writing to
 // output buffer, we return it as string
-func (r *HTMLRenderer) GetInlineContent(blocks []*notionapi.InlineBlock) string {
+func (r *HTMLRenderer) GetInlineContent(blocks []*notionapi.TextSpan) string {
 	if len(blocks) == 0 {
 		return ""
 	}
@@ -922,9 +911,9 @@ func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block) {
 			colName := col.Property
 			v := props[colName]
 			//fmt.Printf("inline: '%s'\n", fmt.Sprintf("%v", v))
-			inlineContent, err := notionapi.ParseInlineBlocks(v)
+			inlineContent, err := notionapi.ParseTextSpans(v)
 			if err != nil {
-				maybePanic("ParseInlineBlocks of '%v' failed with %s\n", v, err)
+				maybePanic("ParseTextSpans of '%v' failed with %s\n", v, err)
 			}
 			//pretty.Print(inlineContent)
 			colVal := r.GetInlineContent(inlineContent)

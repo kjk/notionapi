@@ -6,55 +6,90 @@ import (
 )
 
 const (
-	// InlineAt is what Notion uses for text to represent @user and @date blocks
-	InlineAt = "‣"
+	// TextSpanSpecial is what Notion uses for text to represent @user and @date blocks
+	TextSpanSpecial = "‣"
 )
-
-// AttrFlag is a compact description of some flags
-type AttrFlag int
 
 const (
 	// AttrBold represents bold block
-	AttrBold AttrFlag = 1 << iota
+	AttrBold = "b"
 	// AttrCode represents code block
-	AttrCode
+	AttrCode = "c"
 	// AttrItalic represents italic block
-	AttrItalic
+	AttrItalic = "i"
 	// AttrStrikeThrought represents strikethrough block
-	AttrStrikeThrought
+	AttrStrikeThrought = "s"
 	// AttrComment represents a comment block
-	AttrComment
+	AttrComment = "m"
+	// AttrLink represnts a link (url)
+	AttrLink = "a"
+	// AttrUser represents an id of a user
+	AttrUser = "u"
+	// AttrHighlight represents text high-light
+	AttrHighlight = "h"
+	// AttrDate represents a date
+	AttrDate = "d"
 )
 
-// InlineBlock describes a nested inline block
-// It's either Content or Type and Children
-type InlineBlock struct {
-	Text string `json:"Text"`
-	// compact representation of attribute flags
-	AttrFlags AttrFlag `json:"AttrFlags,omitempty"`
+// TextAttr describes attributes of a span of text
+// First element is name of the attribute (e.g. AttrLink)
+// The rest are optional information about attribute (e.g.
+// for AttrLink it's URL, for AttrUser it's user id etc.)
+type TextAttr = []string
 
-	// those values are set for other attributes
-
-	// represents link attribute
-	Link string `json:"Link,omitempty"`
-	// represents user attribute
-	UserID string `json:"UserID,omitempty"`
-	// represents comment block (I think)
-	CommentID string `json:"CommentID,omitempty"`
-	// represents date attribute
-	Date *Date `json:"Date,omitempty"`
-	// represents highlight (text or background) color.
-	// text color looks like: "blue"
-	// bg color looks like: "teal_background"
-	Highlight string `json:"Highlight,omitempty"`
+// TextSpan describes a text with attributes
+type TextSpan struct {
+	Text  string     `json:"Text"`
+	Attrs []TextAttr `json:"Attrs"`
 }
 
 // IsPlain returns true if this InlineBlock is plain text i.e. has no attributes
-func (b *InlineBlock) IsPlain() bool {
-	return b.AttrFlags == 0 && b.Link == "" && b.UserID == "" && b.Date == nil
+func (t *TextSpan) IsPlain() bool {
+	return len(t.Attrs) == 0
 }
 
-func parseAttribute(b *InlineBlock, a []interface{}) error {
+func AttrGetType(attr TextAttr) string {
+	return attr[0]
+}
+
+func panicIfAttrNot(attr TextAttr, fnName string, expectedType string) {
+	if AttrGetType(attr) != expectedType {
+		panic(fmt.Sprintf("don't call %s on attribute of type %s", fnName, AttrGetType(attr)))
+	}
+}
+
+func AttrGetLink(attr TextAttr) string {
+	panicIfAttrNot(attr, "AttrGetLink", AttrLink)
+	return attr[1]
+}
+
+func AttrGetUserID(attr TextAttr) string {
+	panicIfAttrNot(attr, "AttrGetUserID", AttrUser)
+	return attr[1]
+}
+
+func AttrGetComment(attr TextAttr) string {
+	panicIfAttrNot(attr, "AttrGetComment", AttrComment)
+	return attr[1]
+}
+
+func AttrGetHighlight(attr TextAttr) string {
+	panicIfAttrNot(attr, "AttrGetHighlight", AttrHighlight)
+	return attr[1]
+}
+
+func AttrGetDate(attr TextAttr) *Date {
+	panicIfAttrNot(attr, "AttrGetDate", AttrDate)
+	js := []byte(attr[1])
+	var d *Date
+	err := json.Unmarshal(js, &d)
+	if err != nil {
+		panic(err.Error())
+	}
+	return d
+}
+
+func parseTextSpanAttribute(b *TextSpan, a []interface{}) error {
 	if len(a) == 0 {
 		return fmt.Errorf("attribute array is empty")
 	}
@@ -62,77 +97,42 @@ func parseAttribute(b *InlineBlock, a []interface{}) error {
 	if !ok {
 		return fmt.Errorf("a[0] is not string. a[0] is of type %T and value %#v", a[0], a)
 	}
-
-	if len(a) == 1 {
-		switch s {
-		case "b":
-			b.AttrFlags |= AttrBold
-		case "i":
-			b.AttrFlags |= AttrItalic
-		case "s":
-			b.AttrFlags |= AttrStrikeThrought
-		case "c":
-			b.AttrFlags |= AttrCode
-		case "a":
-			// this happened in https://www.notion.so/5fea966407204d9080a5b989360b205f
-			// a link without url, not sure what to do. I recognize lnks by
-			// b.Link != ""
-			// maybe should have AttrLink as well or just keep b.Attribute
-			// as char (assuming there can't be more than one)
-			b.Link = " "
-		default:
-			return fmt.Errorf("unexpected attribute '%s'", s)
+	attr := TextAttr{s}
+	if s == AttrDate {
+		// date is a special case in that second value is
+		if len(a) != 2 {
+			return fmt.Errorf("unexpected date attribute. Expected 2 values, got: %#v", a)
 		}
-		return nil
-	}
-
-	if len(a) != 2 {
-		return fmt.Errorf("len(a) is %d and should be 2", len(a))
-	}
-
-	switch s {
-	case "a", "u", "m", "h":
-		v, ok := a[1].(string)
+		v, ok := a[1].(map[string]interface{})
 		if !ok {
-			return fmt.Errorf("value for 'a' attribute is not string. Type: %T, value: %#v", v, v)
+			return fmt.Errorf("got unexpected type %T (expected map[string]interface{}", a[1])
 		}
-		if s == "a" {
-			b.Link = v
-		} else if s == "u" {
-			b.UserID = v
-		} else if s == "m" {
-			b.CommentID = v
-		} else if s == "h" {
-			b.Highlight = v
-		} else {
-			panic(fmt.Errorf("unexpected val '%s'", s))
-		}
-	case "d":
-		v := a[1].(map[string]interface{})
 		js, err := json.MarshalIndent(v, "", "  ")
 		if err != nil {
-			panic(err.Error())
+			return err
 		}
-		//dbg("date in js:\n%s\n", string(js))
-		var d *Date
-		err = json.Unmarshal(js, &d)
-		if err != nil {
-			panic(err.Error())
-		}
-		b.Date = d
-	default:
-		return fmt.Errorf("unexpected attribute '%s'", s)
+		attr = append(attr, string(js))
+		b.Attrs = append(b.Attrs, attr)
+		return nil
 	}
+	for _, v := range a[1:] {
+		s, ok := v.(string)
+		if !ok {
+			return fmt.Errorf("got unexpected type %T (expected string)", v)
+		}
+		attr = append(attr, s)
+	}
+	b.Attrs = append(b.Attrs, attr)
 	return nil
 }
 
-func parseAttributes(b *InlineBlock, a []interface{}) error {
+func parseTextSpanAttributes(b *TextSpan, a []interface{}) error {
 	for _, rawAttr := range a {
 		attrList, ok := rawAttr.([]interface{})
 		if !ok {
 			return fmt.Errorf("rawAttr is not []interface{} but %T of value %#v", rawAttr, rawAttr)
 		}
-		err := parseAttribute(b, attrList)
+		err := parseTextSpanAttribute(b, attrList)
 		if err != nil {
 			return err
 		}
@@ -140,7 +140,7 @@ func parseAttributes(b *InlineBlock, a []interface{}) error {
 	return nil
 }
 
-func parseInlineBlock(a []interface{}) (*InlineBlock, error) {
+func parseTextSpan(a []interface{}) (*TextSpan, error) {
 	if len(a) == 0 {
 		return nil, fmt.Errorf("a is empty")
 	}
@@ -150,7 +150,7 @@ func parseInlineBlock(a []interface{}) (*InlineBlock, error) {
 		if !ok {
 			return nil, fmt.Errorf("a is of length 1 but not string. a[0] el type: %T, el value: '%#v'", a[0], a[0])
 		}
-		return &InlineBlock{
+		return &TextSpan{
 			Text: s,
 		}, nil
 	}
@@ -162,26 +162,26 @@ func parseInlineBlock(a []interface{}) (*InlineBlock, error) {
 	if !ok {
 		return nil, fmt.Errorf("a[0] is not string. a[0] type: %T, value: '%#v'", a[0], a[0])
 	}
-	res := &InlineBlock{
+	res := &TextSpan{
 		Text: s,
 	}
 	a, ok = a[1].([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("a[1] is not []interface{}. a[1] type: %T, value: '%#v'", a[1], a[1])
 	}
-	err := parseAttributes(res, a)
+	err := parseTextSpanAttributes(res, a)
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
 }
 
-// ParseInlineBlocks parses content from JSON into an easier to use form
-func ParseInlineBlocks(raw interface{}) ([]*InlineBlock, error) {
+// ParseTextSpans parses content from JSON into an easier to use form
+func ParseTextSpans(raw interface{}) ([]*TextSpan, error) {
 	if raw == nil {
 		return nil, nil
 	}
-	var res []*InlineBlock
+	var res []*TextSpan
 	a, ok := raw.([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("raw is not of []interface{}. raw type: %T, value: '%#v'", raw, raw)
@@ -194,11 +194,11 @@ func ParseInlineBlocks(raw interface{}) ([]*InlineBlock, error) {
 		if !ok {
 			return nil, fmt.Errorf("v is not []interface{}. v type: %T, value: '%#v'", v, v)
 		}
-		block, err := parseInlineBlock(a2)
+		span, err := parseTextSpan(a2)
 		if err != nil {
 			return nil, err
 		}
-		res = append(res, block)
+		res = append(res, span)
 	}
 	return res, nil
 }

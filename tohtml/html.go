@@ -243,52 +243,48 @@ func (r *HTMLRenderer) FormatDate(d *notionapi.Date) string {
 }
 
 // RenderInline renders inline block
-func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
+func (r *HTMLRenderer) RenderInline(b *notionapi.TextSpan) {
 	var start, close string
-	if b.AttrFlags&notionapi.AttrBold != 0 {
-		start += `<b>`
-		close += `</b>`
-	}
-	if b.AttrFlags&notionapi.AttrItalic != 0 {
-		start += `<i>`
-		close += `</i>`
-	}
-	if b.AttrFlags&notionapi.AttrStrikeThrought != 0 {
-		start += `<strike>`
-		close += `</strike>`
-	}
-	if b.AttrFlags&notionapi.AttrCode != 0 {
-		start += `<code class="notion-code-inline">`
-		close += `</code>`
-	}
-	skipText := false
-	// TODO: colors
-	if b.Link != "" {
-		uri := b.Link
-		if r.RewriteURL != nil {
-			uri = r.RewriteURL(uri)
+	text := b.Text
+	for _, attr := range b.Attrs {
+		switch notionapi.AttrGetType(attr) {
+		case notionapi.AttrBold:
+			start += `<b>`
+			close = close + `</b>`
+		case notionapi.AttrItalic:
+			start += `<i>`
+			close = close + `</i>`
+		case notionapi.AttrStrikeThrought:
+			start += `<strike>`
+			close = close + `</strike>`
+		case notionapi.AttrCode:
+			start += `<code class="notion-code-inline">`
+			close = close + `</code>`
+		case notionapi.AttrLink:
+			uri := notionapi.AttrGetLink(attr)
+			if r.RewriteURL != nil {
+				uri = r.RewriteURL(uri)
+			}
+			text = html.EscapeString(text)
+			s := fmt.Sprintf(`<a class="notion-link" href="%s">%s</a>`, uri, text)
+			start += s
+			text = ""
+		case notionapi.AttrUser:
+			userID := notionapi.AttrGetUserID(attr)
+			start += fmt.Sprintf(`<span class="notion-user">@TODO: user with id%s</span>`, userID)
+			text = ""
+		case notionapi.AttrDate:
+			date := notionapi.AttrGetDate(attr)
+			start += r.FormatDate(date)
+			text = ""
 		}
-		text := html.EscapeString(b.Text)
-		s := fmt.Sprintf(`<a class="notion-link" href="%s">%s</a>`, uri, text)
-		start += s
-		skipText = true
 	}
-	if b.UserID != "" {
-		start += fmt.Sprintf(`<span class="notion-user">@TODO: user with id%s</span>`, b.UserID)
-		skipText = true
-	}
-	if b.Date != nil {
-		start += r.FormatDate(b.Date)
-		skipText = true
-	}
-	if !skipText {
-		start += html.EscapeString(b.Text)
-	}
+	start += html.EscapeString(text)
 	r.WriteString(start + close)
 }
 
 // RenderInlines renders inline blocks
-func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
+func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.TextSpan) {
 	r.Level++
 	r.WriteIndent()
 	for _, block := range blocks {
@@ -300,7 +296,7 @@ func (r *HTMLRenderer) RenderInlines(blocks []*notionapi.InlineBlock) {
 
 // GetInlineContent is like RenderInlines but instead of writing to
 // output buffer, we return it as string
-func (r *HTMLRenderer) GetInlineContent(blocks []*notionapi.InlineBlock) string {
+func (r *HTMLRenderer) GetInlineContent(blocks []*notionapi.TextSpan) string {
 	if len(blocks) == 0 {
 		return ""
 	}
@@ -719,9 +715,9 @@ func (r *HTMLRenderer) RenderCollectionView(block *notionapi.Block) {
 			colName := col.Property
 			v := props[colName]
 			//fmt.Printf("inline: '%s'\n", fmt.Sprintf("%v", v))
-			inlineContent, err := notionapi.ParseInlineBlocks(v)
+			inlineContent, err := notionapi.ParseTextSpans(v)
 			if err != nil {
-				maybePanic("ParseInlineBlocks of '%v' failed with %s\n", v, err)
+				maybePanic("ParseTextSpans of '%v' failed with %s\n", v, err)
 			}
 			//pretty.Print(inlineContent)
 			colVal := r.GetInlineContent(inlineContent)

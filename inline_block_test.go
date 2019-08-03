@@ -238,114 +238,126 @@ const title7 = `{
 	]
 }`
 
-func parseBlocks(t *testing.T, s string) []*InlineBlock {
+func parseTextSpans(t *testing.T, s string) []*TextSpan {
 	var m map[string]interface{}
 	err := json.Unmarshal([]byte(s), &m)
 	assert.NoError(t, err)
-	blocks, err := ParseInlineBlocks(m["title"])
+	blocks, err := ParseTextSpans(m["title"])
 	assert.NoError(t, err)
 	return blocks
 }
 
-func TestParseInlineBlock1(t *testing.T) {
-	blocks := parseBlocks(t, title1)
-	assert.Equal(t, 1, len(blocks))
-	b := blocks[0]
-	assert.Equal(t, "Test page text", b.Text)
-	assert.True(t, b.IsPlain())
+func TestParseTextSpans1(t *testing.T) {
+	spans := parseTextSpans(t, title1)
+	assert.Equal(t, 1, len(spans))
+	ts := spans[0]
+	assert.Equal(t, "Test page text", ts.Text)
+	assert.True(t, ts.IsPlain())
 }
 
-func TestParseInlineBlock2(t *testing.T) {
-	blocks := parseBlocks(t, title2)
-	assert.Equal(t, 1, len(blocks))
-	b := blocks[0]
-	assert.Equal(t, InlineAt, b.Text)
-	assert.Equal(t, 0, int(b.AttrFlags))
-	assert.Equal(t, "bb760e2d-d679-4b64-b2a9-03005b21870a", b.UserID)
-	assert.False(t, b.IsPlain())
+func TestParseTextSpans2(t *testing.T) {
+	spans := parseTextSpans(t, title2)
+	assert.Equal(t, 1, len(spans))
+	ts := spans[0]
+	assert.Equal(t, TextSpanSpecial, ts.Text)
+	assert.Equal(t, 1, len(ts.Attrs))
+	attr := ts.Attrs[0]
+	assert.Equal(t, AttrUser, attr[0])
+	assert.Equal(t, "bb760e2d-d679-4b64-b2a9-03005b21870a", attr[1])
 }
 
-func TestParseInlineBlock3(t *testing.T) {
-	blocks := parseBlocks(t, title3)
+func TestParseTextSpans3(t *testing.T) {
+	blocks := parseTextSpans(t, title3)
 	assert.Equal(t, 2, len(blocks))
 	{
 		b := blocks[0]
 		assert.Equal(t, "Text block with ", b.Text)
-		assert.Equal(t, 0, int(b.AttrFlags))
+		assert.Equal(t, 0, len(b.Attrs))
 	}
 
 	{
 		b := blocks[1]
 		assert.Equal(t, "bold ", b.Text)
-		assert.Equal(t, AttrFlag(AttrBold), b.AttrFlags)
-		assert.False(t, b.IsPlain())
+		attr := b.Attrs[0]
+		assert.Equal(t, AttrBold, attr[0])
 	}
 }
 
-func TestParseInlineBlock4(t *testing.T) {
-	blocks := parseBlocks(t, title4)
+func TestParseTextSpans4(t *testing.T) {
+	blocks := parseTextSpans(t, title4)
 	assert.Equal(t, 1, len(blocks))
 	{
 		b := blocks[0]
 		assert.Equal(t, "link inside bold", b.Text)
-		assert.Equal(t, AttrFlag(AttrBold), b.AttrFlags)
-		assert.Equal(t, "https://www.google.com", b.Link)
-		assert.False(t, b.IsPlain())
+		assert.Equal(t, 2, len(b.Attrs))
+		attr := b.Attrs[0]
+		assert.Equal(t, AttrBold, AttrGetType(attr))
+		attr = b.Attrs[1]
+		assert.Equal(t, AttrLink, AttrGetType(attr))
+		assert.Equal(t, "https://www.google.com", AttrGetLink(attr))
 	}
 }
 
-func TestParseInlineBlock5(t *testing.T) {
-	blocks := parseBlocks(t, title5)
+func TestParseTextSpans5(t *testing.T) {
+	blocks := parseTextSpans(t, title5)
 	assert.Equal(t, 1, len(blocks))
 	b := blocks[0]
-	assert.Equal(t, InlineAt, b.Text)
-	assert.Equal(t, 0, int(b.AttrFlags))
-	assert.Equal(t, b.Date.DateFormat, "relative")
-	assert.False(t, b.IsPlain())
+	assert.Equal(t, TextSpanSpecial, b.Text)
+	assert.Equal(t, 1, len(b.Attrs))
+	attr := b.Attrs[0]
+	assert.Equal(t, AttrDate, AttrGetType(attr))
+	date := AttrGetDate(attr)
+	assert.Equal(t, date.DateFormat, "relative")
+	assert.Equal(t, date.StartDate, "2018-07-17")
+	assert.Equal(t, date.Type, "datetime")
 }
 
-func TestParseInlineBlockBig(t *testing.T) {
-	blocks := parseBlocks(t, titleBig)
+func TestParseTextSpansBig(t *testing.T) {
+	blocks := parseTextSpans(t, titleBig)
 	assert.Equal(t, 17, len(blocks))
 }
 
-func TestParseInlineBlockComment(t *testing.T) {
-	blocks := parseBlocks(t, titleWithComment)
+func TestParseTextSpansComment(t *testing.T) {
+	blocks := parseTextSpans(t, titleWithComment)
 	assert.Equal(t, 3, len(blocks))
 
 	{
 		// "Just"
 		b := blocks[0]
 		assert.Equal(t, b.Text, "Just")
-		assert.Equal(t, int(b.AttrFlags), 0)
+		assert.Equal(t, 0, len(b.Attrs))
 	}
 	{
 		// "comment"
 		b := blocks[1]
 		assert.Equal(t, b.Text, "comment")
-		assert.Equal(t, int(b.AttrFlags), 0)
-		assert.Equal(t, b.CommentID, "4a1cc3be-03cf-489a-9542-69d9a02f3534")
+		attr := b.Attrs[0]
+		assert.Equal(t, AttrComment, AttrGetType(attr))
+		assert.Equal(t, "4a1cc3be-03cf-489a-9542-69d9a02f3534", AttrGetComment(attr))
 	}
-
 }
 
-func TestParseInlineBlock6(t *testing.T) {
-	blocks := parseBlocks(t, title6)
+func TestParseTextSpans6(t *testing.T) {
+	blocks := parseTextSpans(t, title6)
 	assert.Equal(t, 2, len(blocks))
 
 	{
 		b := blocks[0]
 		assert.Equal(t, b.Text, "colored")
-		assert.Equal(t, b.Highlight, "teal_background")
+		attr := b.Attrs[0]
+		assert.Equal(t, AttrHighlight, AttrGetType(attr))
+		assert.Equal(t, "teal_background", AttrGetHighlight(attr))
 	}
 	{
 		b := blocks[1]
 		assert.Equal(t, b.Text, "text")
-		assert.Equal(t, b.Highlight, "blue")
+		attr := b.Attrs[0]
+		assert.Equal(t, AttrHighlight, AttrGetType(attr))
+		assert.Equal(t, "blue", AttrGetHighlight(attr))
 	}
 }
 
-func TestParseInlineBlock7(t *testing.T) {
-	blocks := parseBlocks(t, title7)
+func TestParseTextSpan7(t *testing.T) {
+	blocks := parseTextSpans(t, title7)
 	assert.Equal(t, 4, len(blocks))
 }

@@ -125,13 +125,13 @@ type Block struct {
 	// maps ContentIDs array
 	Content []*Block `json:"content_resolved,omitempty"`
 	// this is for some types like TypePage, TypeText, TypeHeader etc.
-	InlineContent []*InlineBlock `json:"inline_content,omitempty"`
+	InlineContent []*TextSpan `json:"inline_text,omitempty"`
 
 	// for BlockPage
 	Title string `json:"title,omitempty"`
 	// TODO: TitleFull should be Title and we should have
 	// GetTitleSimple() function which returns flattened string
-	TitleFull []*InlineBlock `json:"title_full,omitempty"`
+	TitleFull []*TextSpan `json:"title_full,omitempty"`
 
 	// For BlockTodo, a checked state
 	IsChecked bool `json:"is_checked,omitempty"`
@@ -328,7 +328,7 @@ type Permission struct {
 }
 
 // GetInlineText returns flattened content of inline blocks, without formatting
-func GetInlineText(blocks []*InlineBlock) string {
+func GetInlineText(blocks []*TextSpan) string {
 	s := ""
 	for _, block := range blocks {
 		// TODO: how to handle dates, users etc.?
@@ -337,7 +337,7 @@ func GetInlineText(blocks []*InlineBlock) string {
 	return s
 }
 
-func getFirstInline(inline []*InlineBlock) string {
+func getFirstInline(inline []*TextSpan) string {
 	if len(inline) == 0 {
 		return ""
 	}
@@ -345,7 +345,7 @@ func getFirstInline(inline []*InlineBlock) string {
 }
 
 func getFirstInlineBlock(v interface{}) (string, error) {
-	inline, err := ParseInlineBlocks(v)
+	inline, err := ParseTextSpans(v)
 	if err != nil {
 		return "", err
 	}
@@ -353,7 +353,7 @@ func getFirstInlineBlock(v interface{}) (string, error) {
 }
 
 func getInlineText(v interface{}) (string, error) {
-	inline, err := ParseInlineBlocks(v)
+	inline, err := ParseTextSpans(v)
 	if err != nil {
 		return "", err
 	}
@@ -380,11 +380,11 @@ func parseProperties(block *Block) error {
 		switch block.Type {
 		case BlockPage, BlockFile, BlockBookmark:
 			block.Title, err = getInlineText(title)
-			block.TitleFull, err = ParseInlineBlocks(title)
+			block.TitleFull, err = ParseTextSpans(title)
 		case BlockCode:
 			block.Code, err = getFirstInlineBlock(title)
 		default:
-			block.InlineContent, err = ParseInlineBlocks(title)
+			block.InlineContent, err = ParseTextSpans(title)
 		}
 		if err != nil {
 			return err

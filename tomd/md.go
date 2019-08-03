@@ -229,53 +229,53 @@ func resolveUser(page *notionapi.Page, userID string) string {
 }
 
 // RenderInline renders inline block
-func (r *MarkdownRenderer) RenderInline(b *notionapi.InlineBlock, isLast bool) {
-	var style string
-	if b.AttrFlags&notionapi.AttrBold != 0 {
-		style = `**`
-	}
-	if b.AttrFlags&notionapi.AttrItalic != 0 {
-		style = `*`
-	}
-	if b.AttrFlags&notionapi.AttrStrikeThrought != 0 {
-		style = "~~"
-	}
-	if b.AttrFlags&notionapi.AttrCode != 0 {
-		style = "`"
-	}
+func (r *MarkdownRenderer) RenderInline(b *notionapi.TextSpan, isLast bool) {
 	text := b.Text
-	// TODO: colors
-	var before, after string
-	if b.Link != "" {
-		uri := b.Link
-		if r.RewriteURL != nil {
-			uri = r.RewriteURL(uri)
+	start := ""
+	end := ""
+	for _, attr := range b.Attrs {
+		switch notionapi.AttrGetType(attr) {
+		case notionapi.AttrBold:
+			start += "**"
+			end = "**" + end
+		case notionapi.AttrItalic:
+			start += "*"
+			end = "*" + end
+		case notionapi.AttrStrikeThrought:
+			start += "~~"
+			end = "~~" + start
+		case notionapi.AttrCode:
+			start += "`"
+			end = "`" + start
+		case notionapi.AttrLink:
+			uri := notionapi.AttrGetLink(attr)
+			if r.RewriteURL != nil {
+				uri = r.RewriteURL(uri)
+			}
+			//before, text, after = shuffleWhitespace(text)
+			// TOOD: if text has "[" or "]" in it, has to escape
+			text = fmt.Sprintf(`[%s](%s)`, text, uri)
+		case notionapi.AttrUser:
+			userID := notionapi.AttrGetUserID(attr)
+			text = fmt.Sprintf(`@%s`, resolveUser(r.Page, userID))
+		case notionapi.AttrDate:
+			date := notionapi.AttrGetDate(attr)
+			text = r.FormatDate(date)
 		}
-		before, text, after = shuffleWhitespace(text)
-		// TOOD: if text has "[" or "]" in it, has to escape
-		text = fmt.Sprintf(`[%s](%s)`, text, uri)
 	}
-	if b.UserID != "" {
-		text = fmt.Sprintf(`@%s`, resolveUser(r.Page, b.UserID))
-	}
-	if b.Date != nil {
-		text = r.FormatDate(b.Date)
-	}
-	s := style
-	s += text
-	if style != "" {
-		// move whitespace from inside style to outside, to match Notion export
-		before, text, after = shuffleWhitespace(text)
-	}
-	if isLast {
+	// move whitespace from inside style to outside, to match Notion export
+	before, s, after := shuffleWhitespace(text)
+	start = before + start
+	end = end + after
+	text = s
+	if isLast || (start == "" && end == "") {
 		text = strings.TrimRight(text, " ")
-		after = ""
 	}
-	r.WriteString(before + style + text + style + after)
+	r.WriteString(start + text + end)
 }
 
 // RenderInlines renders inline blocks
-func (r *MarkdownRenderer) RenderInlines(blocks []*notionapi.InlineBlock, trimEndSpace bool) {
+func (r *MarkdownRenderer) RenderInlines(blocks []*notionapi.TextSpan, trimEndSpace bool) {
 	lastIdx := len(blocks) - 1
 	for idx, block := range blocks {
 		r.RenderInline(block, trimEndSpace && idx == lastIdx)
@@ -284,7 +284,7 @@ func (r *MarkdownRenderer) RenderInlines(blocks []*notionapi.InlineBlock, trimEn
 
 // GetInlineContent is like RenderInlines but instead of writing to
 // output buffer, we return it as string
-func (r *MarkdownRenderer) GetInlineContent(blocks []*notionapi.InlineBlock, trimeEndSpace bool) string {
+func (r *MarkdownRenderer) GetInlineContent(blocks []*notionapi.TextSpan, trimeEndSpace bool) string {
 	r.PushNewBuffer()
 	r.RenderInlines(blocks, trimeEndSpace)
 	return r.PopBuffer().String()
