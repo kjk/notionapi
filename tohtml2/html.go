@@ -157,9 +157,6 @@ type Converter struct {
 	// RenderBlockOverride
 	Data interface{}
 
-	// Level is current depth of the tree. Useuful for pretty-printing indentation
-	Level int
-
 	// if true, generates stand-alone HTML with inline CSS
 	// otherwise it's just the inner part going inside the body
 	FullHTML bool
@@ -346,11 +343,9 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 
 // RenderInlines renders inline blocks
 func (c *Converter) RenderInlines(blocks []*notionapi.TextSpan) {
-	c.Level++
 	for _, block := range blocks {
 		c.RenderInline(block)
 	}
-	c.Level--
 }
 
 // GetInlineContent is like RenderInlines but instead of writing to
@@ -892,10 +887,8 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	c.Printf("\n" + `<table class="notion-collection-view">` + "\n")
 
 	// generate header row
-	c.Level++
 	c.Printf("<thead>\n")
 
-	c.Level++
 	c.Printf("<tr>\n")
 
 	for _, col := range columns {
@@ -903,24 +896,18 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		colInfo := viewInfo.Collection.CollectionSchema[colName]
 		if colInfo != nil {
 			name := colInfo.Name
-			c.Level++
 			c.Printf(`<th>` + html.EscapeString(name) + "</th>\n")
-			c.Level--
 		} else {
-			c.Level++
 			c.Printf(`<th>&nbsp;` + "</th>\n")
-			c.Level--
 		}
 	}
 	c.Printf("</tr>\n")
 
-	c.Level--
 	c.Printf("</thead>\n\n")
 
 	c.Printf("<tbody>\n")
 
 	for _, row := range viewInfo.CollectionRows {
-		c.Level++
 		c.Printf("<tr>\n")
 
 		props := row.Properties
@@ -935,19 +922,15 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 			//pretty.Print(inlineContent)
 			colVal := c.GetInlineContent(inlineContent)
 			//fmt.Printf("colVal: '%s'\n", colVal)
-			c.Level++
 			//colInfo := viewInfo.Collection.CollectionSchema[colName]
 			// TODO: format colVal according to colInfo
 			c.Printf(`<td>` + colVal + `</td>`)
-			c.Level--
 		}
 		c.Printf("</tr>\n")
-		c.Level--
 	}
 
 	c.Printf("</tbody>\n")
 
-	c.Level--
 	c.Printf("</table>\n")
 }
 
@@ -1034,7 +1017,6 @@ func (c *Converter) RenderChildren(block *notionapi.Block) {
 		c.Printf(`<div class="indented">`)
 	}
 
-	c.Level++
 	currIdx := c.CurrBlockIdx
 	currBlocks := c.CurrBlocks
 	c.CurrBlocks = block.Content
@@ -1045,7 +1027,6 @@ func (c *Converter) RenderChildren(block *notionapi.Block) {
 	}
 	c.CurrBlockIdx = currIdx
 	c.CurrBlocks = currBlocks
-	c.Level--
 
 	if doIndent {
 		c.Printf(`</div>`)
@@ -1055,7 +1036,7 @@ func (c *Converter) RenderChildren(block *notionapi.Block) {
 // RenderBlock renders a block to html
 func (c *Converter) RenderBlock(block *notionapi.Block) {
 	if block == nil {
-		// a missing block
+		// a missing block is possible
 		return
 	}
 	if c.RenderBlockOverride != nil {
@@ -1072,14 +1053,9 @@ func (c *Converter) RenderBlock(block *notionapi.Block) {
 
 // ToHTML renders a page to html
 func (c *Converter) ToHTML() []byte {
-	c.Level = 0
 	c.PushNewBuffer()
-
 	c.RenderBlock(c.Page.Root)
 	buf := c.PopBuffer()
-	if c.Level != 0 {
-		panic(fmt.Sprintf("r.Level is %d, should be 0", c.Level))
-	}
 	return buf.Bytes()
 }
 
