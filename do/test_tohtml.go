@@ -52,6 +52,14 @@ var toSkipHTML = []string{
 	"94c94534e403472f80baeef87ae3efcf",
 	// TODO: inline redo
 	"9a00460355b149cd9f9450826c8bebb2",
+	"9cc14382e3c34037bf80a4936a9b6674",
+	"a881aeee28254ecb8490188e248019ae",
+	"ab2af85726b94440904826eb37192dca",
+	"b1b31f6d3405466c988676f996ce03ad",
+	"cddcb453eaa5435a92a364d147425b9e",
+	// TODO: inline redo
+	"d0464f97636448fd8dab5497f68394c2",
+	"d1fe3bd9514a4543ae43194333f3cbd2",
 }
 
 func shouldSkipHTML(pageID string) bool {

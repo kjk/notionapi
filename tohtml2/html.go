@@ -63,6 +63,12 @@ func filePathFromPageCoverURL(uri string, block *notionapi.Block) string {
 	if strings.HasPrefix(uri, "https://images.unsplash.com") {
 		return uri
 	}
+	if strings.HasPrefix(uri, "https://www.notion.so/images/") {
+		return uri
+	}
+	if strings.HasPrefix(uri, "/images/page-cover/") {
+		return "https://www.notion.so" + uri
+	}
 	fileName := fileNameFromPageCoverURL(uri)
 	// TODO: probably need to build mulitple dirs
 	dir := safeName(block.Title)
@@ -453,6 +459,13 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 		return
 	}
 
+	// TODO: fixes some pages, breaks some other pages
+	if false && block.Parent != nil && block.Parent.Type == notionapi.BlockPage {
+		// TODO: seem like a bug in Notion exporter
+		// page: https://www.notion.so/b1b31f6d3405466c988676f996ce03ad
+		return
+	}
+
 	// Blendle s Employee Handbook/To Do Read in your first week.html
 	uri := filePathForPage(block)
 	cls := appendClass(getBlockColorClass(block), "link-to-page")
@@ -617,13 +630,13 @@ func (r *HTMLRenderer) RenderToggle(block *notionapi.Block) {
 
 // RenderQuote renders BlockQuote
 func (r *HTMLRenderer) RenderQuote(block *notionapi.Block) {
-	cls := "notion-quote"
-	attrs := []string{"class", cls}
-	r.WriteElement(block, "quote", attrs, "", true)
-
-	r.RenderChildren(block)
-
-	r.WriteElement(block, "quote", attrs, "", false)
+	r.Printf(`<blockquote id="%s" class="">`, block.ID)
+	{
+		r.RenderInlines(block.InlineContent)
+		// TODO: do they have children?
+		r.RenderChildren(block)
+	}
+	r.Printf(`</blockquote>`)
 }
 
 // RenderCallout renders BlockCallout
