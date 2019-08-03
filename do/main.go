@@ -146,8 +146,10 @@ func main() {
 		return
 	}
 
-	if true || flgTestToHTML {
-		testToHTML()
+	if flgTestToHTML {
+		ensurePrettierExists()
+		//testToHTML1()
+		testToHTML2()
 		return
 	}
 

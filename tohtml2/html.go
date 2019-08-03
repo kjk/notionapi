@@ -87,6 +87,24 @@ func filePathForPage(block *notionapi.Block) string {
 	return name
 }
 
+func urlBaseName(uri string) string {
+	parts := strings.Split(uri, "/")
+	return parts[len(parts)-1]
+}
+
+func getDownloadedFileName(uri string, block *notionapi.Block) string {
+	name := urlBaseName(uri)
+	name = safeName(block.Title) + "/" + name
+	for block.Parent != nil {
+		block = block.Parent
+		if block.Type != notionapi.BlockPage {
+			continue
+		}
+		name = safeName(block.Title) + "/" + name
+	}
+	return name
+}
+
 func htmlFileName(title string) string {
 	s := safeName(title)
 	return s + ".html"
@@ -108,9 +126,6 @@ type HTMLRenderer struct {
 	// Buf is where HTML is being written to
 	Buf  *bytes.Buffer
 	Page *notionapi.Page
-
-	// if true, adds id=${NotionID} attribute to HTML nodes
-	AddIDAttribute bool
 
 	// tracks current number of numbered lists
 	ListNo int
@@ -382,7 +397,12 @@ func (r *HTMLRenderer) renderHeader(block *notionapi.Block) {
 				clsCover = "page-header-icon-with-cover"
 			}
 			r.Printf(`<div class="page-header-icon %s">`, clsCover)
-			r.Printf(`<span class="icon">%s</span>`, formatPage.PageIcon)
+			if len(block.FileIDs) > 0 {
+				fileName := getDownloadedFileName(formatPage.PageIcon, block)
+				r.Printf(`<img class="icon" src="%s">`, fileName)
+			} else {
+				r.Printf(`<span class="icon">%s</span>`, formatPage.PageIcon)
+			}
 			r.Printf(`</div>`)
 		}
 
@@ -449,7 +469,12 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 	{
 		r.Printf(`<a href="%s">`, uri)
 		if block.FormatPage != nil && block.FormatPage.PageIcon != "" {
-			r.Printf(`<span class="icon">%s</span>`, block.FormatPage.PageIcon)
+			if len(block.FileIDs) > 0 {
+				fileName := getDownloadedFileName(block.FormatPage.PageIcon, block)
+				r.Printf(`<img class="icon" src="%s">`, fileName)
+			} else {
+				r.Printf(`<span class="icon">%s</span>`, block.FormatPage.PageIcon)
+			}
 		}
 		// TODO: possibly r.RenderInlines(block.InlineContent)
 		r.Printf(escapeHTML(block.Title))
@@ -697,7 +722,7 @@ func (r *HTMLRenderer) RenderVideo(block *notionapi.Block) {
 			source := block.Source
 			fileName := source
 			if len(block.FileIDs) > 0 {
-				fileName = getImageFileName(r.Page, block)
+				fileName = getDownloadedFileName(source, block)
 			}
 			if source == "" {
 				r.Printf(`<a></a>`)
@@ -750,7 +775,7 @@ func (r *HTMLRenderer) RenderFile(block *notionapi.Block) {
 	{
 		r.Printf(`<div class="source">`)
 		{
-			uri := getImageFileName(r.Page, block)
+			uri := getDownloadedFileName(block.Source, block)
 			r.A(uri, block.Source, "")
 		}
 		r.Printf(`</div>`)
@@ -763,20 +788,11 @@ func (r *HTMLRenderer) RenderPDF(block *notionapi.Block) {
 	r.Printf(`<figure id="%s">`, block.ID)
 	{
 		r.Printf(`<div class="source">`)
-		uri := getImageFileName(r.Page, block)
+		uri := getDownloadedFileName(block.Source, block)
 		r.A(uri, block.Source, "")
 		r.Printf(`</div>`)
 	}
 	r.Printf(`</figure>`)
-}
-
-func getImageFileName(page *notionapi.Page, block *notionapi.Block) string {
-	uri := block.Source
-	parts := strings.Split(uri, "/")
-	lastIdx := len(parts) - 1
-	fileName := parts[lastIdx]
-	pageName := safeName(page.Root.Title)
-	return pageName + "/" + fileName
 }
 
 func getImageStyle(block *notionapi.Block) string {
@@ -791,7 +807,7 @@ func getImageStyle(block *notionapi.Block) string {
 func (r *HTMLRenderer) RenderImage(block *notionapi.Block) {
 	r.Printf(`<figure id="%s" class="image">`, block.ID)
 	{
-		uri := getImageFileName(r.Page, block)
+		uri := getDownloadedFileName(block.Source, block)
 		style := getImageStyle(block)
 		r.Printf(`<a href="%s">`, uri)
 		r.Printf(`<img %s src="%s">`, style, uri)
