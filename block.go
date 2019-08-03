@@ -2,6 +2,8 @@ package notionapi
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -169,6 +171,7 @@ type Block struct {
 	FormatVideo    *FormatVideo    `json:"format_video,omitempty"`
 	FormatEmbed    *FormatEmbed    `json:"format_embed,omitempty"`
 	FormatToggle   *FormatToggle   `json:"format_toggle,omitempty"`
+	FormatHeader   *FormatHeader   `json:"format_header,omitempty"`
 }
 
 // CollectionViewInfo describes a particular view of the collection
@@ -249,7 +252,8 @@ type FormatPage struct {
 
 // FormatBookmark describes format for BlockBookmark
 type FormatBookmark struct {
-	BookmarkIcon string `json:"bookmark_icon"`
+	Icon  string `json:"bookmark_icon"`
+	Cover string `json:"bookmark_cover"`
 }
 
 // FormatImage describes format for BlockImage
@@ -280,6 +284,12 @@ type FormatVideo struct {
 // FormatText describes format for BlockText
 // TODO: possibly more?
 type FormatText struct {
+	BlockColor string `json:"block_color,omitempty"`
+}
+
+// FormatHeader describes format for BlockHeader, BlockSubHeader, BlockSubSubHeader
+// TODO: possibly more?
+type FormatHeader struct {
 	BlockColor string `json:"block_color,omitempty"`
 }
 
@@ -315,4 +325,181 @@ type Permission struct {
 	Role   string  `json:"role"`
 	Type   string  `json:"type"`
 	UserID *string `json:"user_id,omitempty"`
+}
+
+// GetInlineText returns flattened content of inline blocks, without formatting
+func GetInlineText(blocks []*InlineBlock) string {
+	s := ""
+	for _, block := range blocks {
+		// TODO: how to handle dates, users etc.?
+		s += block.Text
+	}
+	return s
+}
+
+func getFirstInline(inline []*InlineBlock) string {
+	if len(inline) == 0 {
+		return ""
+	}
+	return inline[0].Text
+}
+
+func getFirstInlineBlock(v interface{}) (string, error) {
+	inline, err := ParseInlineBlocks(v)
+	if err != nil {
+		return "", err
+	}
+	return getFirstInline(inline), nil
+}
+
+func getInlineText(v interface{}) (string, error) {
+	inline, err := ParseInlineBlocks(v)
+	if err != nil {
+		return "", err
+	}
+	return GetInlineText(inline), nil
+}
+
+func getProp(block *Block, name string, toSet *string) bool {
+	v, ok := block.Properties[name]
+	if !ok {
+		return false
+	}
+	s, err := getFirstInlineBlock(v)
+	if err != nil {
+		return false
+	}
+	*toSet = s
+	return true
+}
+
+func parseProperties(block *Block) error {
+	var err error
+	props := block.Properties
+	if title, ok := props["title"]; ok {
+		switch block.Type {
+		case BlockPage, BlockFile, BlockBookmark:
+			block.Title, err = getInlineText(title)
+			block.TitleFull, err = ParseInlineBlocks(title)
+		case BlockCode:
+			block.Code, err = getFirstInlineBlock(title)
+		default:
+			block.InlineContent, err = ParseInlineBlocks(title)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	if BlockTodo == block.Type {
+		if checked, ok := props["checked"]; ok {
+			s, _ := getFirstInlineBlock(checked)
+			// fmt.Printf("checked: '%s'\n", s)
+			block.IsChecked = strings.EqualFold(s, "Yes")
+		}
+	}
+
+	// for BlockBookmark
+	getProp(block, "description", &block.Description)
+	// for BlockBookmark
+	getProp(block, "link", &block.Link)
+
+	// for BlockBookmark, BlockImage, BlockGist, BlockFile, BlockEmbed
+	// don't over-write if was already set from "source" json field
+	if block.Source == "" {
+		getProp(block, "source", &block.Source)
+	}
+
+	if block.Source != "" && block.IsImage() {
+		block.ImageURL = maybeProxyImageURL(block.Source)
+	}
+
+	// for BlockCode
+	getProp(block, "language", &block.CodeLanguage)
+
+	// for BlockFile
+	if block.Type == BlockFile {
+		getProp(block, "size", &block.FileSize)
+	}
+
+	return nil
+}
+
+func parseFormat(block *Block) error {
+	if len(block.FormatRaw) == 0 {
+		// TODO: maybe if BlockPage, set to default &FormatPage{}
+		return nil
+	}
+	var err error
+	switch block.Type {
+	case BlockPage:
+		var format FormatPage
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			format.PageCoverURL = maybeProxyImageURL(format.PageCover)
+			block.FormatPage = &format
+		}
+	case BlockBookmark:
+		var format FormatBookmark
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatBookmark = &format
+		}
+	case BlockImage:
+		var format FormatImage
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			format.ImageURL = maybeProxyImageURL(format.DisplaySource)
+			block.FormatImage = &format
+		}
+	case BlockColumn:
+		var format FormatColumn
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatColumn = &format
+		}
+	case BlockTable:
+		var format FormatTable
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatTable = &format
+		}
+	case BlockText:
+		var format FormatText
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatText = &format
+		}
+	case BlockVideo:
+		var format FormatVideo
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatVideo = &format
+		}
+	case BlockEmbed:
+		var format FormatEmbed
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatEmbed = &format
+		}
+	case BlockHeader, BlockSubHeader, BlockSubSubHeader:
+		var format FormatHeader
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatHeader = &format
+		}
+
+	case BlockToggle:
+		var format FormatToggle
+		err = json.Unmarshal(block.FormatRaw, &format)
+		if err == nil {
+			block.FormatToggle = &format
+		}
+	}
+
+	if err != nil {
+		fmt.Printf("parseFormat: json.Unamrshal() failed with '%s', format: '%s'\n", err, string(block.FormatRaw))
+		return err
+	}
+	return nil
 }

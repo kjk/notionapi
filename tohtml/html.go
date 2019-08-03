@@ -449,7 +449,7 @@ func (r *HTMLRenderer) RenderTodo(block *notionapi.Block) {
 
 	r.RenderChildren(block)
 
-	r.WriteElement(block, "div", attrs, "", true)
+	r.WriteElement(block, "div", attrs, "", false)
 }
 
 // RenderToggle renders BlockToggle
@@ -499,12 +499,7 @@ func (r *HTMLRenderer) RenderCallout(block *notionapi.Block) {
 
 // RenderTableOfContents renders BlockTableOfContents
 func (r *HTMLRenderer) RenderTableOfContents(block *notionapi.Block) {
-	/*
-		cls := "notion-toc"
-		attrs := []string{"class", cls}
-		r.WriteElement(block, "div", attrs, "", true)
-		r.WriteElement(block, "div", attrs, "", false)
-	*/
+	// TODO: implement me
 }
 
 // RenderDivider renders BlockDivider

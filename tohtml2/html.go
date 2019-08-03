@@ -54,8 +54,13 @@ func fileNameFromPageCoverURL(uri string) string {
 }
 
 func filePathFromPageCoverURL(uri string, block *notionapi.Block) string {
-	// TODO: not sure about this heuristic
+	// TODO: not sure about this heuristic. Maybe turn it into a whitelist:
+	// if starts with notion.so or aws, then download and convert to local
+	// otherwise leave alone
 	if strings.HasPrefix(uri, "https://cdn.dutchcowboys.nl/uploads") {
+		return uri
+	}
+	if strings.HasPrefix(uri, "https://images.unsplash.com") {
 		return uri
 	}
 	fileName := fileNameFromPageCoverURL(uri)
@@ -322,7 +327,7 @@ func (r *HTMLRenderer) RenderInline(b *notionapi.InlineBlock) {
 		close = append(close, `</strike>`)
 	}
 	if b.AttrFlags&notionapi.AttrCode != 0 {
-		start += `<code class="">`
+		start += `<code>`
 		close = append(close, `</code>`)
 	}
 	// TODO: colors
@@ -387,6 +392,7 @@ func escapeHTML(s string) string {
 	// https://www.notion.so/Blendle-s-Employee-Handbook-3b617da409454a52bc3a920ba8832bf7
 	s = strings.Replace(s, "&#39;", "&#x27;", -1)
 	s = strings.Replace(s, "&#34;", "&quot;", -1)
+	//s = strings.Replace(s, "&#x27;", "'", -1)
 	return s
 }
 
@@ -396,6 +402,8 @@ func (r *HTMLRenderer) renderHeader(block *notionapi.Block) {
 	if formatPage.PageCover != "" {
 		position := (1 - formatPage.PageCoverPosition) * 100
 		coverURL := filePathFromPageCoverURL(formatPage.PageCover, block)
+		// TODO: Notion incorrectly escapes them
+		coverURL = escapeHTML(coverURL)
 		r.Printf(`<img class="page-cover-image" src="%s" style="object-position:center %v%%"/>`, coverURL, position)
 	}
 	if formatPage.PageIcon != "" {
@@ -417,8 +425,9 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 		if r.FullHTML {
 			r.Printf(`<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
 			r.Printf(`<title>%s</title>`, escapeHTML(block.Title))
-			r.Printf(`<style>%s</style>`, cssNotion)
+			r.Printf("<style>%s\t\n</style>", cssNotion)
 			r.Printf(`</head><body>`)
+
 			// TODO: sans could be mono, depending on format
 			r.Printf(`<article id="%s" class="page sans">`, block.ID)
 			r.renderHeader(block)
@@ -426,6 +435,7 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 			r.RenderChildren(block)
 			r.Printf(`</div>`)
 			r.Printf(`</article></body></html>`)
+
 		} else {
 			title := html.EscapeString(block.Title)
 			content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
@@ -471,6 +481,8 @@ func getBlockColorClass(block *notionapi.Block) string {
 		col = block.FormatPage.BlockColor
 	} else if block.FormatToggle != nil {
 		col = block.FormatToggle.BlockColor
+	} else if block.FormatHeader != nil {
+		col = block.FormatHeader.BlockColor
 	}
 	if col != "" {
 		return "block-color-" + col
@@ -514,8 +526,10 @@ func (r *HTMLRenderer) RenderBulletedList(block *notionapi.Block) {
 	}
 
 	r.Printf(`<li>`)
-	r.RenderInlines(block.InlineContent)
-	r.RenderChildren(block)
+	{
+		r.RenderInlines(block.InlineContent)
+		r.RenderChildren(block)
+	}
 	r.Printf(`</li>`)
 	isNextSame := r.IsNextBlockOfType(notionapi.BlockBulletedList)
 	isNextSame = false
@@ -527,7 +541,8 @@ func (r *HTMLRenderer) RenderBulletedList(block *notionapi.Block) {
 
 // RenderHeaderLevel renders BlockHeader, SubHeader and SubSubHeader
 func (r *HTMLRenderer) RenderHeaderLevel(block *notionapi.Block, level int) {
-	r.Printf(`<h%d id="%s" class="">`, level, block.ID)
+	cls := getBlockColorClass(block)
+	r.Printf(`<h%d id="%s" class="%s">`, level, block.ID, cls)
 	id := r.maybeGetID(block)
 	if r.AddHeaderAnchor {
 		r.Printf(`<a class="notion-header-anchor" href="#%s" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M5.88.03c-.18.01-.36.03-.53.09-.27.1-.53.25-.75.47a.5.5 0 1 0 .69.69c.11-.11.24-.17.38-.22.35-.12.78-.07 1.06.22.39.39.39 1.04 0 1.44l-1.5 1.5c-.44.44-.8.48-1.06.47-.26-.01-.41-.13-.41-.13a.5.5 0 1 0-.5.88s.34.22.84.25c.5.03 1.2-.16 1.81-.78l1.5-1.5c.78-.78.78-2.04 0-2.81-.28-.28-.61-.45-.97-.53-.18-.04-.38-.04-.56-.03zm-2 2.31c-.5-.02-1.19.15-1.78.75l-1.5 1.5c-.78.78-.78 2.04 0 2.81.56.56 1.36.72 2.06.47.27-.1.53-.25.75-.47a.5.5 0 1 0-.69-.69c-.11.11-.24.17-.38.22-.35.12-.78.07-1.06-.22-.39-.39-.39-1.04 0-1.44l1.5-1.5c.4-.4.75-.45 1.03-.44.28.01.47.09.47.09a.5.5 0 1 0 .44-.88s-.34-.2-.84-.22z"></path></svg></a>`, id)
@@ -553,16 +568,29 @@ func (r *HTMLRenderer) RenderSubSubHeader(block *notionapi.Block) {
 
 // RenderTodo renders BlockTodo
 func (r *HTMLRenderer) RenderTodo(block *notionapi.Block) {
-	cls := "notion-todo"
-	if block.IsChecked {
-		cls = "notion-todo-checked"
+	r.Printf(`<ul id="%s" class="to-do-list">`, block.ID)
+	{
+		r.Printf(`<li>`)
+		{
+			cls := "checkbox-off"
+			if block.IsChecked {
+				cls = "checkbox-on"
+			}
+			r.Printf(`<div class="checkbox %s"></div>`, cls)
+
+			cls = "to-do-children-unchecked"
+			if block.IsChecked {
+				cls = "to-do-children-checked"
+			}
+			r.Printf(`<span class="%s">`, cls)
+			r.RenderInlines(block.InlineContent)
+			r.Printf(`</span>`)
+
+			r.RenderChildren(block)
+		}
+		r.Printf(`</li>`)
 	}
-	attrs := []string{"class", cls}
-	r.WriteElement(block, "div", attrs, "", true)
-
-	r.RenderChildren(block)
-
-	r.WriteElement(block, "div", attrs, "", true)
+	r.Printf(`</ul>`)
 }
 
 // RenderToggle renders BlockToggle
@@ -570,14 +598,21 @@ func (r *HTMLRenderer) RenderToggle(block *notionapi.Block) {
 	cls := getBlockColorClass(block)
 	cls = appendClass(cls, "toggle")
 	r.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
-
-	r.Printf(`<li><details open=""><summary>`)
-	r.RenderInlines(block.InlineContent)
-	r.Printf(`</summary>`)
-
-	r.RenderChildren(block)
-
-	r.Printf("</details></li></ul>")
+	{
+		r.Printf(`<li>`)
+		{
+			r.Printf(`<details open="">`)
+			{
+				r.Printf(`<summary>`)
+				r.RenderInlines(block.InlineContent)
+				r.Printf(`</summary>`)
+				r.RenderChildren(block)
+			}
+			r.Printf(`</details>`)
+		}
+		r.Printf(`</li>`)
+	}
+	r.Printf(`</ul>`)
 }
 
 // RenderQuote renders BlockQuote
@@ -644,14 +679,13 @@ func (r *HTMLRenderer) RenderDivider(block *notionapi.Block) {
 
 // RenderBookmark renders BlockBookmark
 func (r *HTMLRenderer) RenderBookmark(block *notionapi.Block) {
-	content := fmt.Sprintf(`<a href="%s">%s</a>`, block.Link, block.Link)
-	cls := "notion-bookmark"
-	// TODO: don't render inlines (which seems to be title of the bookmarked page)
-	// TODO: support caption
-	// TODO: maybe support comments
-	attrs := []string{"class", cls}
-	r.WriteElement(block, "div", attrs, content, true)
-	r.WriteElement(block, "div", attrs, content, false)
+	r.Printf(`<figure id="%s"><div class="bookmark source">`, block.ID)
+	// TODO: Notion incorrectly escapes URL
+	uri := escapeHTML(block.Link)
+	text := escapeHTML(block.Title)
+	r.Printf(`<a href="%s">%s</a><br/>`, uri, text)
+	r.Printf(`<a class="bookmark-href" href="%s">%s</a>`, uri, uri)
+	r.Printf(`</div></figure>`)
 }
 
 // RenderVideo renders BlockVideo
@@ -707,15 +741,10 @@ func (r *HTMLRenderer) RenderVideo(block *notionapi.Block) {
 
 // RenderTweet renders BlockTweet
 func (r *HTMLRenderer) RenderTweet(block *notionapi.Block) {
-	uri := block.Source
-	content := fmt.Sprintf(`Embedded tweet <a href="%s">%s</a>`, uri, uri)
-	cls := "notion-embed"
-	// TODO: don't render inlines (which seems to be title of the bookmarked page)
-	// TODO: support caption
-	// TODO: maybe support comments
-	attrs := []string{"class", cls}
-	r.WriteElement(block, "div", attrs, content, true)
-	r.WriteElement(block, "div", attrs, content, false)
+	r.Printf(`<figure id="%s"><div class="source">`, block.ID)
+	uri := escapeHTML(block.Source)
+	r.Printf(`<a href="%s">%s</a>`, uri, uri)
+	r.Printf(`</div></figure>`)
 }
 
 // RenderGist renders BlockGist
@@ -731,50 +760,31 @@ func (r *HTMLRenderer) RenderGist(block *notionapi.Block) {
 
 // RenderEmbed renders BlockEmbed
 func (r *HTMLRenderer) RenderEmbed(block *notionapi.Block) {
-	// TODO: best effort at making the URL readable
-	uri := block.FormatEmbed.DisplaySource
-	title := block.Title
-	if title == "" {
-		title = path.Base(uri)
-	}
-	title = html.EscapeString(title)
-	content := fmt.Sprintf(`Oembed: <a href="%s">%s</a>`, uri, title)
-	cls := "notion-embed"
-	attrs := []string{"class", cls}
-	r.WriteElement(block, "div", attrs, content, true)
-	r.WriteElement(block, "div", attrs, content, false)
+	// TODO: notion incorrectly escapes urls
+	uri := escapeHTML(block.Source)
+	r.Printf(`<figure id="%s">`, block.ID)
+	r.Printf(`<div class="source">`)
+	r.Printf(`<a href="%s">%s</a>`, uri, uri)
+	r.Printf(`</div>`)
+	r.Printf(`</figure>`)
 }
 
 // RenderFile renders BlockFile
 func (r *HTMLRenderer) RenderFile(block *notionapi.Block) {
-	// TODO: best effort at making the URL readable
-	uri := block.Source
-	title := block.Title
-	if title == "" {
-		title = path.Base(uri)
-	}
-	title = html.EscapeString(title)
-	content := fmt.Sprintf(`Embedded file: <a href="%s">%s</a>`, uri, title)
-	cls := "notion-embed"
-	attrs := []string{"class", cls}
-	r.WriteElement(block, "div", attrs, content, true)
-	r.WriteElement(block, "div", attrs, content, false)
+	r.Printf(`<figure id="%s"><div class="source">`, block.ID)
+	uri := getImageFileName(r.Page, block)
+	text := escapeHTML(block.Source)
+	r.Printf(`<a href="%s">%s</a>`, uri, text)
+	r.Printf(`</div></figure>`)
 }
 
 // RenderPDF renders BlockPDF
 func (r *HTMLRenderer) RenderPDF(block *notionapi.Block) {
-	// TODO: best effort at making the URL readable
-	uri := block.Source
-	title := block.Title
-	if title == "" {
-		title = path.Base(uri)
-	}
-	title = html.EscapeString(title)
-	content := fmt.Sprintf(`Embedded PDF: <a href="%s">%s</a>`, uri, title)
-	cls := "notion-embed"
-	attrs := []string{"class", cls}
-	r.WriteElement(block, "div", attrs, content, true)
-	r.WriteElement(block, "div", attrs, content, false)
+	r.Printf(`<figure id="%s"><div class="source">`, block.ID)
+	uri := getImageFileName(r.Page, block)
+	text := escapeHTML(block.Source)
+	r.Printf(`<a href="%s">%s</a>`, uri, text)
+	r.Printf(`</div></figure>`)
 }
 
 func getImageFileName(page *notionapi.Page, block *notionapi.Block) string {
@@ -982,7 +992,7 @@ func (r *HTMLRenderer) DefaultRenderFunc(blockType string) func(*notionapi.Block
 	return nil
 }
 
-func needsWrapper(block *notionapi.Block) bool {
+func needsIndent(block *notionapi.Block) bool {
 	if len(block.Content) == 0 {
 		return false
 	}
@@ -999,12 +1009,9 @@ func (r *HTMLRenderer) RenderChildren(block *notionapi.Block) {
 		return
 	}
 
-	// .notion-wrap provides indentation for children
-	if needsWrapper(block) {
-		r.Newline()
-		r.WriteIndent()
-		r.WriteString(`<div class="notion-wrap">`)
-		r.Newline()
+	// provides indentation for children
+	if needsIndent(block) {
+		r.WriteString(`<div class="indented">`)
 	}
 
 	r.Level++
@@ -1020,11 +1027,8 @@ func (r *HTMLRenderer) RenderChildren(block *notionapi.Block) {
 	r.CurrBlocks = currBlocks
 	r.Level--
 
-	if needsWrapper(block) {
-		r.Newline()
-		r.WriteIndent()
+	if needsIndent(block) {
 		r.WriteString(`</div>`)
-		r.Newline()
 	}
 }
 
