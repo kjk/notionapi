@@ -429,26 +429,31 @@ func (r *HTMLRenderer) RenderPage(block *notionapi.Block) {
 	tp := block.GetPageType()
 	if tp == notionapi.BlockPageTopLevel {
 		if r.FullHTML {
-			r.Printf(`<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
-			r.Printf(`<title>%s</title>`, escapeHTML(block.Title))
-			r.Printf("<style>%s\t\n</style>", cssNotion)
-			r.Printf(`</head><body>`)
+			r.Printf(`<html>`)
+			{
+				r.Printf(`<head>`)
+				{
+					r.Printf(`<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
+					r.Printf(`<title>%s</title>`, escapeHTML(block.Title))
+					r.Printf("<style>%s\t\n</style>", cssNotion)
+				}
+				r.Printf(`</head>`)
+			}
+			r.Printf(`<body>`)
+		}
 
-			// TODO: sans could be mono, depending on format
-			r.Printf(`<article id="%s" class="page sans">`, block.ID)
-			r.renderHeader(block)
+		// TODO: sans could be mono, depending on format
+		r.Printf(`<article id="%s" class="page sans">`, block.ID)
+		r.renderHeader(block)
+		{
 			r.Printf(`<div class="page-body">`)
 			r.RenderChildren(block)
 			r.Printf(`</div>`)
-			r.Printf(`</article></body></html>`)
+		}
+		r.Printf(`</article>`)
 
-		} else {
-			title := html.EscapeString(block.Title)
-			content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
-			attrs := []string{"class", "notion-page"}
-			r.WriteElement(block, "div", attrs, content, true)
-			r.RenderChildren(block)
-			r.WriteElement(block, "div", attrs, content, false)
+		if r.FullHTML {
+			r.Printf(`</body></html>`)
 		}
 		return
 	}
