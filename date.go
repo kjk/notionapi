@@ -1,6 +1,7 @@
 package notionapi
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -58,7 +59,15 @@ func formatDateTime(d *Date, date string, t string) string {
 	withTime := t != ""
 	dt := parseNotionDateTime(date, t)
 	goFormat := convertNotionTimeFormatToGoFormat(d, withTime)
-	return dt.Format(goFormat)
+	s := dt.Format(goFormat)
+	// TODO: this is a lousy way of doing it
+	for i := 0; i <=9 ; i++ {
+		toReplace := fmt.Sprintf("0%d:", i)
+		replacement := fmt.Sprintf("%d:", i)
+		s = strings.Replace(s, toReplace, replacement, 1)
+	}
+	// TODO: also timezone
+	return s
 }
 
 // FormatDate provides default formatting for Date

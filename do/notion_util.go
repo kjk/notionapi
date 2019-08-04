@@ -37,6 +37,14 @@ func downloadPageCached(client *notionapi.Client, pageID string) (*notionapi.Pag
 			fmt.Printf("json.Unmarshal() on '%s' failed with %s\n", cachedPath, err)
 		}
 	}
+	client.Logger, _ = openLogFileForPageID(pageID)
+	if client.Logger != nil {
+		defer func() {
+			f := client.Logger.(*os.File)
+			f.Close()
+			client.Logger = nil
+		}()
+	}
 	res, err := client.DownloadPage(pageID)
 	if err != nil {
 		return nil, err
@@ -56,13 +64,6 @@ func downloadPageCached(client *notionapi.Client, pageID string) (*notionapi.Pag
 }
 
 func dl(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
-	client.Logger, _ = openLogFileForPageID(pageID)
-	if client.Logger != nil {
-		defer func() {
-			f := client.Logger.(*os.File)
-			f.Close()
-		}()
-	}
 	page, err := downloadPageCached(client, pageID)
 	if err != nil {
 		fmt.Printf("downloadPageCached('%s') failed with %s\n", pageID, err)

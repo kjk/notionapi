@@ -734,6 +734,16 @@ func (c *Converter) RenderDivider(block *notionapi.Block) {
 	c.Printf(`<hr id="%s">`, block.ID)
 }
 
+func (c *Converter) RenderCaption(block *notionapi.Block) {
+	caption := block.GetCaption()
+	if caption == nil {
+		return
+	}
+	c.Printf(`<figcaption>`)
+	c.RenderInlines(caption)
+	c.Printf(`</figcaption>`)
+}
+
 // RenderBookmark renders BlockBookmark
 func (c *Converter) RenderBookmark(block *notionapi.Block) {
 	c.Printf(`<figure id="%s">`, block.ID)
@@ -747,6 +757,7 @@ func (c *Converter) RenderBookmark(block *notionapi.Block) {
 			c.A(uri, uri, "bookmark-href")
 		}
 		c.Printf(`</div>`)
+		c.RenderCaption(block)
 	}
 	c.Printf(`</figure>`)
 }
@@ -769,6 +780,7 @@ func (c *Converter) RenderVideo(block *notionapi.Block) {
 			}
 		}
 		c.Printf(`</div>`)
+		c.RenderCaption(block)
 	}
 	c.Printf(`</figure>`)
 }
@@ -783,18 +795,9 @@ func (c *Converter) RenderTweet(block *notionapi.Block) {
 			c.A(uri, uri, "")
 		}
 		c.Printf(`</div>`)
+		c.RenderCaption(block)
 	}
 	c.Printf(`</figure>`)
-}
-
-func (c *Converter) RenderCaption(block *notionapi.Block) {
-	caption := block.GetCaption()
-	if caption == nil {
-		return
-	}
-	c.Printf(`<figcaption>`)
-	c.RenderInlines(caption)
-	c.Printf(`</figcaption>`)
 }
 
 // RenderGist renders BlockGist
@@ -820,6 +823,7 @@ func (c *Converter) RenderEmbed(block *notionapi.Block) {
 			c.A(uri, uri, "")
 		}
 		c.Printf(`</div>`)
+		c.RenderCaption(block)
 	}
 	c.Printf(`</figure>`)
 }
@@ -834,6 +838,7 @@ func (c *Converter) RenderFile(block *notionapi.Block) {
 			c.A(uri, block.Source, "")
 		}
 		c.Printf(`</div>`)
+		c.RenderCaption(block)
 	}
 	c.Printf(`</figure>`)
 }
@@ -846,6 +851,7 @@ func (c *Converter) RenderPDF(block *notionapi.Block) {
 		uri := getDownloadedFileName(block.Source, block)
 		c.A(uri, block.Source, "")
 		c.Printf(`</div>`)
+		c.RenderCaption(block)
 	}
 	c.Printf(`</figure>`)
 }

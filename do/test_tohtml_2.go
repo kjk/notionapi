@@ -28,6 +28,13 @@ func testToHTML2() {
 		// TODO: Notion exports a column "Title" marked as "not visible"
 		"92dd7aedf1bb4121aaa8986735df3d13",
 		"94167af6567043279811dc923edd1f04",
+		// TODO: a single date time value
+		"97100f9c17324fd7ba3d3c5f1832104d",
+		"99031183f223417988241fdad218ceba",
+		"b0a87a5a9c304534bf85c40f6aa29176",
+		"c4abe71e76084cc78249502c60f3ff59",
+		// TODO: Notion missing link to page
+		"c969c9455d7c4dd79c7f860f3ace6429",
 	}
 
 	zipPath := filepath.Join(topDir(), "data", "testdata", "Export-html-a352c43e-0545-481d-a935-57d4a3330bca.zip")
