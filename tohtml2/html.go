@@ -98,7 +98,6 @@ func urlBaseName(uri string) string {
 	return parts[len(parts)-1]
 }
 
-
 func getTitleColDownloadedURL(row *notionapi.Block, block *notionapi.Block, collection *notionapi.Collection) string {
 	title := ""
 	titleSpans := row.GetTitle()
@@ -128,13 +127,24 @@ func getTitleColDownloadedURL(row *notionapi.Block, block *notionapi.Block, coll
 
 func getDownloadedFileName(uri string, block *notionapi.Block) string {
 	name := urlBaseName(uri)
-	name = safeName(block.Title) + "/" + name
-	for block.Parent != nil {
-		block = block.Parent
-		if block.Type != notionapi.BlockPage {
+	switch block.Type {
+	case notionapi.BlockFile:
+	// do nothing
+	default:
+		name = safeName(block.Title) + "/" + name
+	}
+	var parents []string
+	tmp := block
+	for tmp.Parent != nil {
+		tmp = tmp.Parent
+		if tmp.Type != notionapi.BlockPage {
 			continue
 		}
-		name = safeName(block.Title) + "/" + name
+		parents = append(parents, safeName(tmp.Title))
+	}
+
+	for _, s := range parents {
+		name = s + "/" + name
 	}
 
 	for strings.Contains(name, "//") {
@@ -348,6 +358,21 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 		case notionapi.AttrCode:
 			start += `<code>`
 			close = `</code>` + close
+		case notionapi.AttrPage:
+			pageID := notionapi.AttrGetPageID(attr)
+			// TODO: find the page
+			// TODO: needs to download info when recursively scanning
+			// for pages
+			pageTitle := ""
+			urlPrefix := ""
+			if pageTitle != "" {
+				urlPrefix = safeName(pageTitle) + "-"
+			}
+			uri := "https://www.notion.so/" + urlPrefix + pageID
+			if c.RewriteURL != nil {
+				uri = c.RewriteURL(uri)
+			}
+			start += fmt.Sprintf(`<a href="%s">%s</a>`, uri, escapeHTML(pageTitle))
 		case notionapi.AttrLink:
 			uri := notionapi.AttrGetLink(attr)
 			if c.RewriteURL != nil {
@@ -472,7 +497,14 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 		}
 
 		// TODO: sans could be mono, depending on format
-		c.Printf(`<article id="%s" class="page sans">`, block.ID)
+		clsFont := "sans"
+		fp := block.FormatPage
+		if fp != nil {
+			if fp.PageFont != "" {
+				clsFont = fp.PageFont
+			}
+		}
+		c.Printf(`<article id="%s" class="page %s">`, block.ID, clsFont)
 		c.renderHeader(block)
 		{
 			c.Printf(`<div class="page-body">`)
@@ -819,8 +851,9 @@ func (c *Converter) RenderEmbed(block *notionapi.Block) {
 	{
 		c.Printf(`<div class="source">`)
 		{
-			uri := block.Source
-			c.A(uri, uri, "")
+			uri := getFileOrSourceURL(block)
+			text := block.Source
+			c.A(uri, text, "")
 		}
 		c.Printf(`</div>`)
 		c.RenderCaption(block)
@@ -991,7 +1024,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		c.Printf(`</table>`)
 	}
 	c.Printf(`</div>`)
-	}
+}
 
 // DefaultRenderFunc returns a defult rendering function for a type of
 // a given block

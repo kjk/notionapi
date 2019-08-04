@@ -35,6 +35,15 @@ func testToHTML2() {
 		"c4abe71e76084cc78249502c60f3ff59",
 		// TODO: Notion missing link to page
 		"c969c9455d7c4dd79c7f860f3ace6429",
+		"cec279f5f21748aa80d8976670d402ce",
+		"de7a4da288664a6ab81121afc1a5447c",
+		"e0cffcb524324661a152d9427ef5c842",
+		// TODO: don't know the name of the page when rendering inline page
+		"f97ffca91f8949b48004999df34ab1f7",
+		"fd9338a719a24f02993fcfbcf3d00bb0",
+		"fd9780323287488794ebff8956e0e7fc",
+		"5ce4c6a8870e4a629983316c32568f41",
+		"7bb4f0dea9024ce5a1b6d7a88ce5a024",
 	}
 
 	zipPath := filepath.Join(topDir(), "data", "testdata", "Export-html-a352c43e-0545-481d-a935-57d4a3330bca.zip")

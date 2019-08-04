@@ -29,6 +29,8 @@ const (
 	AttrHighlight = "h"
 	// AttrDate represents a date
 	AttrDate = "d"
+	// AtttrPage represents a link to a Notion page
+	AttrPage = "p"
 )
 
 // TextAttr describes attributes of a span of text
@@ -69,6 +71,11 @@ func AttrGetLink(attr TextAttr) string {
 
 func AttrGetUserID(attr TextAttr) string {
 	panicIfAttrNot(attr, "AttrGetUserID", AttrUser)
+	return attr[1]
+}
+
+func AttrGetPageID(attr TextAttr) string {
+	panicIfAttrNot(attr, "AttrGetPageID", AttrPage)
 	return attr[1]
 }
 
