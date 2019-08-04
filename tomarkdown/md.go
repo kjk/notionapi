@@ -1,4 +1,4 @@
-package tomd
+package tomarkdown
 
 import (
 	"bytes"
@@ -30,7 +30,7 @@ func MarkdownFileNameForPage(page *notionapi.Page) string {
 type BlockRenderFunc func(block *notionapi.Block) bool
 
 // MarkdownRenderer converts a Page to HTML
-type MarkdownRenderer struct {
+type Converter struct {
 	Page *notionapi.Page
 
 	// Buf is where HTML is being written to
@@ -58,40 +58,40 @@ type MarkdownRenderer struct {
 	bufs []*bytes.Buffer
 }
 
-// NewMarkdownRenderer returns customizable Markdown renderer
-func NewMarkdownRenderer(page *notionapi.Page) *MarkdownRenderer {
-	return &MarkdownRenderer{
+// NewConverter returns customizable Markdown renderer
+func NewConverter(page *notionapi.Page) *Converter {
+	return &Converter{
 		Page: page,
 	}
 }
 
 // PushNewBuffer creates a new buffer and sets Buf to it
-func (r *MarkdownRenderer) PushNewBuffer() {
-	r.bufs = append(r.bufs, r.Buf)
-	r.Buf = &bytes.Buffer{}
+func (c *Converter) PushNewBuffer() {
+	c.bufs = append(c.bufs, c.Buf)
+	c.Buf = &bytes.Buffer{}
 }
 
 // PopBuffer pops a buffer
-func (r *MarkdownRenderer) PopBuffer() *bytes.Buffer {
-	res := r.Buf
-	n := len(r.bufs)
-	r.Buf = r.bufs[n-1]
-	r.bufs = r.bufs[:n-1]
+func (c *Converter) PopBuffer() *bytes.Buffer {
+	res := c.Buf
+	n := len(c.bufs)
+	c.Buf = c.bufs[n-1]
+	c.bufs = c.bufs[:n-1]
 	return res
 }
 
 // Eol writes end-of-line to the buffer. Doesn't write multiple.
-func (r *MarkdownRenderer) Eol() {
-	d := r.Buf.Bytes()
+func (c *Converter) Eol() {
+	d := c.Buf.Bytes()
 	n := len(d)
 	if n > 0 && d[n-1] != '\n' {
-		r.Buf.WriteByte('\n')
+		c.Buf.WriteByte('\n')
 	}
 }
 
 // Newline writes a newline to the buffer. It'll suppress multiple newlines.
-func (r *MarkdownRenderer) Newline() {
-	d := r.Buf.Bytes()
+func (c *Converter) Newline() {
+	d := c.Buf.Bytes()
 	n := 0
 	idx := len(d) - 1
 	for idx >= 0 && d[idx] == '\n' {
@@ -100,47 +100,47 @@ func (r *MarkdownRenderer) Newline() {
 	}
 	switch n {
 	case 0:
-		r.Buf.WriteString("\n\n")
+		c.Buf.WriteString("\n\n")
 	case 1:
-		r.Buf.WriteByte('\n')
+		c.Buf.WriteByte('\n')
 	}
 
 }
 
-func (r *MarkdownRenderer) incIndent() {
-	r.Indent += "    "
+func (c *Converter) incIndent() {
+	c.Indent += "    "
 }
 
-func (r *MarkdownRenderer) decIndent() {
-	r.Indent = r.Indent[:len(r.Indent)-4]
+func (c *Converter) decIndent() {
+	c.Indent = c.Indent[:len(c.Indent)-4]
 }
 
 // WriteString writes a string to the buffer
-func (r *MarkdownRenderer) WriteString(s string) {
-	r.Buf.WriteString(s)
+func (c *Converter) WriteString(s string) {
+	c.Buf.WriteString(s)
 }
 
 // PrevBlock is a block preceding current block
-func (r *MarkdownRenderer) PrevBlock() *notionapi.Block {
-	if r.CurrBlockIdx == 0 {
+func (c *Converter) PrevBlock() *notionapi.Block {
+	if c.CurrBlockIdx == 0 {
 		return nil
 	}
-	return r.CurrBlocks[r.CurrBlockIdx-1]
+	return c.CurrBlocks[c.CurrBlockIdx-1]
 }
 
 // NextBlock is a block preceding current block
-func (r *MarkdownRenderer) NextBlock() *notionapi.Block {
-	nextIdx := r.CurrBlockIdx + 1
-	lastIdx := len(r.CurrBlocks) - 1
+func (c *Converter) NextBlock() *notionapi.Block {
+	nextIdx := c.CurrBlockIdx + 1
+	lastIdx := len(c.CurrBlocks) - 1
 	if nextIdx > lastIdx {
 		return nil
 	}
-	return r.CurrBlocks[nextIdx]
+	return c.CurrBlocks[nextIdx]
 }
 
 // IsPrevBlockOfType returns true if previous block is of a given type
-func (r *MarkdownRenderer) IsPrevBlockOfType(t string) bool {
-	b := r.PrevBlock()
+func (c *Converter) IsPrevBlockOfType(t string) bool {
+	b := c.PrevBlock()
 	if b == nil {
 		return false
 	}
@@ -148,8 +148,8 @@ func (r *MarkdownRenderer) IsPrevBlockOfType(t string) bool {
 }
 
 // IsNextBlockOfType returns true if next block is of a given type
-func (r *MarkdownRenderer) IsNextBlockOfType(t string) bool {
-	b := r.NextBlock()
+func (c *Converter) IsNextBlockOfType(t string) bool {
+	b := c.NextBlock()
 	if b == nil {
 		return false
 	}
@@ -157,7 +157,7 @@ func (r *MarkdownRenderer) IsNextBlockOfType(t string) bool {
 }
 
 // FormatDate formats the data
-func (r *MarkdownRenderer) FormatDate(d *notionapi.Date) string {
+func (c *Converter) FormatDate(d *notionapi.Date) string {
 	// TODO: allow over-riding date formatting
 	s := notionapi.FormatDate(d)
 	return fmt.Sprintf(`<span class="notion-date">@%s</span>`, s)
@@ -207,7 +207,7 @@ func shuffleWhitespace(text string) (string, string, string) {
 }
 
 // RenderInline renders inline block
-func (r *MarkdownRenderer) RenderInline(b *notionapi.TextSpan, isLast bool) {
+func (c *Converter) RenderInline(b *notionapi.TextSpan, isLast bool) {
 	text := b.Text
 	start := ""
 	end := ""
@@ -227,18 +227,18 @@ func (r *MarkdownRenderer) RenderInline(b *notionapi.TextSpan, isLast bool) {
 			end = "`" + start
 		case notionapi.AttrLink:
 			uri := notionapi.AttrGetLink(attr)
-			if r.RewriteURL != nil {
-				uri = r.RewriteURL(uri)
+			if c.RewriteURL != nil {
+				uri = c.RewriteURL(uri)
 			}
 			//before, text, after = shuffleWhitespace(text)
 			// TOOD: if text has "[" or "]" in it, has to escape
 			text = fmt.Sprintf(`[%s](%s)`, text, uri)
 		case notionapi.AttrUser:
 			userID := notionapi.AttrGetUserID(attr)
-			text = fmt.Sprintf(`@%s`, notionapi.ResolveUser(r.Page, userID))
+			text = fmt.Sprintf(`@%s`, notionapi.ResolveUser(c.Page, userID))
 		case notionapi.AttrDate:
 			date := notionapi.AttrGetDate(attr)
-			text = r.FormatDate(date)
+			text = c.FormatDate(date)
 		}
 	}
 	// move whitespace from inside style to outside, to match Notion export
@@ -249,38 +249,38 @@ func (r *MarkdownRenderer) RenderInline(b *notionapi.TextSpan, isLast bool) {
 	if isLast || (start == "" && end == "") {
 		text = strings.TrimRight(text, " ")
 	}
-	r.WriteString(start + text + end)
+	c.WriteString(start + text + end)
 }
 
 // RenderInlines renders inline blocks
-func (r *MarkdownRenderer) RenderInlines(blocks []*notionapi.TextSpan, trimEndSpace bool) {
+func (c *Converter) RenderInlines(blocks []*notionapi.TextSpan, trimEndSpace bool) {
 	lastIdx := len(blocks) - 1
 	for idx, block := range blocks {
-		r.RenderInline(block, trimEndSpace && idx == lastIdx)
+		c.RenderInline(block, trimEndSpace && idx == lastIdx)
 	}
 }
 
 // GetInlineContent is like RenderInlines but instead of writing to
 // output buffer, we return it as string
-func (r *MarkdownRenderer) GetInlineContent(blocks []*notionapi.TextSpan, trimeEndSpace bool) string {
-	r.PushNewBuffer()
-	r.RenderInlines(blocks, trimeEndSpace)
-	return r.PopBuffer().String()
+func (c *Converter) GetInlineContent(blocks []*notionapi.TextSpan, trimeEndSpace bool) string {
+	c.PushNewBuffer()
+	c.RenderInlines(blocks, trimeEndSpace)
+	return c.PopBuffer().String()
 }
 
 // RenderCode renders BlockCode
-func (r *MarkdownRenderer) RenderCode(block *notionapi.Block) {
+func (c *Converter) RenderCode(block *notionapi.Block) {
 	// TODO: implement me
-	r.WriteString("RenderCode NYI\n")
+	c.WriteString("RenderCode NYI\n")
 }
 
 // RenderPage renders BlockPage
-func (r *MarkdownRenderer) RenderPage(block *notionapi.Block) {
+func (c *Converter) RenderPage(block *notionapi.Block) {
 	tp := block.GetPageType()
 	if tp == notionapi.BlockPageTopLevel {
-		title := r.GetInlineContent(block.InlineContent, false)
-		r.WriteString("# " + title + "\n")
-		r.RenderChildren(block)
+		title := c.GetInlineContent(block.InlineContent, false)
+		c.WriteString("# " + title + "\n")
+		c.RenderChildren(block)
 		return
 	}
 	if tp == notionapi.BlockPageLink {
@@ -288,62 +288,62 @@ func (r *MarkdownRenderer) RenderPage(block *notionapi.Block) {
 	}
 	// TODO: if block.Title has "[" or "]" in it, needs to escape
 	fileName := markdownFileName(block.Title, block.ID)
-	title := r.GetInlineContent(block.InlineContent, false)
+	title := c.GetInlineContent(block.InlineContent, false)
 	s := fmt.Sprintf("[%s](./%s)", title, fileName)
-	r.WriteString(s)
-	r.Eol()
+	c.WriteString(s)
+	c.Eol()
 }
 
 // RenderText renders BlockText
-func (r *MarkdownRenderer) RenderText(block *notionapi.Block) {
-	r.RenderInlines(block.InlineContent, false)
-	r.Newline()
+func (c *Converter) RenderText(block *notionapi.Block) {
+	c.RenderInlines(block.InlineContent, false)
+	c.Newline()
 }
 
 // RenderToggle renders BlockToggle
-func (r *MarkdownRenderer) RenderToggle(block *notionapi.Block) {
-	r.incIndent()
-	defer r.decIndent()
+func (c *Converter) RenderToggle(block *notionapi.Block) {
+	c.incIndent()
+	defer c.decIndent()
 
-	r.WriteString("- ")
-	r.RenderInlines(block.InlineContent, true)
-	r.Eol()
+	c.WriteString("- ")
+	c.RenderInlines(block.InlineContent, true)
+	c.Eol()
 
-	r.RenderChildren(block)
+	c.RenderChildren(block)
 }
 
 // RenderNumberedList renders BlockNumberedList
-func (r *MarkdownRenderer) RenderNumberedList(block *notionapi.Block) {
-	r.incIndent()
-	defer r.decIndent()
+func (c *Converter) RenderNumberedList(block *notionapi.Block) {
+	c.incIndent()
+	defer c.decIndent()
 
-	isPrevSame := r.IsPrevBlockOfType(notionapi.BlockNumberedList)
+	isPrevSame := c.IsPrevBlockOfType(notionapi.BlockNumberedList)
 	if isPrevSame {
-		r.ListNo++
+		c.ListNo++
 	} else {
-		r.ListNo = 1
+		c.ListNo = 1
 	}
-	r.WriteString(fmt.Sprintf("%d. ", r.ListNo))
-	r.RenderInlines(block.InlineContent, false)
-	r.Eol()
+	c.WriteString(fmt.Sprintf("%d. ", c.ListNo))
+	c.RenderInlines(block.InlineContent, false)
+	c.Eol()
 
-	r.RenderChildren(block)
+	c.RenderChildren(block)
 }
 
 // RenderBulletedList renders BlockBulletedList
-func (r *MarkdownRenderer) RenderBulletedList(block *notionapi.Block) {
-	r.incIndent()
-	defer r.decIndent()
+func (c *Converter) RenderBulletedList(block *notionapi.Block) {
+	c.incIndent()
+	defer c.decIndent()
 
-	r.WriteString("- ")
-	r.RenderInlines(block.InlineContent, true)
-	r.Eol()
+	c.WriteString("- ")
+	c.RenderInlines(block.InlineContent, true)
+	c.Eol()
 
-	r.RenderChildren(block)
+	c.RenderChildren(block)
 }
 
 // RenderHeaderLevel renders BlockHeader, SubHeader and SubSubHeader
-func (r *MarkdownRenderer) RenderHeaderLevel(block *notionapi.Block, level int) {
+func (c *Converter) RenderHeaderLevel(block *notionapi.Block, level int) {
 	s := ""
 	switch level {
 	case 1:
@@ -359,75 +359,75 @@ func (r *MarkdownRenderer) RenderHeaderLevel(block *notionapi.Block, level int) 
 		}
 		s += " "
 	}
-	content := r.GetInlineContent(block.InlineContent, false)
+	content := c.GetInlineContent(block.InlineContent, false)
 	content = strings.TrimRight(content, " ")
-	r.WriteString(s + content)
-	r.Newline()
+	c.WriteString(s + content)
+	c.Newline()
 }
 
 // RenderHeader renders BlockHeader
-func (r *MarkdownRenderer) RenderHeader(block *notionapi.Block) {
-	r.RenderHeaderLevel(block, 1)
+func (c *Converter) RenderHeader(block *notionapi.Block) {
+	c.RenderHeaderLevel(block, 1)
 }
 
 // RenderSubHeader renders BlockSubHeader
-func (r *MarkdownRenderer) RenderSubHeader(block *notionapi.Block) {
-	r.RenderHeaderLevel(block, 2)
+func (c *Converter) RenderSubHeader(block *notionapi.Block) {
+	c.RenderHeaderLevel(block, 2)
 }
 
 // RenderSubSubHeader renders BlocSubSubkHeader
-func (r *MarkdownRenderer) RenderSubSubHeader(block *notionapi.Block) {
-	r.RenderHeaderLevel(block, 3)
+func (c *Converter) RenderSubSubHeader(block *notionapi.Block) {
+	c.RenderHeaderLevel(block, 3)
 }
 
 // RenderTodo renders BlockTodo
-func (r *MarkdownRenderer) RenderTodo(block *notionapi.Block) {
-	r.incIndent()
-	defer r.decIndent()
+func (c *Converter) RenderTodo(block *notionapi.Block) {
+	c.incIndent()
+	defer c.decIndent()
 
-	text := r.GetInlineContent(block.InlineContent, true)
+	text := c.GetInlineContent(block.InlineContent, true)
 	s := fmt.Sprintf("- [ ]  %s\n", text)
-	r.WriteString(s)
+	c.WriteString(s)
 
-	r.RenderChildren(block)
+	c.RenderChildren(block)
 }
 
 // RenderQuote renders BlockQuote
-func (r *MarkdownRenderer) RenderQuote(block *notionapi.Block) {
-	text := r.GetInlineContent(block.InlineContent, true)
+func (c *Converter) RenderQuote(block *notionapi.Block) {
+	text := c.GetInlineContent(block.InlineContent, true)
 	s := fmt.Sprintf("> %s\n", text)
-	r.WriteString(s)
+	c.WriteString(s)
 }
 
 // RenderCallout renders BlockCallout
-func (r *MarkdownRenderer) RenderCallout(block *notionapi.Block) {
+func (c *Converter) RenderCallout(block *notionapi.Block) {
 	// TODO: implement me
-	r.WriteString("RenderCallout NYI\n")
+	c.WriteString("RenderCallout NYI\n")
 }
 
 // RenderDivider renders BlockDivider
-func (r *MarkdownRenderer) RenderDivider(block *notionapi.Block) {
-	r.WriteString("---\n\n")
+func (c *Converter) RenderDivider(block *notionapi.Block) {
+	c.WriteString("---\n\n")
 }
 
 // RenderBookmark renders BlockBookmark
-func (r *MarkdownRenderer) RenderBookmark(block *notionapi.Block) {
+func (c *Converter) RenderBookmark(block *notionapi.Block) {
 	title := notionapi.TextSpansToString(block.InlineContent)
 	uri := block.Link
 	if title == "" && uri == "" {
 		return
 	}
-	r.WriteString(fmt.Sprintf("[%s](%s)\n", title, uri))
+	c.WriteString(fmt.Sprintf("[%s](%s)\n", title, uri))
 }
 
 // RenderTweet renders BlockTweet
-func (r *MarkdownRenderer) RenderTweet(block *notionapi.Block) {
-	r.WriteString("RenderTweet NYI\n")
+func (c *Converter) RenderTweet(block *notionapi.Block) {
+	c.WriteString("RenderTweet NYI\n")
 }
 
 // RenderGist renders BlockGist
-func (r *MarkdownRenderer) RenderGist(block *notionapi.Block) {
-	r.WriteString("RenderGist NYI\n")
+func (c *Converter) RenderGist(block *notionapi.Block) {
+	c.WriteString("RenderGist NYI\n")
 }
 
 func localFileNameFromURL(fileID, uri string) string {
@@ -469,40 +469,40 @@ func getEmbeddedFileNameAndURL(block *notionapi.Block) (string, string) {
 }
 
 // RenderVideo renders BlockTweet
-func (r *MarkdownRenderer) RenderVideo(block *notionapi.Block) {
+func (c *Converter) RenderVideo(block *notionapi.Block) {
 	name, uri := getEmbeddedFileNameAndURL(block)
 	s := fmt.Sprintf("[%s](%s)\n", name, uri)
-	r.WriteString(s)
+	c.WriteString(s)
 }
 
 // RenderFile renders BlockFile
-func (r *MarkdownRenderer) RenderFile(block *notionapi.Block) {
+func (c *Converter) RenderFile(block *notionapi.Block) {
 	fileID := block.FileIDs[0]
 	localFileName := localFileNameFromURL(fileID, block.Source)
 	name := block.Title
 	s := fmt.Sprintf("[%s](%s)\n", name, localFileName)
-	r.WriteString(s)
+	c.WriteString(s)
 }
 
 // RenderPDF renders BlockPDF
-func (r *MarkdownRenderer) RenderPDF(block *notionapi.Block) {
+func (c *Converter) RenderPDF(block *notionapi.Block) {
 	name, uri := getEmbeddedFileNameAndURL(block)
 	s := fmt.Sprintf("[%s](%s)\n", name, uri)
-	r.WriteString(s)
+	c.WriteString(s)
 }
 
 // RenderEmbed renders BlockEmbed
-func (r *MarkdownRenderer) RenderEmbed(block *notionapi.Block) {
+func (c *Converter) RenderEmbed(block *notionapi.Block) {
 	uri := block.Source
 	s := fmt.Sprintf("[%s](%s)\n", uri, uri)
-	r.WriteString(s)
+	c.WriteString(s)
 }
 
 // RenderImage renders BlockImage
-func (r *MarkdownRenderer) RenderImage(block *notionapi.Block) {
+func (c *Converter) RenderImage(block *notionapi.Block) {
 	// TODO: not sure if always has FileIDs
 	if len(block.FileIDs) == 0 {
-		r.WriteString("RenderImage when len(FileIDs) == 0 NYI\n")
+		c.WriteString("RenderImage when len(FileIDs) == 0 NYI\n")
 	}
 	source := block.Source // also present in block.Format.DisplaySource
 	// source looks like: "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e5470cfd-08f0-4fb8-8ec2-452ca1a3f05e/Schermafbeelding2018-06-19om09.52.45.png"
@@ -516,85 +516,85 @@ func (r *MarkdownRenderer) RenderImage(block *notionapi.Block) {
 		ext = "." + parts[1]
 	}
 	s := fmt.Sprintf("![](%s-%s%s)\n", fileName, fileID, ext)
-	r.WriteString(s)
+	c.WriteString(s)
 }
 
 // RenderColumnList renders BlockColumnList
 // it's children are BlockColumn
-func (r *MarkdownRenderer) RenderColumnList(block *notionapi.Block) {
-	r.RenderChildren(block)
+func (c *Converter) RenderColumnList(block *notionapi.Block) {
+	c.RenderChildren(block)
 }
 
 // RenderColumn renders BlockColumn
 // it's parent is BlockColumnList
-func (r *MarkdownRenderer) RenderColumn(block *notionapi.Block) {
-	r.RenderChildren(block)
+func (c *Converter) RenderColumn(block *notionapi.Block) {
+	c.RenderChildren(block)
 }
 
 // RenderCollectionView renders BlockCollectionView
-func (r *MarkdownRenderer) RenderCollectionView(block *notionapi.Block) {
+func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	if len(block.CollectionViews) == 0 {
 		return
 	}
-	r.WriteString("RendeRenderCollectionViewrCode NYI\n")
+	c.WriteString("RendeRenderCollectionViewrCode NYI\n")
 
-	r.RenderChildren(block)
+	c.RenderChildren(block)
 }
 
 // DefaultRenderFunc returns a defult rendering function for a type of
 // a given block
-func (r *MarkdownRenderer) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
+func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 	switch blockType {
 	case notionapi.BlockPage:
-		return r.RenderPage
+		return c.RenderPage
 	case notionapi.BlockText:
-		return r.RenderText
+		return c.RenderText
 	case notionapi.BlockNumberedList:
-		return r.RenderNumberedList
+		return c.RenderNumberedList
 	case notionapi.BlockBulletedList:
-		return r.RenderBulletedList
+		return c.RenderBulletedList
 	case notionapi.BlockHeader:
-		return r.RenderHeader
+		return c.RenderHeader
 	case notionapi.BlockSubHeader:
-		return r.RenderSubHeader
+		return c.RenderSubHeader
 	case notionapi.BlockSubSubHeader:
-		return r.RenderSubSubHeader
+		return c.RenderSubSubHeader
 	case notionapi.BlockTodo:
-		return r.RenderTodo
+		return c.RenderTodo
 	case notionapi.BlockToggle:
-		return r.RenderToggle
+		return c.RenderToggle
 	case notionapi.BlockQuote:
-		return r.RenderQuote
+		return c.RenderQuote
 	case notionapi.BlockDivider:
-		return r.RenderDivider
+		return c.RenderDivider
 	case notionapi.BlockCode:
-		return r.RenderCode
+		return c.RenderCode
 	case notionapi.BlockBookmark:
-		return r.RenderBookmark
+		return c.RenderBookmark
 	case notionapi.BlockImage:
-		return r.RenderImage
+		return c.RenderImage
 	case notionapi.BlockColumnList:
-		return r.RenderColumnList
+		return c.RenderColumnList
 	case notionapi.BlockColumn:
-		return r.RenderColumn
+		return c.RenderColumn
 	case notionapi.BlockCollectionView:
-		return r.RenderCollectionView
+		return c.RenderCollectionView
 	case notionapi.BlockEmbed:
-		return r.RenderEmbed
+		return c.RenderEmbed
 	case notionapi.BlockGist:
-		return r.RenderGist
+		return c.RenderGist
 	case notionapi.BlockTweet:
-		return r.RenderTweet
+		return c.RenderTweet
 	case notionapi.BlockVideo:
-		return r.RenderVideo
+		return c.RenderVideo
 	case notionapi.BlockFile:
-		return r.RenderFile
+		return c.RenderFile
 	case notionapi.BlockPDF:
-		return r.RenderPDF
+		return c.RenderPDF
 	case notionapi.BlockCallout:
-		return r.RenderCallout
+		return c.RenderCallout
 	default:
-		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, r.Page.NotionURL())
+		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, c.Page.NotionURL())
 	}
 	return nil
 }
@@ -627,23 +627,23 @@ func skipChildren(block *notionapi.Block) bool {
 	return false
 }
 
-func (r *MarkdownRenderer) RenderChildren(block *notionapi.Block) {
+func (c *Converter) RenderChildren(block *notionapi.Block) {
 	if skipChildren(block) {
 		return
 	}
-	currIdx := r.CurrBlockIdx
-	currBlocks := r.CurrBlocks
-	r.CurrBlocks = block.Content
+	currIdx := c.CurrBlockIdx
+	currBlocks := c.CurrBlocks
+	c.CurrBlocks = block.Content
 	for i, child := range block.Content {
 		child.Parent = block
-		r.CurrBlockIdx = i
-		r.RenderBlock(child)
+		c.CurrBlockIdx = i
+		c.RenderBlock(child)
 	}
-	r.CurrBlockIdx = currIdx
-	r.CurrBlocks = currBlocks
+	c.CurrBlockIdx = currIdx
+	c.CurrBlocks = currBlocks
 }
 
-func (r *MarkdownRenderer) AddNewlineBeforeBlock(block *notionapi.Block) {
+func (c *Converter) AddNewlineBeforeBlock(block *notionapi.Block) {
 	// TODO: hacky
 	addNl := true
 	// I think this should depend on previous block i.e.
@@ -656,38 +656,38 @@ func (r *MarkdownRenderer) AddNewlineBeforeBlock(block *notionapi.Block) {
 		addNl = false
 	}
 	if addNl {
-		r.Newline()
+		c.Newline()
 	}
 	if !isEmptyBlock(block) {
-		if len(r.Indent) > 0 {
-			r.WriteString(r.Indent)
+		if len(c.Indent) > 0 {
+			c.WriteString(c.Indent)
 		}
 	}
 }
 
 // RenderBlock renders a block to html
-func (r *MarkdownRenderer) RenderBlock(block *notionapi.Block) {
+func (c *Converter) RenderBlock(block *notionapi.Block) {
 	if block == nil {
 		// a missing block, can happen if we don't have access to a referenced block
 		return
 	}
 
-	if r.RenderBlockOverride != nil && r.RenderBlockOverride(block) {
+	if c.RenderBlockOverride != nil && c.RenderBlockOverride(block) {
 		return
 	}
 
-	def := r.DefaultRenderFunc(block.Type)
+	def := c.DefaultRenderFunc(block.Type)
 	if def != nil {
-		r.AddNewlineBeforeBlock(block)
+		c.AddNewlineBeforeBlock(block)
 		def(block)
 	}
 }
 
-func (r *MarkdownRenderer) ToMarkdown() []byte {
-	r.PushNewBuffer()
+func (c *Converter) ToMarkdown() []byte {
+	c.PushNewBuffer()
 
-	r.RenderBlock(r.Page.Root)
-	buf := r.PopBuffer()
+	c.RenderBlock(c.Page.Root)
+	buf := c.PopBuffer()
 	// a bit of a hack to account for adding newlines before and after each block
 	// which adds empty lines at top and bottom
 	d := buf.Bytes()
@@ -697,6 +697,6 @@ func (r *MarkdownRenderer) ToMarkdown() []byte {
 
 // ToMarkdown converts a page to Markdown
 func ToMarkdown(page *notionapi.Page) []byte {
-	r := NewMarkdownRenderer(page)
+	r := NewConverter(page)
 	return r.ToMarkdown()
 }

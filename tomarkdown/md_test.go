@@ -1,4 +1,4 @@
-package tomd
+package tomarkdown
 
 import (
 	"testing"

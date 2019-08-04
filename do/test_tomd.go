@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 
 	"github.com/kjk/notionapi"
-	"github.com/kjk/notionapi/tomd"
+	"github.com/kjk/notionapi/tomarkdown"
 )
 
 func toMD(page *notionapi.Page) (string, []byte) {
-	name := tomd.MarkdownFileNameForPage(page)
-	r := tomd.NewMarkdownRenderer(page)
+	name := tomarkdown.MarkdownFileNameForPage(page)
+	r := tomarkdown.NewConverter(page)
 	d := r.ToMarkdown()
 	return name, d
 }
