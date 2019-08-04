@@ -478,6 +478,44 @@ func (c *Converter) renderHeader(block *notionapi.Block) {
 	c.Printf(`</header>`)
 }
 
+
+// RenderCollectionViewPage renders BlockCollectionViewPage
+func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
+	// TODO: grab collection by id
+	// use "icon" for img url, "name" for src link
+	/*
+	<figure id="9c051067-c117-4b1e-a61a-70735c0494eb" class="link-to-page">
+	<a href="Notion Pok dex/Type Chart.html"
+	><img
+	class="icon"
+	src="Notion Pok dex/Type Chart/sticker375x360.u2.png"
+	/>Type Chart</a
+	>
+	 */
+	c.renderLinkToPage(block)
+}
+
+func (c *Converter) renderLinkToPage(block *notionapi.Block) {
+	uri := filePathForPage(block)
+	cls := appendClass(getBlockColorClass(block), "link-to-page")
+	c.Printf(`<figure id="%s" class="%s">`, block.ID, cls)
+	{
+		c.Printf(`<a href="%s">`, uri)
+		if block.FormatPage != nil && block.FormatPage.PageIcon != "" {
+			if len(block.FileIDs) > 0 {
+				fileName := getDownloadedFileName(block.FormatPage.PageIcon, block)
+				c.Printf(`<img class="icon" src="%s">`, fileName)
+			} else {
+				c.Printf(`<span class="icon">%s</span>`, block.FormatPage.PageIcon)
+			}
+		}
+		// TODO: possibly r.RenderInlines(block.InlineContent)
+		c.Printf(escapeHTML(block.Title))
+		c.Printf(`</a>`)
+	}
+	c.Printf(`</figure>`)
+}
+
 // RenderPage renders BlockPage
 func (c *Converter) RenderPage(block *notionapi.Block) {
 	tp := block.GetPageType()
@@ -531,26 +569,7 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 		// page: https://www.notion.so/b1b31f6d3405466c988676f996ce03ad
 		return
 	}
-
-	// Blendle s Employee Handbook/To Do Read in your first week.html
-	uri := filePathForPage(block)
-	cls := appendClass(getBlockColorClass(block), "link-to-page")
-	c.Printf(`<figure id="%s" class="%s">`, block.ID, cls)
-	{
-		c.Printf(`<a href="%s">`, uri)
-		if block.FormatPage != nil && block.FormatPage.PageIcon != "" {
-			if len(block.FileIDs) > 0 {
-				fileName := getDownloadedFileName(block.FormatPage.PageIcon, block)
-				c.Printf(`<img class="icon" src="%s">`, fileName)
-			} else {
-				c.Printf(`<span class="icon">%s</span>`, block.FormatPage.PageIcon)
-			}
-		}
-		// TODO: possibly r.RenderInlines(block.InlineContent)
-		c.Printf(escapeHTML(block.Title))
-		c.Printf(`</a>`)
-	}
-	c.Printf(`</figure>`)
+	c.renderLinkToPage(block)
 }
 
 func appendClass(s, cls string) string {
@@ -1064,6 +1083,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderColumn
 	case notionapi.BlockCollectionView:
 		return c.RenderCollectionView
+	case notionapi.BlockCollectionViewPage:
+		return c.RenderCollectionViewPage
 	case notionapi.BlockEmbed:
 		return c.RenderEmbed
 	case notionapi.BlockGist:

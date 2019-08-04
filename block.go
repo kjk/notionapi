@@ -47,6 +47,8 @@ const (
 	BlockTable = "table"
 	// BlockCollectionView is a collection view block
 	BlockCollectionView = "collection_view"
+	// BlockCollectionViewPage is a page that is a collection
+	BlockCollectionViewPage = "collection_view_page"
 	// BlockVideo is youtube video embed
 	BlockVideo = "video"
 	// BlockFile is an embedded file

@@ -149,7 +149,8 @@ func main() {
 	if true || flgTestToHTML {
 		ensurePrettierExists()
 		//testToHTML1()
-		testToHTML2()
+		//testToHTML2()
+		testToHTML3()
 		return
 	}
 
