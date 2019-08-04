@@ -126,8 +126,8 @@ type Block struct {
 	// Parent of this block
 	Parent *Block `json:"-"`
 
-	// maps ContentIDs array
-	Content []*Block `json:"content_resolved,omitempty"`
+	// maps ContentIDs array to Block type
+	Content []*Block `json:"-"`
 	// this is for some types like TypePage, TypeText, TypeHeader etc.
 	InlineContent []*TextSpan `json:"inline_text,omitempty"`
 

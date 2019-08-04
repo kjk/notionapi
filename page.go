@@ -23,7 +23,13 @@ type Page struct {
 	Users  []*User
 	Tables []*Table
 
+	idToBlock map[string]*Block
 	client *Client
+}
+
+// GetBlockByID returns Block given it's id
+func (p *Page) GetBlockByID(blockID string) *Block {
+	return p.idToBlock[blockID]
 }
 
 // Table represents a table (i.e. CollectionView)
@@ -62,7 +68,8 @@ func (p *Page) NotionURL() string {
 		return ""
 	}
 	id := ToNoDashID(p.ID)
-	return "https://notion.so/" + id
+	// TODO: maybe add title?
+	return "https://www.notion.so/" + id
 }
 
 func forEachBlockWithParent(blocks []*Block, parent *Block, cb func(*Block)) {

@@ -494,5 +494,6 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			block.CollectionViews = append(block.CollectionViews, collInfo)
 		}
 	}
+	page.idToBlock = idToBlock
 	return page, nil
 }
