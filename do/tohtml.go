@@ -149,7 +149,7 @@ func toHTML(pageID string) {
 		return
 	}
 
-	r := tohtml.NewHTMLRenderer(page)
+	r := tohtml.NewConverter(page)
 	r.AddIDAttribute = true
 	r.AddHeaderAnchor = true
 	notionapi.PanicOnFailures = true
