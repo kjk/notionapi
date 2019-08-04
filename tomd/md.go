@@ -412,7 +412,7 @@ func (r *MarkdownRenderer) RenderDivider(block *notionapi.Block) {
 
 // RenderBookmark renders BlockBookmark
 func (r *MarkdownRenderer) RenderBookmark(block *notionapi.Block) {
-	title := notionapi.GetInlineText(block.InlineContent)
+	title := notionapi.TextSpansToString(block.InlineContent)
 	uri := block.Link
 	if title == "" && uri == "" {
 		return

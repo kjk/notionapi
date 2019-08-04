@@ -25,6 +25,9 @@ func testToHTML2() {
 		"8511412cbfde432ba226648e9bdfbec2",
 		// TODO: Notion missing link to page
 		"86b5223576104fa69dc03675e44571b7",
+		// TODO: Notion exports a column "Title" marked as "not visible"
+		"92dd7aedf1bb4121aaa8986735df3d13",
+		"94167af6567043279811dc923edd1f04",
 	}
 
 	zipPath := filepath.Join(topDir(), "data", "testdata", "Export-html-a352c43e-0545-481d-a935-57d4a3330bca.zip")

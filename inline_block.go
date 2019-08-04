@@ -206,3 +206,39 @@ func ParseTextSpans(raw interface{}) ([]*TextSpan, error) {
 	}
 	return res, nil
 }
+
+// TextSpansToString returns flattened content of inline blocks, without formatting
+func TextSpansToString(blocks []*TextSpan) string {
+	s := ""
+	for _, block := range blocks {
+		if block.Text == TextSpanSpecial {
+			// TODO: how to handle dates, users etc.?
+			continue
+		}
+		s += block.Text
+	}
+	return s
+}
+
+func getFirstInline(inline []*TextSpan) string {
+	if len(inline) == 0 {
+		return ""
+	}
+	return inline[0].Text
+}
+
+func getFirstInlineBlock(v interface{}) (string, error) {
+	inline, err := ParseTextSpans(v)
+	if err != nil {
+		return "", err
+	}
+	return getFirstInline(inline), nil
+}
+
+func getInlineText(v interface{}) (string, error) {
+	inline, err := ParseTextSpans(v)
+	if err != nil {
+		return "", err
+	}
+	return TextSpansToString(inline), nil
+}

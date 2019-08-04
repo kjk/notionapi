@@ -15,6 +15,12 @@ func maybePanic(format string, args ...interface{}) {
 	notionapi.MaybePanic(format, args...)
 }
 
+func maybePanicIfErr(err error, format string, args ...interface{}) {
+	if err != nil {
+		notionapi.MaybePanic(format, args...)
+	}
+}
+
 func isSafeChar(r rune) bool {
 	if r >= '0' && r <= '9' {
 		return true
@@ -90,6 +96,34 @@ func filePathForPage(block *notionapi.Block) string {
 func urlBaseName(uri string) string {
 	parts := strings.Split(uri, "/")
 	return parts[len(parts)-1]
+}
+
+
+func getTitleColDownloadedURL(row *notionapi.Block, block *notionapi.Block, collection *notionapi.Collection) string {
+	title := ""
+	titleSpans := row.GetTitle()
+	if len(titleSpans) == 0 {
+		log("title is empty)")
+	} else {
+		title = titleSpans[0].Text
+	}
+	if title == "" {
+		title = "Untitled"
+	}
+	name := safeName(title) + ".html"
+	colName := collection.GetName()
+	if colName == "" {
+		colName = "Untitled Database"
+	}
+	name = safeName(colName) + "/" + name
+	for block.Parent != nil {
+		block = block.Parent
+		if block.Type != notionapi.BlockPage {
+			continue
+		}
+		name = safeName(block.Title) + "/" + name
+	}
+	return name
 }
 
 func getDownloadedFileName(uri string, block *notionapi.Block) string {
@@ -287,7 +321,7 @@ func (c *Converter) IsNextBlockOfType(t string) bool {
 func (c *Converter) FormatDate(d *notionapi.Date) string {
 	// TODO: allow over-riding date formatting
 	s := notionapi.FormatDate(d)
-	return fmt.Sprintf(`<span class="notion-date">@%s</span>`, s)
+	return fmt.Sprintf(`<time>@%s</time>`, s)
 }
 
 // RenderInline renders inline block
@@ -878,61 +912,80 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	}
 	viewInfo := block.CollectionViews[0]
 	view := viewInfo.CollectionView
+	collection := viewInfo.Collection
 	if view.Format == nil {
 		log("missing view.Format for block %s %s in page %s\n", block.ID, block.Type, pageID)
 		return
 	}
+
 	columns := view.Format.TableProperties
-
-	c.Printf("\n" + `<table class="notion-collection-view">` + "\n")
-
-	// generate header row
-	c.Printf("<thead>\n")
-
-	c.Printf("<tr>\n")
-
-	for _, col := range columns {
-		colName := col.Property
-		colInfo := viewInfo.Collection.CollectionSchema[colName]
-		if colInfo != nil {
-			name := colInfo.Name
-			c.Printf(`<th>` + html.EscapeString(name) + "</th>\n")
-		} else {
-			c.Printf(`<th>&nbsp;` + "</th>\n")
-		}
-	}
-	c.Printf("</tr>\n")
-
-	c.Printf("</thead>\n\n")
-
-	c.Printf("<tbody>\n")
-
-	for _, row := range viewInfo.CollectionRows {
-		c.Printf("<tr>\n")
-
-		props := row.Properties
-		for _, col := range columns {
-			colName := col.Property
-			v := props[colName]
-			//fmt.Printf("inline: '%s'\n", fmt.Sprintf("%v", v))
-			inlineContent, err := notionapi.ParseTextSpans(v)
-			if err != nil {
-				maybePanic("ParseTextSpans of '%v' failed with %s\n", v, err)
+	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
+	{
+		name := collection.GetName()
+		c.Printf(`<h4 class="collection-title">%s</h4>`, name)
+		c.Printf(`<table class="collection-content">`)
+		{
+			c.Printf(`<thead>`)
+			{
+				c.Printf(`<tr>`)
+				for _, col := range columns {
+					colName := col.Property
+					colInfo := viewInfo.Collection.CollectionSchema[colName]
+					name := ""
+					if colInfo != nil {
+						name = colInfo.Name
+						name = escapeHTML(name)
+					}
+					c.Printf(`<th>%s</th>`, name)
+				}
+				c.Printf(`</tr>`)
 			}
-			//pretty.Print(inlineContent)
-			colVal := c.GetInlineContent(inlineContent)
-			//fmt.Printf("colVal: '%s'\n", colVal)
-			//colInfo := viewInfo.Collection.CollectionSchema[colName]
-			// TODO: format colVal according to colInfo
-			c.Printf(`<td>` + colVal + `</td>`)
+			c.Printf(`</thead>`)
+
+			c.Printf(`<tbody>`)
+			{
+				for _, row := range viewInfo.CollectionRows {
+					c.Printf(`<tr id="%s">`, row.ID)
+					props := row.Properties
+					for _, col := range columns {
+						colName := col.Property
+						v := props[colName]
+						inlineContent, err := notionapi.ParseTextSpans(v)
+						maybePanicIfErr(err, "ParseTextSpans of '%v' failed with %s\n", v, err)
+						colVal := c.GetInlineContent(inlineContent)
+						colInfo := viewInfo.Collection.CollectionSchema[colName]
+						if colInfo.Type == "title" {
+							uri := getTitleColDownloadedURL(row, block, viewInfo.Collection)
+							if colVal == "" {
+								colVal = "Untitled"
+							}
+							colVal = fmt.Sprintf(`<a href="%s">%s</a>`, uri, colVal)
+						} else if colInfo.Type == "multi_select" {
+							vals := strings.Split(colVal, ",")
+							s := ""
+							for i := range vals {
+								// TODO: Notion prints in reverse order
+								idx := len(vals) - 1 - i
+								v := escapeHTML(vals[idx])
+								if v == "" {
+									continue
+								}
+								s += fmt.Sprintf(`<span class="selected-value">%s</span>`, v)
+							}
+							colVal = s
+						}
+						colNameCls := escapeHTML(colName)
+						c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
+					}
+					c.Printf("</tr>\n")
+				}
+			}
+			c.Printf(`</tbody>`)
 		}
-		c.Printf("</tr>\n")
+		c.Printf(`</table>`)
 	}
-
-	c.Printf("</tbody>\n")
-
-	c.Printf("</table>\n")
-}
+	c.Printf(`</div>`)
+	}
 
 // DefaultRenderFunc returns a defult rendering function for a type of
 // a given block

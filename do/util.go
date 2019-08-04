@@ -63,7 +63,7 @@ func readZipFile(path string) map[string][]byte {
 	return res
 }
 
-func reacreateDir(dir string) {
+func recreateDir(dir string) {
 	os.RemoveAll(dir)
 	err := os.MkdirAll(dir, 0755)
 	must(err)

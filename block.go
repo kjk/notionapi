@@ -332,39 +332,6 @@ type Permission struct {
 	UserID *string `json:"user_id,omitempty"`
 }
 
-// GetInlineText returns flattened content of inline blocks, without formatting
-func GetInlineText(blocks []*TextSpan) string {
-	s := ""
-	for _, block := range blocks {
-		// TODO: how to handle dates, users etc.?
-		s += block.Text
-	}
-	return s
-}
-
-func getFirstInline(inline []*TextSpan) string {
-	if len(inline) == 0 {
-		return ""
-	}
-	return inline[0].Text
-}
-
-func getFirstInlineBlock(v interface{}) (string, error) {
-	inline, err := ParseTextSpans(v)
-	if err != nil {
-		return "", err
-	}
-	return getFirstInline(inline), nil
-}
-
-func getInlineText(v interface{}) (string, error) {
-	inline, err := ParseTextSpans(v)
-	if err != nil {
-		return "", err
-	}
-	return GetInlineText(inline), nil
-}
-
 func getProp(block *Block, name string, toSet *string) bool {
 	v, ok := block.Properties[name]
 	if !ok {

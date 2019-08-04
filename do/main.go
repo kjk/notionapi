@@ -146,7 +146,7 @@ func main() {
 		return
 	}
 
-	if flgTestToHTML {
+	if true || flgTestToHTML {
 		ensurePrettierExists()
 		//testToHTML1()
 		testToHTML2()
@@ -159,7 +159,7 @@ func main() {
 		return
 	}
 	if flgToHTML != "" {
-		emptyLogDir()
+		recreateDir(logDir)
 		toHTML(flgToHTML)
 		return
 	}
