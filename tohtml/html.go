@@ -802,6 +802,10 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderCallout
 	case notionapi.BlockTableOfContents:
 		return c.RenderTableOfContents
+	case notionapi.BlockBreadcrumb:
+	case notionapi.BlockMaps:
+	case notionapi.BlockCodepen:
+		return nil
 	default:
 		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, c.Page.NotionURL())
 	}

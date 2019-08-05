@@ -415,7 +415,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 
 	p.resolveBlocks()
 
-	for _, block := range root.Content {
+	for _, block := range p.idToBlock {
 		if block.Type != BlockCollectionView {
 			continue
 		}
