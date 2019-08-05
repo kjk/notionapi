@@ -42,7 +42,7 @@ func (c *Client) getHTTPClient() *http.Client {
 	return &httpClient
 }
 
-func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) ([]byte, error) {
+func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
 	var js []byte
 	var err error
 	if requestData != nil {
@@ -94,7 +94,12 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 		log(c, "Error: json.Unmarshal() failed with %s\n. Body:\n%s\n", err, string(d))
 		return nil, err
 	}
-	return d, nil
+	var m map[string]interface{}
+	err = json.Unmarshal(d, &m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 var (
@@ -128,6 +133,12 @@ func IsValidDashID(id string) bool {
 	if len(id) != dashIDLen {
 		return false
 	}
+	if id[8] != '-' ||
+		id[13] != '-' ||
+		id[18] != '-' ||
+		id[23] != '-' {
+		return false
+	}
 	for i := range id {
 		if !isValidDashIDChar(id[i]) {
 			return false
@@ -149,7 +160,7 @@ func IsValidNoDashID(id string) bool {
 	return true
 }
 
-// ToNoDashID converts  2131b10c-ebf6-4938-a127-7089ff02dbe4
+// ToNoDashID converts 2131b10c-ebf6-4938-a127-7089ff02dbe4
 // to 2131b10cebf64938a1277089ff02dbe4.
 // If not in expected format, we leave it untouched
 func ToNoDashID(id string) string {
@@ -236,7 +247,7 @@ func ExtractNoDashIDFromNotionURL(uri string) string {
 	return ""
 }
 
-func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
+func (p *Page) resolveBlocks(block *Block) error {
 	err := parseProperties(block)
 	if err != nil {
 		return err
@@ -249,7 +260,7 @@ func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
 	block.Content = make([]*Block, n, n)
 	notResolved := []int{}
 	for i, id := range block.ContentIDs {
-		resolved := idToBlock[id]
+		resolved := p.idToBlock[id]
 		if resolved == nil {
 			// This can happen e.g. for page fa3fc358e5644f39b89c57f13d426d54
 			notResolved = append(notResolved, i)
@@ -257,7 +268,7 @@ func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
 			continue
 		}
 		block.Content[i] = resolved
-		resolveBlocks(resolved, idToBlock)
+		p.resolveBlocks(resolved)
 	}
 	// remove blocks that are not resolved
 	for idx, toRemove := range notResolved {
@@ -275,7 +286,7 @@ func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
 }
 
 // recursively find blocks that we don't have yet
-func findMissingBlocks(startIds []string, idToBlock map[string]*Block, blocksToSkip map[string]struct{}) []string {
+func (p *Page) findMissingBlocks(startIds []string) []string {
 	var missing []string
 	seen := map[string]struct{}{}
 	toCheck := append([]string{}, startIds...)
@@ -285,11 +296,11 @@ func findMissingBlocks(startIds []string, idToBlock map[string]*Block, blocksToS
 		if _, ok := seen[id]; ok {
 			continue
 		}
-		if _, ok := blocksToSkip[id]; ok {
+		if _, ok := p.blocksToSkip[id]; ok {
 			continue
 		}
 		seen[id] = struct{}{}
-		block := idToBlock[id]
+		block := p.idToBlock[id]
 		if block == nil {
 			missing = append(missing, id)
 			continue
@@ -316,10 +327,18 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	}
 	pageID = id
 
-	page := &Page{
-		client: c,
+	p := &Page{
+		ID:                 pageID,
+		client:             c,
+		idToBlock:          map[string]*Block{},
+		idToCollection:     map[string]*Collection{},
+		idToCollectionView: map[string]*CollectionView{},
+		idToUser:           map[string]*User{},
+		blocksToSkip:       map[string]struct{}{},
 	}
 
+	var root *Block
+	// get page's root block and then recursively download referenced blocks
 	{
 		recVals, err := c.GetRecordValues([]string{pageID})
 		if err != nil {
@@ -330,17 +349,11 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		if res.Value == nil {
 			return nil, fmt.Errorf("Couldn't retrieve page with id %s", pageID)
 		}
-		pageID = res.Value.ID
-		page.ID = pageID
-		page.Root = recVals.Results[0].Value
+		panicIf(p.ID != res.Value.ID, "%s != %s", p.ID, res.Value.ID)
+		root = recVals.Results[0].Value
+		p.idToBlock[root.ID] = root
 	}
 
-	idToBlock := map[string]*Block{}
-	idToCollection := map[string]*Collection{}
-	idToCollectionView := map[string]*CollectionView{}
-	idToUser := map[string]*User{}
-	// not alive or when server doesn't return "value" for this block id
-	blocksToSkip := map[string]struct{}{}
 	chunkNo := 0
 	var cur *cursor
 	for {
@@ -351,25 +364,25 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		}
 		for id, v := range rsp.RecordMap.Blocks {
 			if v.Value.Alive {
-				idToBlock[id] = v.Value
+				p.idToBlock[id] = v.Value
 			} else {
-				blocksToSkip[id] = struct{}{}
+				p.blocksToSkip[id] = struct{}{}
 			}
 		}
 		for id, v := range rsp.RecordMap.Collections {
 			if v.Value.Alive {
-				idToCollection[id] = v.Value
+				p.idToCollection[id] = v.Value
 			}
 			// TODO: what to do for not alive?
 		}
 		for id, v := range rsp.RecordMap.CollectionViews {
 			if v.Value.Alive {
-				idToCollectionView[id] = v.Value
+				p.idToCollectionView[id] = v.Value
 			}
 			// TODO: what to do for not alive?
 		}
 		for id, v := range rsp.RecordMap.Users {
-			idToUser[id] = v.Value
+			p.idToUser[id] = v.Value
 		}
 
 		cursor := rsp.Cursor
@@ -383,7 +396,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	// get blocks that are not already loaded
 	missingIter := 1
 	for {
-		missing := findMissingBlocks(page.Root.ContentIDs, idToBlock, blocksToSkip)
+		missing := p.findMissingBlocks(root.ContentIDs)
 		if len(missing) == 0 {
 			break
 		}
@@ -412,7 +425,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				// Server returns { "role": "none" },
 				if block == nil {
 					expectedID := toGet[n]
-					blocksToSkip[expectedID] = struct{}{}
+					p.blocksToSkip[expectedID] = struct{}{}
 					if n > 0 {
 						prevBlock := recVals.Results[n-1]
 						if prevBlock == nil || prevBlock.Value == nil {
@@ -429,21 +442,21 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				}
 
 				id := block.ID
-				idToBlock[id] = block
+				p.idToBlock[id] = block
 			}
 		}
 	}
 
-	for _, v := range idToUser {
-		page.Users = append(page.Users, v)
+	for _, v := range p.idToUser {
+		p.Users = append(p.Users, v)
 	}
 
-	err := resolveBlocks(page.Root, idToBlock)
+	err := p.resolveBlocks(root)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, block := range page.Root.Content {
+	for _, block := range root.Content {
 		if block.Type != BlockCollectionView {
 			continue
 		}
@@ -451,18 +464,18 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			return nil, fmt.Errorf("collection_view has no ViewIDs")
 		}
 		// TODO: should fish out the user based on block.CreatedBy
-		if len(page.Users) == 0 {
+		if len(p.Users) == 0 {
 			return nil, fmt.Errorf("no users when trying to resolve collection_view")
 		}
 
 		collectionID := block.CollectionID
 		for _, collectionViewID := range block.ViewIDs {
-			user := page.Users[0]
-			collectionView, ok := idToCollectionView[collectionViewID]
+			user := p.Users[0]
+			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {
 				return nil, fmt.Errorf("Didn't find collection_view with id '%s'", collectionViewID)
 			}
-			collection, ok := idToCollection[collectionID]
+			collection, ok := p.idToCollection[collectionID]
 			if !ok {
 				//return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
 				continue
@@ -490,6 +503,5 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			block.CollectionViews = append(block.CollectionViews, collInfo)
 		}
 	}
-	page.idToBlock = idToBlock
-	return page, nil
+	return p, nil
 }

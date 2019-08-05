@@ -1,6 +1,7 @@
 package notionapi
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -17,14 +18,81 @@ var (
 // Page describes a single Notion page
 type Page struct {
 	ID string
-	// Root is a root block representing a page
-	Root *Block
 	// Users allows to find users that Page refers to by their ID
 	Users  []*User
 	Tables []*Table
 
-	idToBlock map[string]*Block
+	idToBlock          map[string]*Block
+	idToCollection     map[string]*Collection
+	idToCollectionView map[string]*CollectionView
+	idToUser           map[string]*User
+	blocksToSkip       map[string]struct{} // not alive or when server doesn't return "value" for this block id
+
 	client *Client
+}
+
+// BlockByID returns a block by its id
+func (p *Page) BlockByID(id string) *Block {
+	return p.idToBlock[ToDashID(id)]
+}
+
+// Root returns a root block representing a page
+func (p *Page) Root() *Block {
+	return p.BlockByID(p.ID)
+}
+
+const (
+	// current version of Page JSON serialization
+	// allows changing the format in the future
+	currPageJSONVersion = "1"
+)
+
+type pageMarshaled struct {
+	Version    string
+	RootPageID string
+	Blocks     []map[string]interface{}
+}
+
+func (p *Page) MarshalJSON() ([]byte, error) {
+	v := pageMarshaled{
+		Version:    currPageJSONVersion,
+		RootPageID: p.ID,
+	}
+	// we want to serialize in a fixed order
+	var ids []string
+	for id := range p.idToBlock {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		block := p.idToBlock[id]
+		v.Blocks = append(v.Blocks, block.RawJSON)
+	}
+	return json.MarshalIndent(v, "", "  ")
+}
+
+func (p *Page) UnmarshalJSON(data []byte) error {
+	var v pageMarshaled
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return err
+	}
+	if v.Version != currPageJSONVersion {
+		return fmt.Errorf("expected serialization format version '%s', got '%s'", currPageJSONVersion, v.Version)
+	}
+
+	p.idToBlock = map[string]*Block{}
+	p.ID = v.RootPageID
+	for _, blockJSON := range v.Blocks {
+		var b Block
+		err = jsonUnmarshalFromMap(blockJSON, &b)
+		if err != nil {
+			return err
+		}
+		b.RawJSON = blockJSON
+		p.idToBlock[b.ID] = &b
+	}
+	return nil
 }
 
 // GetBlockByID returns Block given it's id
@@ -41,7 +109,7 @@ type Table struct {
 
 // SetTitle changes page title
 func (p *Page) SetTitle(s string) error {
-	op := buildSetTitleOp(p.Root.ID, s)
+	op := buildSetTitleOp(p.ID, s)
 	ops := []*Operation{op}
 	return p.client.SubmitTransaction(ops)
 }
@@ -57,7 +125,7 @@ func (p *Page) SetFormat(args map[string]interface{}) error {
 			return fmt.Errorf("'%s' is not a valid page format property", k)
 		}
 	}
-	op := buildSetPageFormat(p.Root.ID, args)
+	op := buildSetPageFormat(p.ID, args)
 	ops := []*Operation{op}
 	return p.client.SubmitTransaction(ops)
 }

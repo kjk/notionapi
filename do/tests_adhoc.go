@@ -20,7 +20,7 @@ func testDownloadImage() {
 	fmt.Printf("testDownloadImage %s\n", pageURL(pageID))
 	page, err := dl(client, pageID)
 	must(err)
-	block := page.Root
+	block := page.Root()
 	assert(block.Title == "test image", "unexpected title ''%s'", block.Title)
 	blocks := block.Content
 	assert(len(blocks) == 2, "expected 2 blockSS, got %d", len(blocks))
@@ -64,9 +64,9 @@ func testGist() {
 	fmt.Printf("testGist %s\n", pageURL(pageID))
 	page, err := dl(client, pageID)
 	must(err)
-	title := page.Root.Title
+	title := page.Root().Title
 	assert(title == "Test Gist", "unexpected title ''%s'", title)
-	blocks := page.Root.Content
+	blocks := page.Root().Content
 	assert(len(blocks) == 1, "expected 1 block, got %d", len(blocks))
 	block := blocks[0]
 	src := block.Source
@@ -91,7 +91,7 @@ func testChangeFormat() {
 		fmt.Printf("testChangeFormat: client.DownloadPage() failed with '%s'\n", err)
 		return
 	}
-	origFormat := page.Root.FormatPage()
+	origFormat := page.Root().FormatPage()
 	if origFormat == nil {
 		origFormat = &notionapi.FormatPage{}
 	}
@@ -113,7 +113,7 @@ func testChangeFormat() {
 		fmt.Printf("testChangeFormat: client.DownloadPage() failed with '%s'\n", err)
 		return
 	}
-	format := page2.Root.FormatPage()
+	format := page2.Root().FormatPage()
 	assert(newSmallText == format.PageSmallText, "'%v' != '%v' (newSmallText != format.PageSmallText)", newSmallText, format.PageSmallText)
 	assert(newFullWidth == format.PageFullWidth, "'%v' != '%v' (newFullWidth != format.PageFullWidth)", newFullWidth, format.PageFullWidth)
 }
@@ -135,7 +135,7 @@ func testChangeTitle() {
 		fmt.Printf("testChangeTitle: client.DownloadPage() failed with '%s'\n", err)
 		return
 	}
-	origTitle := page.Root.Title
+	origTitle := page.Root().Title
 	newTitle := origTitle + " changed"
 	fmt.Printf("Changing title from '%s' to '%s'\n", origTitle, newTitle)
 	err = page.SetTitle(newTitle)
@@ -148,7 +148,7 @@ func testChangeTitle() {
 		fmt.Printf("testChangeTitle: client.DownloadPage() failed with '%s'\n", err)
 		return
 	}
-	title := page2.Root.Title
+	title := page2.Root().Title
 	assert(title == newTitle, "'%s' != '%s' (title != newTitle)", title, newTitle)
 
 	fmt.Printf("Changing title from '%s' to '%s'\n", title, origTitle)

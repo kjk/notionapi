@@ -61,12 +61,18 @@ const (
 	BlockDrive = "drive"
 	// BlockTweet is embedded gist block
 	BlockTweet = "tweet"
+	// BlockMaps is embedded Google Map block
+	BlockMaps = "maps"
+	// BlockCodepen is embedded codepen block
+	BlockCodepen = "codepen"
 	// BlockEmbed is a generic oembed link
 	BlockEmbed = "embed"
 	// BlockCallout is a callout
 	BlockCallout = "callout"
 	// BlockTableOfContents is table of contents
 	BlockTableOfContents = "table_of_contents"
+	// BlockBreadcrumb is breadcrumb block
+	BlockBreadcrumb = "breadcrumb"
 )
 
 // BlockPageType defines a type of BlockPage block
@@ -193,9 +199,9 @@ type Permission struct {
 
 // Block describes a block
 type Block struct {
+	// values that come from JSON
 	// a unique ID of the block
 	ID string `json:"id"`
-	// values that come from JSON
 	// if false, the page is deleted
 	Alive bool `json:"alive"`
 	// List of block ids for that make up content of this block
@@ -210,8 +216,7 @@ type Block struct {
 	DiscussionIDs []string `json:"discussion,omitempty"`
 	// those ids seem to map to storage in s3
 	// https://s3-us-west-2.amazonaws.com/secure.notion-static.com/${id}/${name}
-	FileIDs   []string        `json:"file_ids,omitempty"`
-	FormatRaw json.RawMessage `json:"-"`
+	FileIDs []string `json:"file_ids,omitempty"`
 
 	// TODO: don't know what this means
 	IgnoreBlockCount bool `json:"ignore_block_count,omitempty"`
@@ -232,6 +237,7 @@ type Block struct {
 	ViewIDs []string `json:"view_ids,omitempty"`
 
 	// Values calculated by us
+	FormatRaw json.RawMessage `json:"-"`
 
 	// Parent of this block
 	Parent *Block `json:"-"`
@@ -239,17 +245,17 @@ type Block struct {
 	// maps ContentIDs array to Block type
 	Content []*Block `json:"-"`
 	// this is for some types like TypePage, TypeText, TypeHeader etc.
-	InlineContent []*TextSpan `json:"inline_text,omitempty"`
+	InlineContent []*TextSpan `json:"-"`
 
 	// for BlockPage
-	Title string `json:"title,omitempty"`
+	Title string `json:"-"`
 
 	// For BlockTodo, a checked state
-	IsChecked bool `json:"is_checked,omitempty"`
+	IsChecked bool `json:"-"`
 
 	// for BlockBookmark
-	Description string `json:"description,omitempty"`
-	Link        string `json:"link,omitempty"`
+	Description string `json:"-"`
+	Link        string `json:"-"`
 
 	// for BlockBookmark it's the url of the page
 	// for BlockGist it's the url for the gist
@@ -257,24 +263,30 @@ type Block struct {
 	// because Source is sometimes not accessible
 	// for BlockFile it's url of the file
 	// for BlockEmbed it's url of the embed
-	Source string `json:"source,omitempty"`
+	Source string `json:"-"`
 
 	// for BlockFile
-	FileSize string `json:"file_size,omitempty"`
+	FileSize string `json:"-"`
 
 	// for BlockImage it's an URL built from Source that is always accessible
-	ImageURL string `json:"image_url,omitempty"`
+	ImageURL string `json:"-"`
 
 	// for BlockCode
-	Code         string `json:"code,omitempty"`
-	CodeLanguage string `json:"code_language,omitempty"`
+	Code         string `json:"-"`
+	CodeLanguage string `json:"-"`
 
 	// for BlockCollectionView
 	// It looks like the info about which view is selected is stored in browser
-	CollectionViews []*CollectionViewInfo `json:"collection_views,omitempty"`
+	CollectionViews []*CollectionViewInfo `json:"-"`
+
+	Page *Page `json:"-"`
+
+	// RawJSON represents Block as
+	RawJSON map[string]interface{} `json:"-"`
 }
 
 // CollectionViewInfo describes a particular view of the collection
+// TODO: same as table?
 type CollectionViewInfo struct {
 	CollectionView *CollectionView
 	Collection     *Collection

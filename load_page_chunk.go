@@ -23,9 +23,10 @@ type stack struct {
 
 // LoadPageChunkResponse is a response to /api/v3/loadPageChunk api
 type LoadPageChunkResponse struct {
-	RecordMap RecordMap `json:"recordMap"`
-	Cursor    cursor    `json:"cursor"`
-	RawJSON   []byte    `json:"-"`
+	RecordMap *RecordMap `json:"recordMap"`
+	Cursor    cursor     `json:"cursor"`
+
+	RawJSON map[string]interface{} `json:"-"`
 }
 
 // RecordMap contains a collections of blocks, a space, users, and collections.
@@ -52,6 +53,8 @@ type Space struct {
 	BetaEnabled bool          `json:"beta_enabled"`
 	Permissions *[]Permission `json:"permissions,omitempty"`
 	Pages       []string      `json:"pages,omitempty"`
+
+	RawJSON map[string]interface{}
 }
 
 // CollectionViewWithRole describes a role and a collection view
@@ -171,6 +174,8 @@ type User struct {
 	ProfilePhoto              string `json:"profile_photo"`
 	TimeZone                  string `json:"time_zone"`
 	Version                   int    `json:"version"`
+
+	RawJSON map[string]interface{}
 }
 
 // Date describes a date
@@ -227,5 +232,17 @@ func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPa
 	if err != nil {
 		return nil, err
 	}
+	setLoadPageChunkResponse(&rsp, rsp.RawJSON)
 	return &rsp, nil
+}
+
+func setLoadPageChunkResponse(r *LoadPageChunkResponse, json map[string]interface{}) {
+	recordMapJSON := jsonGetMap(json, "recordMap")
+	blockByID := jsonGetMap(recordMapJSON, "block")
+	for id, br := range r.RecordMap.Blocks {
+		brJSON := jsonGetMap(blockByID, id)
+		b := br.Value
+		bJSON := jsonGetMap(brJSON, "value")
+		b.RawJSON = bJSON
+	}
 }

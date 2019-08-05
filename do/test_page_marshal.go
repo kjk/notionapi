@@ -31,7 +31,7 @@ func testPageMarshal() {
 	must(err)
 	html1 := pageToHTML(page1)
 
-	d, err := json.Marshal(page1)
+	d, err := json.MarshalIndent(page1, "", "  ")
 	must(err)
 	var page2 notionapi.Page
 	err = json.Unmarshal(d, &page2)
@@ -42,4 +42,6 @@ func testPageMarshal() {
 		return
 	}
 	fmt.Printf("testPageMarshal() failed. html1 != html2. len(html1): %d, len(html2): %d!\n", len(html1), len(html2))
+
+	//fmt.Printf("json:\n%s\n", string(d))
 }

@@ -148,7 +148,7 @@ func main() {
 		return
 	}
 
-	if flgTestPageMarshal {
+	if true || flgTestPageMarshal {
 		testPageMarshal()
 		return
 	}

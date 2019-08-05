@@ -52,7 +52,7 @@ func testToMdRecur(startPageID string, whiteListed []string, referenceFiles map[
 		//fmt.Printf("page as markdown:\n%s\n", string(pageMd))
 		expData, ok := referenceFiles[name]
 		if !ok {
-			fmt.Printf("\n'%s' from '%s' doesn't seem correct as it's not present in referenceFiles\n", name, page.Root.Title)
+			fmt.Printf("\n'%s' from '%s' doesn't seem correct as it's not present in referenceFiles\n", name, page.Root().Title)
 			fmt.Printf("Names in referenceFiles:\n")
 			for s := range referenceFiles {
 				fmt.Printf("  %s\n", s)
@@ -65,7 +65,7 @@ func testToMdRecur(startPageID string, whiteListed []string, referenceFiles map[
 			} else {
 				fmt.Printf(" ok\n")
 			}
-			pages = append(pages, notionapi.GetSubPages(page.Root.Content)...)
+			pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
 			continue
 		}
 		if len(pageMd) == len(expData) {

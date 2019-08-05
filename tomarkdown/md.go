@@ -23,7 +23,7 @@ func markdownFileName(title, pageID string) string {
 
 // MarkdownFileNameForPage returns file name for markdown file
 func MarkdownFileNameForPage(page *notionapi.Page) string {
-	return markdownFileName(page.Root.Title, page.ID)
+	return markdownFileName(page.Root().Title, page.ID)
 }
 
 // BlockRenderFunc is a function for rendering a particular block
@@ -701,7 +701,7 @@ func (c *Converter) RenderBlock(block *notionapi.Block) {
 func (c *Converter) ToMarkdown() []byte {
 	c.PushNewBuffer()
 
-	c.RenderBlock(c.Page.Root)
+	c.RenderBlock(c.Page.Root())
 	buf := c.PopBuffer()
 	// a bit of a hack to account for adding newlines before and after each block
 	// which adds empty lines at top and bottom

@@ -14,17 +14,17 @@ type getRecordValuesRequestInner struct {
 	ID    string `json:"id"`
 }
 
-// GetRecordValuesResponse represents response to /api/v3/getRecordValues api
-// Note: it depends on Table type in request
-type GetRecordValuesResponse struct {
-	Results []*BlockWithRole `json:"results"`
-	RawJSON []byte           `json:"-"`
-}
-
 // BlockWithRole describes a block info
 type BlockWithRole struct {
 	Role  string `json:"role"`
 	Value *Block `json:"value"`
+}
+
+// GetRecordValuesResponse represents response to /api/v3/getRecordValues api
+// Note: it depends on Table type in request
+type GetRecordValuesResponse struct {
+	Results []*BlockWithRole       `json:"results"`
+	RawJSON map[string]interface{} `json:"-"`
 }
 
 // GetRecordValues executes a raw API call /api/v3/getRecordValues
@@ -50,5 +50,13 @@ func (c *Client) GetRecordValues(ids []string) (*GetRecordValuesResponse, error)
 	if err != nil {
 		return nil, err
 	}
+	resultsJSON := rsp.RawJSON["results"].([]interface{})
+	for i, br := range rsp.Results {
+		brJSON := resultsJSON[i].(map[string]interface{})
+		b := br.Value
+		bJSON := jsonGetMap(brJSON, "value")
+		b.RawJSON = bJSON
+	}
+
 	return &rsp, nil
 }

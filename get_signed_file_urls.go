@@ -25,8 +25,8 @@ type getSignedFileURL struct {
 
 // GetSignedFileUrlsResponse is a response of GetSignedFileUrls()
 type GetSignedFileUrlsResponse struct {
-	SignedUrls []string `json:"signedUrls"`
-	RawJSON    []byte   `json:"-"`
+	SignedUrls []string               `json:"signedUrls"`
+	RawJSON    map[string]interface{} `json:"-"`
 }
 
 // GetSignedFileUrls executes a raw API call /api/v3/getSignedFileUrls

@@ -42,7 +42,7 @@ func (w *writer) block(block *Block) {
 // Dump writes a simple representation of Page to w. A debugging helper.
 func Dump(w io.Writer, page *Page) {
 	wr := writer{w: w}
-	wr.block(page.Root)
+	wr.block(page.Root())
 }
 
 // DumpToString returns a simple representation of Page as a string.

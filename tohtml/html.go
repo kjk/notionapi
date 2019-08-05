@@ -54,7 +54,7 @@ func htmlFileName(title string) string {
 
 // HTMLFileNameForPage returns file name for html file
 func HTMLFileNameForPage(page *notionapi.Page) string {
-	return htmlFileName(page.Root.Title)
+	return htmlFileName(page.Root().Title)
 }
 func log(format string, args ...interface{}) {
 	notionapi.Log(format, args...)
@@ -877,7 +877,7 @@ func (c *Converter) ToHTML() []byte {
 	c.Level = 0
 	c.PushNewBuffer()
 
-	c.RenderBlock(c.Page.Root)
+	c.RenderBlock(c.Page.Root())
 	buf := c.PopBuffer()
 	if c.Level != 0 {
 		panic(fmt.Sprintf("r.Level is %d, should be 0", c.Level))

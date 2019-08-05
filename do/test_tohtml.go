@@ -46,7 +46,7 @@ func testToHTMLRecur(startPageID string, toSkip []string, referenceFiles map[str
 		fmt.Printf("%02d: %s '%s'", nPage, pageID, name)
 		if isPageIDInArray(toSkip, pageID) {
 			fmt.Printf(" skipping known good\n")
-			pages = append(pages, notionapi.GetSubPages(page.Root.Content)...)
+			pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
 			continue
 		}
 		//fmt.Printf("page as markdown:\n%s\n", string(pageMd))
@@ -58,7 +58,7 @@ func testToHTMLRecur(startPageID string, toSkip []string, referenceFiles map[str
 			}
 		}
 		if len(expData) == 0 {
-			fmt.Printf("\n'%s' from '%s' doesn't seem correct as it's not present in referenceFiles\n", name, page.Root.Title)
+			fmt.Printf("\n'%s' from '%s' doesn't seem correct as it's not present in referenceFiles\n", name, page.Root().Title)
 			fmt.Printf("Names in referenceFiles:\n")
 			for s := range referenceFiles {
 				fmt.Printf("  %s\n", s)
@@ -67,7 +67,7 @@ func testToHTMLRecur(startPageID string, toSkip []string, referenceFiles map[str
 		}
 		if bytes.Equal(pageMd, expData) {
 			fmt.Printf(" ok\n")
-			pages = append(pages, notionapi.GetSubPages(page.Root.Content)...)
+			pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
 			continue
 		}
 		if len(pageMd) == len(expData) {
@@ -93,7 +93,7 @@ func testToHTMLRecur(startPageID string, toSkip []string, referenceFiles map[str
 			formatHTMLFile("got.html")
 			if areFilesEuqal("exp.html", "got.html") {
 				fmt.Printf(", files same after formatting\n")
-				pages = append(pages, notionapi.GetSubPages(page.Root.Content)...)
+				pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
 				continue
 			}
 		}

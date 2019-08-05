@@ -167,7 +167,7 @@ func htmlFileName(title string) string {
 
 // HTMLFileNameForPage returns file name for html file
 func HTMLFileNameForPage(page *notionapi.Page) string {
-	return htmlFileName(page.Root.Title)
+	return htmlFileName(page.Root().Title)
 }
 func log(format string, args ...interface{}) {
 	notionapi.Log(format, args...)
@@ -784,7 +784,7 @@ func getHeaderBlocks(blocks []*notionapi.Block) []*notionapi.Block {
 func (c *Converter) RenderTableOfContents(block *notionapi.Block) {
 	// TODO: block-color-gray comes from "format": { "block_color" }
 	c.Printf(`<nav id="%s" class="block-color-gray table_of_contents">`, block.ID)
-	blocks := getHeaderBlocks(c.Page.Root.Content)
+	blocks := getHeaderBlocks(c.Page.Root().Content)
 	for _, b := range blocks {
 		s := c.GetInlineContent(b.InlineContent)
 		// TODO: "indent-0" might probably be differnt
@@ -1184,7 +1184,7 @@ func (c *Converter) RenderBlock(block *notionapi.Block) {
 // ToHTML renders a page to html
 func (c *Converter) ToHTML() []byte {
 	c.PushNewBuffer()
-	c.RenderBlock(c.Page.Root)
+	c.RenderBlock(c.Page.Root())
 	buf := c.PopBuffer()
 	return buf.Bytes()
 }
