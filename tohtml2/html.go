@@ -582,19 +582,33 @@ func appendClass(s, cls string) string {
 func getBlockColorClass(block *notionapi.Block) string {
 	// TODO: inefficient, use FromatStringValue("block_color") instead
 	var col string
-	if block.FormatText() != nil {
-		col = block.FormatText().BlockColor
-	} else if block.FormatPage() != nil {
-		col = block.FormatPage().BlockColor
-	} else if block.FormatToggle() != nil {
-		col = block.FormatToggle().BlockColor
-	} else if block.FormatHeader() != nil {
-		col = block.FormatHeader().BlockColor
-	} else if block.FormatNumberedList() != nil {
-		col = block.FormatNumberedList().BlockColor
-	} else if block.FormatBulletedList() != nil {
-		col = block.FormatBulletedList().BlockColor
+	switch block.Type {
+	case notionapi.BlockText:
+		if block.FormatText() != nil {
+			col = block.FormatText().BlockColor
+		}
+	case notionapi.BlockPage:
+		if block.FormatPage() != nil {
+			col = block.FormatPage().BlockColor
+		}
+	case notionapi.BlockToggle:
+		if block.FormatToggle() != nil {
+			col = block.FormatToggle().BlockColor
+		}
+	case notionapi.BlockHeader:
+		if block.FormatHeader() != nil {
+			col = block.FormatHeader().BlockColor
+		}
+	case notionapi.BlockNumberedList:
+		if block.FormatNumberedList() != nil {
+			col = block.FormatNumberedList().BlockColor
+		}
+	case notionapi.BlockBulletedList:
+		if block.FormatBulletedList() != nil {
+			col = block.FormatBulletedList().BlockColor
+		}
 	}
+
 	if col == "" {
 		return ""
 	}

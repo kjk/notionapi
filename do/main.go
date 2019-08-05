@@ -83,9 +83,10 @@ var (
 	// if true, remove cache directories (data/log, data/cache)
 	flgCleanCache bool
 
-	flgTestToMd   bool
-	flgTestToHTML bool
-	flgNoFormat   bool
+	flgTestToMd        bool
+	flgTestToHTML      bool
+	flgTestPageMarshal bool
+	flgNoFormat        bool
 )
 
 var (
@@ -102,6 +103,7 @@ func parseFlags() {
 	flag.BoolVar(&flgCleanCache, "clean-cache", false, "if true, cleans cache directories (data/log, data/cache")
 	flag.BoolVar(&flgTestToMd, "test-to-md", false, "test markdown generation")
 	flag.BoolVar(&flgTestToHTML, "test-to-html", false, "test html generation")
+	flag.BoolVar(&flgTestPageMarshal, "test-page-marshal", false, "test marshalling of Page to/from JSON")
 	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
 	flag.StringVar(&flgToHTML, "tohtml", "", "id of notion page to download and convert to html")
 	flag.BoolVar(&flgUseCache, "use-cache", false, "if true will try to avoid downloading the page by using cached version saved in log/ directory")
@@ -146,7 +148,12 @@ func main() {
 		return
 	}
 
-	if true || flgTestToHTML {
+	if flgTestPageMarshal {
+		testPageMarshal()
+		return
+	}
+
+	if flgTestToHTML {
 		ensurePrettierExists()
 		//testToHTML1()
 		//testToHTML2()
