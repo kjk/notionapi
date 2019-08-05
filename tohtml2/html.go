@@ -500,13 +500,13 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 	c.Printf(`<figure id="%s" class="%s">`, block.ID, cls)
 	{
 		c.Printf(`<a href="%s">`, uri)
-		f := block.FormatPage()
-		if f != nil && f.PageIcon != "" {
+		pageIcon, ok := block.FormatStringValue("page_icon")
+		if ok {
 			if len(block.FileIDs) > 0 {
-				fileName := getDownloadedFileName(f.PageIcon, block)
+				fileName := getDownloadedFileName(pageIcon, block)
 				c.Printf(`<img class="icon" src="%s">`, fileName)
 			} else {
-				c.Printf(`<span class="icon">%s</span>`, f.PageIcon)
+				c.Printf(`<span class="icon">%s</span>`, pageIcon)
 			}
 		}
 		// TODO: possibly r.RenderInlines(block.InlineContent)

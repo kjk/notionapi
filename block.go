@@ -1,7 +1,6 @@
 package notionapi
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -236,9 +235,6 @@ type Block struct {
 	Version int64    `json:"version"`
 	ViewIDs []string `json:"view_ids,omitempty"`
 
-	// Values calculated by us
-	FormatRaw json.RawMessage `json:"-"`
-
 	// Parent of this block
 	Parent *Block `json:"-"`
 
@@ -293,6 +289,14 @@ type CollectionViewInfo struct {
 	CollectionView *CollectionView
 	Collection     *Collection
 	CollectionRows []*Block
+}
+
+func (b *Block) FormatStringValue(key string) (string, bool) {
+	format := jsonGetMap(b.RawJSON, "format")
+	if format == nil {
+		return "", false
+	}
+	return jsonGetString(format, key)
 }
 
 // CreatedOn return the time the page was created
@@ -437,10 +441,11 @@ func (b *Block) panicIfNotOfType(expectedType string) {
 func (b *Block) unmarshalFormat(expectedType string, v interface{}) bool {
 	b.panicIfNotOfType(expectedType)
 
-	if len(b.FormatRaw) == 0 {
+	formatRaw := jsonGetMap(b.RawJSON, "format")
+	if len(formatRaw) == 0 {
 		return false
 	}
-	err := json.Unmarshal(b.FormatRaw, v)
+	err := jsonUnmarshalFromMap(formatRaw, v)
 	if err != nil {
 		panic(err)
 	}

@@ -144,7 +144,6 @@ func main() {
 	must(os.MkdirAll(cacheDir, 0755))
 
 	if flgTestToMd {
-
 		if false {
 			os.RemoveAll(logDir)
 			must(os.MkdirAll(logDir, 0755))
@@ -160,7 +159,14 @@ func main() {
 		return
 	}
 
-	if flgTestToHTML {
+	if true || flgTestToHTML {
+		if true {
+			os.RemoveAll(logDir)
+			must(os.MkdirAll(logDir, 0755))
+			os.RemoveAll(cacheDir)
+			must(os.MkdirAll(cacheDir, 0755))
+		}
+
 		ensurePrettierExists()
 		//testToHTML1()
 		//testToHTML2()
