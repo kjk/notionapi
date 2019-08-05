@@ -1,7 +1,5 @@
 package notionapi
 
-import "encoding/json"
-
 // /api/v3/loadPageChunk request
 type loadPageChunkRequest struct {
 	PageID          string `json:"pageId"`
@@ -107,32 +105,31 @@ type CollectionWithRole struct {
 
 // Collection describes a collection
 type Collection struct {
+	// form json
 	Alive            bool                             `json:"alive"`
+	CopiedFrom       string                           `json:"copied_from"`
+	FileIDs          []string                         `json:"file_ids"`
 	Format           *CollectionFormat                `json:"format"`
+	Icon             string                           `json:"icon"`
 	ID               string                           `json:"id"`
-	NameRaw          json.RawMessage                  `json:"name"`
 	ParentID         string                           `json:"parent_id"`
 	ParentTable      string                           `json:"parent_table"`
 	CollectionSchema map[string]*CollectionColumnInfo `json:"schema"`
 	Version          int                              `json:"version"`
 
+	// calculated by us
+	name    []*TextSpan
 	RawJSON map[string]interface{} `json:"-"`
 }
 
-func (c *Collection) GetName() string {
-	if len(c.NameRaw) == 0 {
-		return ""
+func (c *Collection) Name() string {
+	if len(c.name) == 0 {
+		name := jsonGetArray(c.RawJSON, "name")
+		if name != nil {
+			c.name, _ = ParseTextSpans(name)
+		}
 	}
-	var v []interface{}
-	err := json.Unmarshal(c.NameRaw, &v)
-	if err != nil {
-		return ""
-	}
-	ts, err := ParseTextSpans(v)
-	if err != nil {
-		return ""
-	}
-	return TextSpansToString(ts)
+	return TextSpansToString(c.name)
 }
 
 // CollectionFormat describes format of a collection

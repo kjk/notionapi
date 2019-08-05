@@ -550,3 +550,19 @@ func (b *Block) FormatBulletedList() *FormatBulletedList {
 	}
 	return &format
 }
+
+func (b *Block) BlockByID(id string) *Block {
+	return b.Page.BlockByID(id)
+}
+
+func (b *Block) UserByID(id string) *User {
+	return b.Page.UserByID(id)
+}
+
+func (b *Block) CollectionByID(id string) *Collection {
+	return b.Page.CollectionByID(id)
+}
+
+func (b *Block) CollectionViewByID(id string) *CollectionView {
+	return b.Page.CollectionViewByID(id)
+}

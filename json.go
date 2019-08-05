@@ -21,8 +21,17 @@ func jsonGetString(m map[string]interface{}, key string) (string, bool) {
 
 func jsonGetMap(m map[string]interface{}, key string) map[string]interface{} {
 	if v, ok := m[key]; ok {
-		if s, ok := v.(map[string]interface{}); ok {
-			return s
+		if m, ok := v.(map[string]interface{}); ok {
+			return m
+		}
+	}
+	return nil
+}
+
+func jsonGetArray(m map[string]interface{}, key string) []interface{} {
+	if v, ok := m[key]; ok {
+		if a, ok := v.([]interface{}); ok {
+			return a
 		}
 	}
 	return nil

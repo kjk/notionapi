@@ -98,7 +98,13 @@ func urlBaseName(uri string) string {
 	return parts[len(parts)-1]
 }
 
-func getTitleColDownloadedURL(row *notionapi.Block, block *notionapi.Block, collection *notionapi.Collection) string {
+func filePathForCollection(page *notionapi.Page, col *notionapi.Collection) string {
+	name := safeName(col.Name()) + ".html"
+	name = safeName(page.Root().Title) + "/" + name
+	return name
+}
+
+func getTitleColDownloadedURL(row *notionapi.Block, block *notionapi.Block, col *notionapi.Collection) string {
 	title := ""
 	titleSpans := row.GetTitle()
 	if len(titleSpans) == 0 {
@@ -110,7 +116,7 @@ func getTitleColDownloadedURL(row *notionapi.Block, block *notionapi.Block, coll
 		title = "Untitled"
 	}
 	name := safeName(title) + ".html"
-	colName := collection.GetName()
+	colName := col.Name()
 	if colName == "" {
 		colName = "Untitled Database"
 	}
@@ -122,6 +128,13 @@ func getTitleColDownloadedURL(row *notionapi.Block, block *notionapi.Block, coll
 		}
 		name = safeName(block.Title) + "/" + name
 	}
+	return name
+}
+
+func getCollectionDownloadedFileName(page *notionapi.Page, col *notionapi.Collection, uri string) string {
+	name := urlBaseName(uri)
+	name = safeName(col.Name()) + "/" + name
+	name = safeName(page.Root().Title) + "/" + name
 	return name
 }
 
@@ -480,18 +493,22 @@ func (c *Converter) renderHeader(block *notionapi.Block) {
 
 // RenderCollectionViewPage renders BlockCollectionViewPage
 func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
-	// TODO: grab collection by id
-	// use "icon" for img url, "name" for src link
-	/*
-		<figure id="9c051067-c117-4b1e-a61a-70735c0494eb" class="link-to-page">
-		<a href="Notion Pok dex/Type Chart.html"
-		><img
-		class="icon"
-		src="Notion Pok dex/Type Chart/sticker375x360.u2.png"
-		/>Type Chart</a
-		>
-	*/
-	c.renderLinkToPage(block)
+	colID := block.CollectionID
+	col := c.Page.CollectionByID(colID)
+	icon := col.Icon
+	name := col.Name()
+	c.Printf(`<figure id="%s" class="link-to-page">`, block.ID)
+	{
+		filePath := filePathForCollection(c.Page, col)
+		c.Printf(`<a href="%s">`, filePath)
+		{
+			uri := getCollectionDownloadedFileName(c.Page, col, icon)
+			c.Printf(`<img class="icon" src="%s">`, uri)
+		}
+		// TODO: should name be inlines?
+		c.Printf(`%s</a>`, name)
+	}
+	c.Printf(`</figure>`)
 }
 
 func (c *Converter) renderLinkToPage(block *notionapi.Block) {
@@ -580,35 +597,7 @@ func appendClass(s, cls string) string {
 }
 
 func getBlockColorClass(block *notionapi.Block) string {
-	// TODO: inefficient, use FromatStringValue("block_color") instead
-	var col string
-	switch block.Type {
-	case notionapi.BlockText:
-		if block.FormatText() != nil {
-			col = block.FormatText().BlockColor
-		}
-	case notionapi.BlockPage:
-		if block.FormatPage() != nil {
-			col = block.FormatPage().BlockColor
-		}
-	case notionapi.BlockToggle:
-		if block.FormatToggle() != nil {
-			col = block.FormatToggle().BlockColor
-		}
-	case notionapi.BlockHeader:
-		if block.FormatHeader() != nil {
-			col = block.FormatHeader().BlockColor
-		}
-	case notionapi.BlockNumberedList:
-		if block.FormatNumberedList() != nil {
-			col = block.FormatNumberedList().BlockColor
-		}
-	case notionapi.BlockBulletedList:
-		if block.FormatBulletedList() != nil {
-			col = block.FormatBulletedList().BlockColor
-		}
-	}
-
+	col, _ := block.FormatStringValue("block_color")
 	if col == "" {
 		return ""
 	}
@@ -996,7 +985,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	columns := view.Format.TableProperties
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
 	{
-		name := collection.GetName()
+		name := collection.Name()
 		c.Printf(`<h4 class="collection-title">%s</h4>`, name)
 		c.Printf(`<table class="collection-content">`)
 		{

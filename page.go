@@ -36,6 +36,21 @@ func (p *Page) BlockByID(id string) *Block {
 	return p.idToBlock[ToDashID(id)]
 }
 
+// UserByID returns a user by its id
+func (p *Page) UserByID(id string) *User {
+	return p.idToUser[ToDashID(id)]
+}
+
+// CollectionByID returns a collection by its id
+func (p *Page) CollectionByID(id string) *Collection {
+	return p.idToCollection[ToDashID(id)]
+}
+
+// CollectionViewByID returns a collection view by its id
+func (p *Page) CollectionViewByID(id string) *CollectionView {
+	return p.idToCollectionView[ToDashID(id)]
+}
+
 // Root returns a root block representing a page
 func (p *Page) Root() *Block {
 	return p.BlockByID(p.ID)
@@ -172,11 +187,6 @@ func (p *Page) UnmarshalJSON(data []byte) error {
 	}
 
 	return p.resolveBlocks()
-}
-
-// GetBlockByID returns Block given it's id
-func (p *Page) GetBlockByID(blockID string) *Block {
-	return p.idToBlock[blockID]
 }
 
 // Table represents a table (i.e. CollectionView)
