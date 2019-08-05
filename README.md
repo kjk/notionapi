@@ -7,8 +7,9 @@ It allows you to retrieve content of a Notion page in structured format.
 You can then e.g. convert that format to HTML.
 
 Documentation:
-* [getting started tutorial](https://www.programming-books.io/essential/go/db2797b0772a42fca5820014164589a7)
-* [API docs](https://godoc.org/github.com/kjk/notionapi)
+
+- [getting started tutorial](https://www.programming-books.io/essential/go/db2797b0772a42fca5820014164589a7)
+- [API docs](https://godoc.org/github.com/kjk/notionapi)
 
 You can learn how [I reverse-engineered the Notion API](https://blog.kowalczyk.info/article/88aee8f43620471aa9dbcad28368174c/how-i-reverse-engineered-notion-api.html) in order to write this library.
 
@@ -24,6 +25,5 @@ You can see the code at https://github.com/kjk/blog and https://github.com/essen
 
 # Implementations for other languages
 
-* https://github.com/jamalex/notion-py : library for Python
-* https://github.com/petersamokhin/knotion-api : library for Kotlin / Java
-
+- https://github.com/jamalex/notion-py : library for Python
+- https://github.com/petersamokhin/knotion-api : library for Kotlin / Java
