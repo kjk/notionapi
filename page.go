@@ -171,7 +171,7 @@ func (p *Page) UnmarshalJSON(data []byte) error {
 		p.idToCollectionView[v.ID] = &v
 	}
 
-	return nil
+	return p.resolveBlocks()
 }
 
 // GetBlockByID returns Block given it's id
@@ -301,4 +301,39 @@ func ResolveUser(page *Page, userID string) string {
 		}
 	}
 	return userID
+}
+
+func (p *Page) resolveBlocks() error {
+	for _, block := range p.idToBlock {
+		err := resolveBlock(p, block)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func resolveBlock(p *Page, block *Block) error {
+	if block.isResolved {
+		return nil
+	}
+	block.isResolved = true
+	err := parseProperties(block)
+	if err != nil {
+		return err
+	}
+
+	var contentIDs []string
+	var content []*Block
+	for _, id := range block.ContentIDs {
+		b := p.idToBlock[id]
+		if b == nil {
+			continue
+		}
+		contentIDs = append(contentIDs, id)
+		content = append(content, b)
+	}
+	block.ContentIDs = contentIDs
+	block.Content = content
+	return nil
 }

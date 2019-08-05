@@ -283,6 +283,8 @@ type Block struct {
 
 	// RawJSON represents Block as
 	RawJSON map[string]interface{} `json:"-"`
+
+	isResolved bool
 }
 
 // CollectionViewInfo describes a particular view of the collection

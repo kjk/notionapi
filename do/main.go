@@ -144,11 +144,18 @@ func main() {
 	must(os.MkdirAll(cacheDir, 0755))
 
 	if flgTestToMd {
+
+		if false {
+			os.RemoveAll(logDir)
+			must(os.MkdirAll(logDir, 0755))
+			os.RemoveAll(cacheDir)
+			must(os.MkdirAll(cacheDir, 0755))
+		}
 		testToMarkdown1()
 		return
 	}
 
-	if true || flgTestPageMarshal {
+	if flgTestPageMarshal {
 		testPageMarshal()
 		return
 	}

@@ -247,44 +247,6 @@ func ExtractNoDashIDFromNotionURL(uri string) string {
 	return ""
 }
 
-func (p *Page) resolveBlocks(block *Block) error {
-	err := parseProperties(block)
-	if err != nil {
-		return err
-	}
-
-	if block.Content != nil || len(block.ContentIDs) == 0 {
-		return nil
-	}
-	n := len(block.ContentIDs)
-	block.Content = make([]*Block, n, n)
-	notResolved := []int{}
-	for i, id := range block.ContentIDs {
-		resolved := p.idToBlock[id]
-		if resolved == nil {
-			// This can happen e.g. for page fa3fc358e5644f39b89c57f13d426d54
-			notResolved = append(notResolved, i)
-			//return fmt.Errorf("Couldn't resolve block with id '%s'", id)
-			continue
-		}
-		block.Content[i] = resolved
-		p.resolveBlocks(resolved)
-	}
-	// remove blocks that are not resolved
-	for idx, toRemove := range notResolved {
-		i := toRemove - idx
-		{
-			a := block.ContentIDs
-			block.ContentIDs = append(a[:i], a[i+1:]...)
-		}
-		{
-			a := block.Content
-			block.Content = append(a[:i], a[i+1:]...)
-		}
-	}
-	return nil
-}
-
 // recursively find blocks that we don't have yet
 func (p *Page) findMissingBlocks(startIds []string) []string {
 	var missing []string
@@ -346,11 +308,11 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		}
 		res := recVals.Results[0]
 		// this might happen e.g. when a page is not publicly visible
-		if res.Value == nil {
+		root = res.Value
+		if root == nil {
 			return nil, fmt.Errorf("Couldn't retrieve page with id %s", pageID)
 		}
-		panicIf(p.ID != res.Value.ID, "%s != %s", p.ID, res.Value.ID)
-		root = recVals.Results[0].Value
+		panicIf(p.ID != root.ID, "%s != %s", p.ID, root.ID)
 		p.idToBlock[root.ID] = root
 	}
 
@@ -451,10 +413,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		p.Users = append(p.Users, v)
 	}
 
-	err := p.resolveBlocks(root)
-	if err != nil {
-		return nil, err
-	}
+	p.resolveBlocks()
 
 	for _, block := range root.Content {
 		if block.Type != BlockCollectionView {
@@ -505,6 +464,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	}
 
 	for _, b := range p.idToBlock {
+		parseProperties(b)
 		b.Page = p
 	}
 

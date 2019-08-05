@@ -52,8 +52,11 @@ func (c *Client) GetRecordValues(ids []string) (*GetRecordValuesResponse, error)
 	}
 	resultsJSON := rsp.RawJSON["results"].([]interface{})
 	for i, br := range rsp.Results {
-		brJSON := resultsJSON[i].(map[string]interface{})
 		b := br.Value
+		if b == nil {
+			continue
+		}
+		brJSON := resultsJSON[i].(map[string]interface{})
 		bJSON := jsonGetMap(brJSON, "value")
 		b.RawJSON = bJSON
 	}

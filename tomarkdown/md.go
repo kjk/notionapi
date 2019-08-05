@@ -23,7 +23,8 @@ func markdownFileName(title, pageID string) string {
 
 // MarkdownFileNameForPage returns file name for markdown file
 func MarkdownFileNameForPage(page *notionapi.Page) string {
-	return markdownFileName(page.Root().Title, page.ID)
+	rootPage := page.Root()
+	return markdownFileName(rootPage.Title, page.ID)
 }
 
 // BlockRenderFunc is a function for rendering a particular block
