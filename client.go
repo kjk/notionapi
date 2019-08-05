@@ -241,10 +241,6 @@ func resolveBlocks(block *Block, idToBlock map[string]*Block) error {
 	if err != nil {
 		return err
 	}
-	err = parseFormat(block)
-	if err != nil {
-		return err
-	}
 
 	if block.Content != nil || len(block.ContentIDs) == 0 {
 		return nil

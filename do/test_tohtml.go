@@ -22,16 +22,6 @@ func toHTML2(page *notionapi.Page) (string, []byte) {
 	return name, d
 }
 
-func shouldSkipHTML(toSkip []string, pageID string) bool {
-	pageID = notionapi.ToNoDashID(pageID)
-	for _, s := range toSkip {
-		if pageID == s {
-			return true
-		}
-	}
-	return false
-}
-
 func testToHTMLRecur(startPageID string, toSkip []string, referenceFiles map[string][]byte) {
 	client := &notionapi.Client{
 		DebugLog: true,
@@ -54,7 +44,7 @@ func testToHTMLRecur(startPageID string, toSkip []string, referenceFiles map[str
 		must(err)
 		name, pageMd := toHTML2(page)
 		fmt.Printf("%02d: %s '%s'", nPage, pageID, name)
-		if shouldSkipHTML(toSkip, pageID) {
+		if isPageIDInArray(toSkip, pageID) {
 			fmt.Printf(" skipping known good\n")
 			pages = append(pages, notionapi.GetSubPages(page.Root.Content)...)
 			continue

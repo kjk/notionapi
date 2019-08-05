@@ -444,7 +444,7 @@ func escapeHTML(s string) string {
 func (c *Converter) renderHeader(block *notionapi.Block) {
 	c.Printf(`<header>`)
 	{
-		formatPage := block.FormatPage
+		formatPage := block.FormatPage()
 		// formatPage == nil happened in bf5d1c1f793a443ca4085cc99186d32f
 		if formatPage != nil && formatPage.PageCover != "" {
 			position := (1 - formatPage.PageCoverPosition) * 100
@@ -478,20 +478,19 @@ func (c *Converter) renderHeader(block *notionapi.Block) {
 	c.Printf(`</header>`)
 }
 
-
 // RenderCollectionViewPage renders BlockCollectionViewPage
 func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 	// TODO: grab collection by id
 	// use "icon" for img url, "name" for src link
 	/*
-	<figure id="9c051067-c117-4b1e-a61a-70735c0494eb" class="link-to-page">
-	<a href="Notion Pok dex/Type Chart.html"
-	><img
-	class="icon"
-	src="Notion Pok dex/Type Chart/sticker375x360.u2.png"
-	/>Type Chart</a
-	>
-	 */
+		<figure id="9c051067-c117-4b1e-a61a-70735c0494eb" class="link-to-page">
+		<a href="Notion Pok dex/Type Chart.html"
+		><img
+		class="icon"
+		src="Notion Pok dex/Type Chart/sticker375x360.u2.png"
+		/>Type Chart</a
+		>
+	*/
 	c.renderLinkToPage(block)
 }
 
@@ -501,12 +500,13 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 	c.Printf(`<figure id="%s" class="%s">`, block.ID, cls)
 	{
 		c.Printf(`<a href="%s">`, uri)
-		if block.FormatPage != nil && block.FormatPage.PageIcon != "" {
+		f := block.FormatPage()
+		if f != nil && f.PageIcon != "" {
 			if len(block.FileIDs) > 0 {
-				fileName := getDownloadedFileName(block.FormatPage.PageIcon, block)
+				fileName := getDownloadedFileName(f.PageIcon, block)
 				c.Printf(`<img class="icon" src="%s">`, fileName)
 			} else {
-				c.Printf(`<span class="icon">%s</span>`, block.FormatPage.PageIcon)
+				c.Printf(`<span class="icon">%s</span>`, f.PageIcon)
 			}
 		}
 		// TODO: possibly r.RenderInlines(block.InlineContent)
@@ -536,7 +536,7 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 
 		// TODO: sans could be mono, depending on format
 		clsFont := "sans"
-		fp := block.FormatPage
+		fp := block.FormatPage()
 		if fp != nil {
 			if fp.PageFont != "" {
 				clsFont = fp.PageFont
@@ -580,22 +580,25 @@ func appendClass(s, cls string) string {
 }
 
 func getBlockColorClass(block *notionapi.Block) string {
+	// TODO: inefficient, use FromatStringValue("block_color") instead
 	var col string
-	if block.FormatText != nil {
-		col = block.FormatText.BlockColor
-	} else if block.FormatPage != nil {
-		col = block.FormatPage.BlockColor
-	} else if block.FormatToggle != nil {
-		col = block.FormatToggle.BlockColor
-	} else if block.FormatHeader != nil {
-		col = block.FormatHeader.BlockColor
-	} else if block.FormatList != nil {
-		col = block.FormatList.BlockColor
+	if block.FormatText() != nil {
+		col = block.FormatText().BlockColor
+	} else if block.FormatPage() != nil {
+		col = block.FormatPage().BlockColor
+	} else if block.FormatToggle() != nil {
+		col = block.FormatToggle().BlockColor
+	} else if block.FormatHeader() != nil {
+		col = block.FormatHeader().BlockColor
+	} else if block.FormatNumberedList() != nil {
+		col = block.FormatNumberedList().BlockColor
+	} else if block.FormatBulletedList() != nil {
+		col = block.FormatBulletedList().BlockColor
 	}
-	if col != "" {
-		return "block-color-" + col
+	if col == "" {
+		return ""
 	}
-	return ""
+	return "block-color-" + col
 }
 
 // RenderText renders BlockText
@@ -909,7 +912,7 @@ func (c *Converter) RenderPDF(block *notionapi.Block) {
 }
 
 func getImageStyle(block *notionapi.Block) string {
-	f := block.FormatImage
+	f := block.FormatImage()
 	if f == nil || f.BlockWidth == 0 {
 		return ""
 	}
@@ -948,7 +951,7 @@ func (c *Converter) RenderColumnList(block *notionapi.Block) {
 // it's parent is BlockColumnList
 func (c *Converter) RenderColumn(block *notionapi.Block) {
 	var colRatio float64 = 50
-	fc := block.FormatColumn
+	fc := block.FormatColumn()
 	if fc != nil {
 		colRatio = fc.ColumnRatio * 100
 	}

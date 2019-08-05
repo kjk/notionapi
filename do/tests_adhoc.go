@@ -91,7 +91,7 @@ func testChangeFormat() {
 		fmt.Printf("testChangeFormat: client.DownloadPage() failed with '%s'\n", err)
 		return
 	}
-	origFormat := page.Root.FormatPage
+	origFormat := page.Root.FormatPage()
 	if origFormat == nil {
 		origFormat = &notionapi.FormatPage{}
 	}
@@ -113,7 +113,7 @@ func testChangeFormat() {
 		fmt.Printf("testChangeFormat: client.DownloadPage() failed with '%s'\n", err)
 		return
 	}
-	format := page2.Root.FormatPage
+	format := page2.Root.FormatPage()
 	assert(newSmallText == format.PageSmallText, "'%v' != '%v' (newSmallText != format.PageSmallText)", newSmallText, format.PageSmallText)
 	assert(newFullWidth == format.PageFullWidth, "'%v' != '%v' (newFullWidth != format.PageFullWidth)", newFullWidth, format.PageFullWidth)
 }

@@ -81,161 +81,18 @@ const (
 	BlockPageLink
 )
 
-// Block describes a block
-type Block struct {
-	// a unique ID of the block
-	ID string `json:"id"`
-	// values that come from JSON
-	// if false, the page is deleted
-	Alive bool `json:"alive"`
-	// List of block ids for that make up content of this block
-	// Use Content to get corresponding block (they are in the same order)
-	ContentIDs   []string `json:"content,omitempty"`
-	CopiedFrom   string   `json:"copied_from,omitempty"`
-	CollectionID string   `json:"collection_id,omitempty"` // for BlockCollectionView
-	// ID of the user who created this block
-	CreatedBy   string `json:"created_by"`
-	CreatedTime int64  `json:"created_time"`
-	// List of block ids with discussion content
-	DiscussionIDs []string `json:"discussion,omitempty"`
-	// those ids seem to map to storage in s3
-	// https://s3-us-west-2.amazonaws.com/secure.notion-static.com/${id}/${name}
-	FileIDs   []string        `json:"file_ids,omitempty"`
-	FormatRaw json.RawMessage `json:"format,omitempty"`
-
-	// TODO: don't know what this means
-	IgnoreBlockCount bool `json:"ignore_block_count,omitempty"`
-
-	// ID of the user who last edited this block
-	LastEditedBy   string `json:"last_edited_by"`
-	LastEditedTime int64  `json:"last_edited_time"`
-	// ID of parent Block
-	ParentID    string `json:"parent_id"`
-	ParentTable string `json:"parent_table"`
-	// not always available
-	Permissions *[]Permission          `json:"permissions,omitempty"`
-	Properties  map[string]interface{} `json:"properties,omitempty"`
-	// type of the block e.g. TypeText, TypePage etc.
-	Type string `json:"type"`
-	// blocks are versioned
-	Version int64    `json:"version"`
-	ViewIDs []string `json:"view_ids,omitempty"`
-
-	// Values calculated by us
-
-	// Parent of this block
-	Parent *Block `json:"-"`
-
-	// maps ContentIDs array to Block type
-	Content []*Block `json:"-"`
-	// this is for some types like TypePage, TypeText, TypeHeader etc.
-	InlineContent []*TextSpan `json:"inline_text,omitempty"`
-
-	// for BlockPage
-	Title string `json:"title,omitempty"`
-
-	// For BlockTodo, a checked state
-	IsChecked bool `json:"is_checked,omitempty"`
-
-	// for BlockBookmark
-	Description string `json:"description,omitempty"`
-	Link        string `json:"link,omitempty"`
-
-	// for BlockBookmark it's the url of the page
-	// for BlockGist it's the url for the gist
-	// fot BlockImage it's url of the image, but use ImageURL instead
-	// because Source is sometimes not accessible
-	// for BlockFile it's url of the file
-	// for BlockEmbed it's url of the embed
-	Source string `json:"source,omitempty"`
-
-	// for BlockFile
-	FileSize string `json:"file_size,omitempty"`
-
-	// for BlockImage it's an URL built from Source that is always accessible
-	ImageURL string `json:"image_url,omitempty"`
-
-	// for BlockCode
-	Code         string `json:"code,omitempty"`
-	CodeLanguage string `json:"code_language,omitempty"`
-
-	// for BlockCollectionView
-	// It looks like the info about which view is selected is stored in browser
-	CollectionViews []*CollectionViewInfo `json:"collection_views,omitempty"`
-
-	FormatPage     *FormatPage     `json:"format_page,omitempty"`
-	FormatBookmark *FormatBookmark `json:"format_bookmark,omitempty"`
-	FormatImage    *FormatImage    `json:"format_image,omitempty"`
-	FormatColumn   *FormatColumn   `json:"format_column,omitempty"`
-	FormatText     *FormatText     `json:"format_text,omitempty"`
-	FormatTable    *FormatTable    `json:"format_table,omitempty"`
-	FormatVideo    *FormatVideo    `json:"format_video,omitempty"`
-	FormatEmbed    *FormatEmbed    `json:"format_embed,omitempty"`
-	FormatToggle   *FormatToggle   `json:"format_toggle,omitempty"`
-	FormatHeader   *FormatHeader   `json:"format_header,omitempty"`
-	FormatList     *FormatList     `json:"format_list,omitempty"`
-}
-
-// CollectionViewInfo describes a particular view of the collection
-type CollectionViewInfo struct {
-	CollectionView *CollectionView
-	Collection     *Collection
-	CollectionRows []*Block
-}
-
-// CreatedOn return the time the page was created
-func (b *Block) CreatedOn() time.Time {
-	return time.Unix(b.CreatedTime/1000, 0)
-}
-
-// UpdatedOn returns the time the page was last updated
-func (b *Block) UpdatedOn() time.Time {
-	return time.Unix(b.LastEditedTime/1000, 0)
-}
-
-// IsLinkToPage returns true if block element is a link to a page
-// (as opposed to embedded page)
-func (b *Block) IsLinkToPage() bool {
-	if b.Type != BlockPage {
-		return false
-	}
-	return b.ParentTable == TableSpace
-}
-
-// GetPageType returns type of this page
-func (b *Block) GetPageType() BlockPageType {
-	if b.Parent == nil {
-		return BlockPageTopLevel
-	}
-	if b.ParentID == b.Parent.ID {
-		return BlockPageSubPage
-	}
-	return BlockPageLink
-}
-
-// IsPage returns true if block represents a page (either a
-// sub-page or a link to a page)
-func (b *Block) IsPage() bool {
-	return b.Type == BlockPage
-}
-
-// IsImage returns true if block represents an image
-func (b *Block) IsImage() bool {
-	return b.Type == BlockImage
-}
-
-// IsCode returns true if block represents a code block
-func (b *Block) IsCode() bool {
-	return b.Type == BlockCode
-}
-
 // FormatToggle describes format for BlockToggle
 type FormatToggle struct {
 	BlockColor string `json:"block_color"`
 }
 
-// FormatList describes format for BlockNumberedList and BlockBulletedList
-type FormatList struct {
+// FormatNumberedList describes format for BlockNumberedList
+type FormatNumberedList struct {
+	BlockColor string `json:"block_color"`
+}
+
+// FormatBulletedList describes format for BlockBulletedList
+type FormatBulletedList struct {
 	BlockColor string `json:"block_color"`
 }
 
@@ -306,13 +163,6 @@ type FormatTable struct {
 	TableProperties []*TableProperty `json:"table_properties"`
 }
 
-// TableProperty describes property of a table
-type TableProperty struct {
-	Width    int    `json:"width"`
-	Visible  bool   `json:"visible"`
-	Property string `json:"property"`
-}
-
 // FormatColumn describes format for BlockColumn
 type FormatColumn struct {
 	ColumnRatio float64 `json:"column_ratio"` // e.g. 0.5 for half-sized column
@@ -327,11 +177,154 @@ type FormatEmbed struct {
 	DisplaySource      string  `json:"display_source"`
 }
 
+// TableProperty describes property of a table
+type TableProperty struct {
+	Width    int    `json:"width"`
+	Visible  bool   `json:"visible"`
+	Property string `json:"property"`
+}
+
 // Permission describes user permissions
 type Permission struct {
 	Role   string  `json:"role"`
 	Type   string  `json:"type"`
 	UserID *string `json:"user_id,omitempty"`
+}
+
+// Block describes a block
+type Block struct {
+	// a unique ID of the block
+	ID string `json:"id"`
+	// values that come from JSON
+	// if false, the page is deleted
+	Alive bool `json:"alive"`
+	// List of block ids for that make up content of this block
+	// Use Content to get corresponding block (they are in the same order)
+	ContentIDs   []string `json:"content,omitempty"`
+	CopiedFrom   string   `json:"copied_from,omitempty"`
+	CollectionID string   `json:"collection_id,omitempty"` // for BlockCollectionView
+	// ID of the user who created this block
+	CreatedBy   string `json:"created_by"`
+	CreatedTime int64  `json:"created_time"`
+	// List of block ids with discussion content
+	DiscussionIDs []string `json:"discussion,omitempty"`
+	// those ids seem to map to storage in s3
+	// https://s3-us-west-2.amazonaws.com/secure.notion-static.com/${id}/${name}
+	FileIDs   []string        `json:"file_ids,omitempty"`
+	FormatRaw json.RawMessage `json:"-"`
+
+	// TODO: don't know what this means
+	IgnoreBlockCount bool `json:"ignore_block_count,omitempty"`
+
+	// ID of the user who last edited this block
+	LastEditedBy   string `json:"last_edited_by"`
+	LastEditedTime int64  `json:"last_edited_time"`
+	// ID of parent Block
+	ParentID    string `json:"parent_id"`
+	ParentTable string `json:"parent_table"`
+	// not always available
+	Permissions *[]Permission          `json:"permissions,omitempty"`
+	Properties  map[string]interface{} `json:"properties,omitempty"`
+	// type of the block e.g. TypeText, TypePage etc.
+	Type string `json:"type"`
+	// blocks are versioned
+	Version int64    `json:"version"`
+	ViewIDs []string `json:"view_ids,omitempty"`
+
+	// Values calculated by us
+
+	// Parent of this block
+	Parent *Block `json:"-"`
+
+	// maps ContentIDs array to Block type
+	Content []*Block `json:"-"`
+	// this is for some types like TypePage, TypeText, TypeHeader etc.
+	InlineContent []*TextSpan `json:"inline_text,omitempty"`
+
+	// for BlockPage
+	Title string `json:"title,omitempty"`
+
+	// For BlockTodo, a checked state
+	IsChecked bool `json:"is_checked,omitempty"`
+
+	// for BlockBookmark
+	Description string `json:"description,omitempty"`
+	Link        string `json:"link,omitempty"`
+
+	// for BlockBookmark it's the url of the page
+	// for BlockGist it's the url for the gist
+	// fot BlockImage it's url of the image, but use ImageURL instead
+	// because Source is sometimes not accessible
+	// for BlockFile it's url of the file
+	// for BlockEmbed it's url of the embed
+	Source string `json:"source,omitempty"`
+
+	// for BlockFile
+	FileSize string `json:"file_size,omitempty"`
+
+	// for BlockImage it's an URL built from Source that is always accessible
+	ImageURL string `json:"image_url,omitempty"`
+
+	// for BlockCode
+	Code         string `json:"code,omitempty"`
+	CodeLanguage string `json:"code_language,omitempty"`
+
+	// for BlockCollectionView
+	// It looks like the info about which view is selected is stored in browser
+	CollectionViews []*CollectionViewInfo `json:"collection_views,omitempty"`
+}
+
+// CollectionViewInfo describes a particular view of the collection
+type CollectionViewInfo struct {
+	CollectionView *CollectionView
+	Collection     *Collection
+	CollectionRows []*Block
+}
+
+// CreatedOn return the time the page was created
+func (b *Block) CreatedOn() time.Time {
+	return time.Unix(b.CreatedTime/1000, 0)
+}
+
+// UpdatedOn returns the time the page was last updated
+func (b *Block) UpdatedOn() time.Time {
+	return time.Unix(b.LastEditedTime/1000, 0)
+}
+
+// IsLinkToPage returns true if block element is a link to a page
+// (as opposed to embedded page)
+func (b *Block) IsLinkToPage() bool {
+	if b.Type != BlockPage {
+		return false
+	}
+	return b.ParentTable == TableSpace
+}
+
+// GetPageType returns type of this page
+func (b *Block) GetPageType() BlockPageType {
+	if b.Parent == nil {
+		return BlockPageTopLevel
+	}
+	if b.ParentID == b.Parent.ID {
+		return BlockPageSubPage
+	}
+	return BlockPageLink
+}
+
+// IsPage returns true if block represents a page (either a
+// sub-page or a link to a page)
+func (b *Block) IsPage() bool {
+	return b.Type == BlockPage
+}
+
+// IsImage returns true if block represents an image
+func (b *Block) IsImage() bool {
+	return b.Type == BlockImage
+}
+
+// IsCode returns true if block represents a code block
+func (b *Block) IsCode() bool {
+	return b.Type == BlockCode
 }
 
 func getProp(block *Block, name string, toSet *string) bool {
@@ -421,87 +414,120 @@ func parseProperties(block *Block) error {
 	return nil
 }
 
-func parseFormat(block *Block) error {
-	if len(block.FormatRaw) == 0 {
-		// TODO: maybe if BlockPage, set to default &FormatPage{}
+func (b *Block) panicIfNotOfType(expectedType string) {
+	if b.Type != expectedType {
+		panic(fmt.Sprintf("operation on invalid block. Block type: %s, expected type: %s", b.Type, expectedType))
+	}
+}
+
+func (b *Block) unmarshalFormat(expectedType string, v interface{}) bool {
+	b.panicIfNotOfType(expectedType)
+
+	if len(b.FormatRaw) == 0 {
+		return false
+	}
+	err := json.Unmarshal(b.FormatRaw, v)
+	if err != nil {
+		panic(err)
+	}
+	return true
+}
+
+// FormatPage returns decoded format property for BlockPage
+func (b *Block) FormatPage() *FormatPage {
+	var format FormatPage
+	if ok := b.unmarshalFormat(BlockPage, &format); !ok {
 		return nil
 	}
-	var err error
-	switch block.Type {
-	case BlockPage:
-		var format FormatPage
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			format.PageCoverURL = maybeProxyImageURL(format.PageCover)
-			block.FormatPage = &format
-		}
-	case BlockBookmark:
-		var format FormatBookmark
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			block.FormatBookmark = &format
-		}
-	case BlockImage:
-		var format FormatImage
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			format.ImageURL = maybeProxyImageURL(format.DisplaySource)
-			block.FormatImage = &format
-		}
-	case BlockColumn:
-		var format FormatColumn
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			block.FormatColumn = &format
-		}
-	case BlockTable:
-		var format FormatTable
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			block.FormatTable = &format
-		}
-	case BlockText:
-		var format FormatText
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			block.FormatText = &format
-		}
-	case BlockVideo:
-		var format FormatVideo
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			block.FormatVideo = &format
-		}
-	case BlockEmbed:
-		var format FormatEmbed
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			block.FormatEmbed = &format
-		}
-	case BlockHeader, BlockSubHeader, BlockSubSubHeader:
-		var format FormatHeader
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			block.FormatHeader = &format
-		}
+	return &format
+}
 
-	case BlockToggle:
-		var format FormatToggle
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			block.FormatToggle = &format
-		}
-	case BlockNumberedList, BlockBulletedList:
-		var format FormatList
-		err = json.Unmarshal(block.FormatRaw, &format)
-		if err == nil {
-			block.FormatList = &format
-		}
+func (b *Block) FormatBookmark() *FormatBookmark {
+	var format FormatBookmark
+	if ok := b.unmarshalFormat(BlockBookmark, &format); !ok {
+		return nil
 	}
+	return &format
+}
 
-	if err != nil {
-		fmt.Printf("parseFormat: json.Unamrshal() failed with '%s', format: '%s'\n", err, string(block.FormatRaw))
-		return err
+func (b *Block) FormatImage() *FormatImage {
+	// TODO: no longer does
+	// format.ImageURL = maybeProxyImageURL(format.DisplaySource)
+	var format FormatImage
+	if ok := b.unmarshalFormat(BlockImage, &format); !ok {
+		return nil
 	}
-	return nil
+	return &format
+}
+
+func (b *Block) FormatColumn() *FormatColumn {
+	var format FormatColumn
+	if ok := b.unmarshalFormat(BlockColumn, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+func (b *Block) FormatTable() *FormatTable {
+	var format FormatTable
+	if ok := b.unmarshalFormat(BlockTable, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+func (b *Block) FormatText() *FormatText {
+	var format FormatText
+	if ok := b.unmarshalFormat(BlockText, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+func (b *Block) FormatVideo() *FormatVideo {
+	var format FormatVideo
+	if ok := b.unmarshalFormat(BlockVideo, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+func (b *Block) FormatEmbed() *FormatEmbed {
+	var format FormatEmbed
+	if ok := b.unmarshalFormat(BlockEmbed, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+func (b *Block) FormatHeader() *FormatHeader {
+	var format FormatHeader
+	if ok := b.unmarshalFormat(BlockHeader, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+func (b *Block) FormatToggle() *FormatToggle {
+	var format FormatToggle
+	if ok := b.unmarshalFormat(BlockToggle, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+func (b *Block) FormatNumberedList() *FormatNumberedList {
+	var format FormatNumberedList
+	if ok := b.unmarshalFormat(BlockNumberedList, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+func (b *Block) FormatBulletedList() *FormatBulletedList {
+	var format FormatBulletedList
+	if ok := b.unmarshalFormat(BlockBulletedList, &format); !ok {
+		return nil
+	}
+	return &format
 }

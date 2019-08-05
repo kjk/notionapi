@@ -142,7 +142,7 @@ func main() {
 	must(os.MkdirAll(cacheDir, 0755))
 
 	if flgTestToMd {
-		testToMarkdown()
+		testToMarkdown1()
 		return
 	}
 

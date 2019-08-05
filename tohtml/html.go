@@ -518,7 +518,7 @@ func (c *Converter) RenderBookmark(block *notionapi.Block) {
 
 // RenderVideo renders BlockTweet
 func (c *Converter) RenderVideo(block *notionapi.Block) {
-	f := block.FormatVideo
+	f := block.FormatVideo()
 	ws := fmt.Sprintf("%d", f.BlockWidth)
 	uri := f.DisplaySource
 	if uri == "" {
@@ -576,7 +576,11 @@ func (c *Converter) RenderGist(block *notionapi.Block) {
 // RenderEmbed renders BlockEmbed
 func (c *Converter) RenderEmbed(block *notionapi.Block) {
 	// TODO: best effort at making the URL readable
-	uri := block.FormatEmbed.DisplaySource
+	f := block.FormatEmbed()
+	uri := ""
+	if f != nil {
+		uri = f.DisplaySource
+	}
 	title := block.Title
 	if title == "" {
 		title = path.Base(uri)

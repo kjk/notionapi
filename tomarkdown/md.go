@@ -89,6 +89,30 @@ func (c *Converter) Eol() {
 	}
 }
 
+func isWs(c byte) bool {
+	switch c {
+	case ' ':
+		return true
+	}
+	return false
+}
+
+func bufTrimWhitespaceRight(buf *bytes.Buffer) {
+	d := buf.Bytes()
+	n := len(d) - 1
+	nRemoved := 0
+	for (n-nRemoved) >= 0 && isWs(d[n-nRemoved]) {
+		nRemoved++
+	}
+	if nRemoved > 0 {
+		buf.Truncate(len(d) - nRemoved)
+	}
+}
+
+func (c *Converter) trimWhitespaceRight() {
+	bufTrimWhitespaceRight(c.Buf)
+}
+
 // Newline writes a newline to the buffer. It'll suppress multiple newlines.
 func (c *Converter) Newline() {
 	d := c.Buf.Bytes()
@@ -163,14 +187,6 @@ func (c *Converter) FormatDate(d *notionapi.Date) string {
 	return fmt.Sprintf(`<span class="notion-date">@%s</span>`, s)
 }
 
-func isWs(c byte) bool {
-	switch c {
-	case ' ', '\n':
-		return true
-	}
-	return false
-}
-
 func getBeforeWhitespace(text string) (string, string) {
 	var res []byte
 	for len(text) > 0 {
@@ -207,10 +223,9 @@ func shuffleWhitespace(text string) (string, string, string) {
 }
 
 // RenderInline renders inline block
-func (c *Converter) RenderInline(b *notionapi.TextSpan, isLast bool) {
+func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 	text := b.Text
-	start := ""
-	end := ""
+	var start, end, before, after string
 	for _, attr := range b.Attrs {
 		switch notionapi.AttrGetType(attr) {
 		case notionapi.AttrBold:
@@ -230,9 +245,9 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan, isLast bool) {
 			if c.RewriteURL != nil {
 				uri = c.RewriteURL(uri)
 			}
-			//before, text, after = shuffleWhitespace(text)
+			before, text, after = shuffleWhitespace(text)
 			// TOOD: if text has "[" or "]" in it, has to escape
-			text = fmt.Sprintf(`[%s](%s)`, text, uri)
+			text = fmt.Sprintf(`%s[%s](%s)%s`, before, text, uri, after)
 		case notionapi.AttrUser:
 			userID := notionapi.AttrGetUserID(attr)
 			text = fmt.Sprintf(`@%s`, notionapi.ResolveUser(c.Page, userID))
@@ -242,21 +257,21 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan, isLast bool) {
 		}
 	}
 	// move whitespace from inside style to outside, to match Notion export
-	before, s, after := shuffleWhitespace(text)
+	before, text, after = shuffleWhitespace(text)
 	start = before + start
 	end = end + after
-	text = s
-	if isLast || (start == "" && end == "") {
-		text = strings.TrimRight(text, " ")
-	}
 	c.WriteString(start + text + end)
 }
 
 // RenderInlines renders inline blocks
 func (c *Converter) RenderInlines(blocks []*notionapi.TextSpan, trimEndSpace bool) {
-	lastIdx := len(blocks) - 1
-	for idx, block := range blocks {
-		c.RenderInline(block, trimEndSpace && idx == lastIdx)
+	n := c.Buf.Len()
+	for _, block := range blocks {
+		c.RenderInline(block)
+	}
+
+	if trimEndSpace && c.Buf.Len() > n {
+		c.trimWhitespaceRight()
 	}
 }
 
