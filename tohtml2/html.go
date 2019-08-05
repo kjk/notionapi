@@ -574,7 +574,7 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 		return
 	}
 
-	if block.Parent != nil && block.Parent.Type == notionapi.BlockToggle {
+	if false && block.Parent != nil && block.Parent.Type == notionapi.BlockToggle {
 		// TODO: seem like a bug in Notion exporter
 		// page: https://www.notion.so/Soft-shizzle-13aa42a5a95d4357aa830c3e7ff35ae1
 		return
