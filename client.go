@@ -503,5 +503,10 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			block.CollectionViews = append(block.CollectionViews, collInfo)
 		}
 	}
+
+	for _, b := range p.idToBlock {
+		b.Page = p
+	}
+
 	return p, nil
 }

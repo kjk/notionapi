@@ -23,9 +23,9 @@ type Page struct {
 	Tables []*Table
 
 	idToBlock          map[string]*Block
+	idToUser           map[string]*User
 	idToCollection     map[string]*Collection
 	idToCollectionView map[string]*CollectionView
-	idToUser           map[string]*User
 	blocksToSkip       map[string]struct{} // not alive or when server doesn't return "value" for this block id
 
 	client *Client
@@ -48,9 +48,12 @@ const (
 )
 
 type pageMarshaled struct {
-	Version    string
-	RootPageID string
-	Blocks     []map[string]interface{}
+	Version         string
+	RootPageID      string
+	Blocks          []map[string]interface{}
+	Users           []map[string]interface{}
+	Collections     []map[string]interface{}
+	CollectionViews []map[string]interface{}
 }
 
 func (p *Page) MarshalJSON() ([]byte, error) {
@@ -58,16 +61,56 @@ func (p *Page) MarshalJSON() ([]byte, error) {
 		Version:    currPageJSONVersion,
 		RootPageID: p.ID,
 	}
-	// we want to serialize in a fixed order
-	var ids []string
-	for id := range p.idToBlock {
-		ids = append(ids, id)
+
+	{
+		// we want to serialize in a fixed order
+		var ids []string
+		for id := range p.idToBlock {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		for _, id := range ids {
+			b := p.idToBlock[id]
+			v.Blocks = append(v.Blocks, b.RawJSON)
+		}
 	}
-	sort.Strings(ids)
-	for _, id := range ids {
-		block := p.idToBlock[id]
-		v.Blocks = append(v.Blocks, block.RawJSON)
+
+	{
+		var ids []string
+		for id := range p.idToUser {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		for _, id := range ids {
+			u := p.idToUser[id]
+			v.Users = append(v.Users, u.RawJSON)
+		}
 	}
+
+	{
+		var ids []string
+		for id := range p.idToCollection {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		for _, id := range ids {
+			c := p.idToCollection[id]
+			v.Collections = append(v.Collections, c.RawJSON)
+		}
+	}
+
+	{
+		var ids []string
+		for id := range p.idToCollectionView {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		for _, id := range ids {
+			cv := p.idToCollectionView[id]
+			v.CollectionViews = append(v.CollectionViews, cv.RawJSON)
+		}
+	}
+
 	return json.MarshalIndent(v, "", "  ")
 }
 
@@ -81,17 +124,53 @@ func (p *Page) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("expected serialization format version '%s', got '%s'", currPageJSONVersion, v.Version)
 	}
 
-	p.idToBlock = map[string]*Block{}
 	p.ID = v.RootPageID
-	for _, blockJSON := range v.Blocks {
-		var b Block
-		err = jsonUnmarshalFromMap(blockJSON, &b)
+
+	p.idToBlock = map[string]*Block{}
+	for _, js := range v.Blocks {
+		var v Block
+		err = jsonUnmarshalFromMap(js, &v)
 		if err != nil {
 			return err
 		}
-		b.RawJSON = blockJSON
-		p.idToBlock[b.ID] = &b
+		v.RawJSON = js
+		v.Page = p
+		p.idToBlock[v.ID] = &v
 	}
+
+	p.idToUser = map[string]*User{}
+	for _, js := range v.Users {
+		var v User
+		err = jsonUnmarshalFromMap(js, &v)
+		if err != nil {
+			return err
+		}
+		v.RawJSON = js
+		p.idToUser[v.ID] = &v
+	}
+
+	p.idToCollection = map[string]*Collection{}
+	for _, js := range v.Collections {
+		var v Collection
+		err = jsonUnmarshalFromMap(js, &v)
+		if err != nil {
+			return err
+		}
+		v.RawJSON = js
+		p.idToCollection[v.ID] = &v
+	}
+
+	p.idToCollectionView = map[string]*CollectionView{}
+	for _, js := range v.CollectionViews {
+		var v CollectionView
+		err = jsonUnmarshalFromMap(js, &v)
+		if err != nil {
+			return err
+		}
+		v.RawJSON = js
+		p.idToCollectionView[v.ID] = &v
+	}
+
 	return nil
 }
 

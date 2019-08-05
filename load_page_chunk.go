@@ -54,7 +54,7 @@ type Space struct {
 	Permissions *[]Permission `json:"permissions,omitempty"`
 	Pages       []string      `json:"pages,omitempty"`
 
-	RawJSON map[string]interface{}
+	RawJSON map[string]interface{} `json:"-"`
 }
 
 // CollectionViewWithRole describes a role and a collection view
@@ -75,6 +75,8 @@ type CollectionView struct {
 	Query       *CollectionViewQuery  `json:"query"`
 	Type        string                `json:"type"`
 	Version     int                   `json:"version"`
+
+	RawJSON map[string]interface{} `json:"-"`
 }
 
 // CollectionViewFormat describes a fomrat of a collection view
@@ -113,6 +115,8 @@ type Collection struct {
 	ParentTable      string                           `json:"parent_table"`
 	CollectionSchema map[string]*CollectionColumnInfo `json:"schema"`
 	Version          int                              `json:"version"`
+
+	RawJSON map[string]interface{} `json:"-"`
 }
 
 func (c *Collection) GetName() string {
@@ -147,6 +151,8 @@ type CollectionColumnInfo struct {
 	Name    string                    `json:"name"`
 	Options []*CollectionColumnOption `json:"options"`
 	Type    string                    `json:"type"`
+
+	RawJSON map[string]interface{} `json:"-"`
 }
 
 // CollectionColumnOption describes options for a collection column
@@ -175,7 +181,7 @@ type User struct {
 	TimeZone                  string `json:"time_zone"`
 	Version                   int    `json:"version"`
 
-	RawJSON map[string]interface{}
+	RawJSON map[string]interface{} `json:"-"`
 }
 
 // Date describes a date
@@ -207,8 +213,7 @@ type Reminder struct {
 }
 
 // LoadPageChunk executes a raw API call /api/v3/loadPageChunk
-func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPageChunkResponse, error) {
-	// emulating notion's website api usage: 50 items on first request,
+func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPageChunkResponse, error) { // emulating notion's website api usage: 50 items on first request,
 	// 30 on subsequent requests
 	limit := 30
 	apiURL := "/api/v3/loadPageChunk"
@@ -238,11 +243,50 @@ func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPa
 
 func setLoadPageChunkResponse(r *LoadPageChunkResponse, json map[string]interface{}) {
 	recordMapJSON := jsonGetMap(json, "recordMap")
-	blockByID := jsonGetMap(recordMapJSON, "block")
-	for id, br := range r.RecordMap.Blocks {
-		brJSON := jsonGetMap(blockByID, id)
-		b := br.Value
-		bJSON := jsonGetMap(brJSON, "value")
-		b.RawJSON = bJSON
+	{
+		blockByID := jsonGetMap(recordMapJSON, "block")
+		for id, br := range r.RecordMap.Blocks {
+			brJSON := jsonGetMap(blockByID, id)
+			b := br.Value
+			bJSON := jsonGetMap(brJSON, "value")
+			b.RawJSON = bJSON
+		}
+	}
+
+	{
+		spaceByID := jsonGetMap(recordMapJSON, "space")
+		for id, sr := range r.RecordMap.Space {
+			srJSON := jsonGetMap(spaceByID, id)
+			s := sr.Value
+			sJSON := jsonGetMap(srJSON, "value")
+			s.RawJSON = sJSON
+		}
+	}
+	{
+		userByID := jsonGetMap(recordMapJSON, "notion_user")
+		for id, ur := range r.RecordMap.Users {
+			urJSON := jsonGetMap(userByID, id)
+			u := ur.Value
+			uJSON := jsonGetMap(urJSON, "value")
+			u.RawJSON = uJSON
+		}
+	}
+	{
+		collectionByID := jsonGetMap(recordMapJSON, "collection")
+		for id, cr := range r.RecordMap.Collections {
+			crJSON := jsonGetMap(collectionByID, id)
+			c := cr.Value
+			cJSON := jsonGetMap(crJSON, "value")
+			c.RawJSON = cJSON
+		}
+	}
+	{
+		collectionViewByID := jsonGetMap(recordMapJSON, "collection_view")
+		for id, cvr := range r.RecordMap.CollectionViews {
+			cvrJSON := jsonGetMap(collectionViewByID, id)
+			cv := cvr.Value
+			cvJSON := jsonGetMap(cvrJSON, "value")
+			cv.RawJSON = cvJSON
+		}
 	}
 }
