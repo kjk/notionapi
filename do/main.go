@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -84,7 +85,9 @@ var (
 	flgCleanCache bool
 
 	flgTestToMd        bool
-	flgTestToHTML      bool
+	flgTestToHTML1     bool
+	flgTestToHTML2     bool
+	flgTestToHTML3     bool
 	flgTestPageMarshal bool
 	flgNoFormat        bool
 )
@@ -102,7 +105,9 @@ func parseFlags() {
 	flag.BoolVar(&flgNoFormat, "no-format", false, "if true, doesn't try to reformat/prettify HTML files during HTML testing")
 	flag.BoolVar(&flgCleanCache, "clean-cache", false, "if true, cleans cache directories (data/log, data/cache")
 	flag.BoolVar(&flgTestToMd, "test-to-md", false, "test markdown generation")
-	flag.BoolVar(&flgTestToHTML, "test-to-html", false, "test html generation")
+	flag.BoolVar(&flgTestToHTML1, "test-to-html1", false, "test html 1 generation")
+	flag.BoolVar(&flgTestToHTML2, "test-to-html2", false, "test html 2 generation")
+	flag.BoolVar(&flgTestToHTML3, "test-to-html3", false, "test html 3 generation")
 	flag.BoolVar(&flgTestPageMarshal, "test-page-marshal", false, "test marshalling of Page to/from JSON")
 	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
 	flag.StringVar(&flgToHTML, "tohtml", "", "id of notion page to download and convert to html")
@@ -129,6 +134,21 @@ func cdToTopDir() {
 	must(err)
 }
 
+func removeFilesInDir(dir string) {
+	os.MkdirAll(dir, 0755)
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, fi := range files {
+		if !fi.Mode().IsRegular() {
+			continue
+		}
+		path := filepath.Join(dir, fi.Name())
+		os.Remove(path)
+	}
+}
+
 func main() {
 	cdToTopDir()
 	fmt.Printf("topDir: '%s'\n", topDir())
@@ -136,19 +156,14 @@ func main() {
 	parseFlags()
 
 	if flgCleanCache {
-		os.RemoveAll(logDir)
-		os.RemoveAll(cacheDir)
+		removeFilesInDir(logDir)
+		removeFilesInDir(cacheDir)
 	}
-
-	must(os.MkdirAll(logDir, 0755))
-	must(os.MkdirAll(cacheDir, 0755))
 
 	if flgTestToMd {
 		if false {
-			os.RemoveAll(logDir)
-			must(os.MkdirAll(logDir, 0755))
-			os.RemoveAll(cacheDir)
-			must(os.MkdirAll(cacheDir, 0755))
+			removeFilesInDir(logDir)
+			removeFilesInDir(cacheDir)
 		}
 		testToMarkdown1()
 		return
@@ -159,17 +174,24 @@ func main() {
 		return
 	}
 
-	if true || flgTestToHTML {
-		if true {
-			os.RemoveAll(logDir)
-			must(os.MkdirAll(logDir, 0755))
-			os.RemoveAll(cacheDir)
-			must(os.MkdirAll(cacheDir, 0755))
-		}
+	if true {
+		removeFilesInDir(logDir)
+		removeFilesInDir(cacheDir)
+	}
 
+	if flgTestToHTML1 {
 		ensurePrettierExists()
-		//testToHTML1()
-		//testToHTML2()
+		testToHTML1()
+		return
+	}
+	if flgTestToHTML2 {
+		ensurePrettierExists()
+		testToHTML2()
+		return
+	}
+
+	if flgTestToHTML3 {
+		ensurePrettierExists()
 		testToHTML3()
 		return
 	}

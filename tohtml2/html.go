@@ -139,6 +139,13 @@ func getCollectionDownloadedFileName(page *notionapi.Page, col *notionapi.Collec
 }
 
 func getDownloadedFileName(uri string, block *notionapi.Block) string {
+	shouldDownload := false
+	if strings.HasPrefix(uri, "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/") {
+		shouldDownload = true
+	}
+	if !shouldDownload {
+		return uri
+	}
 	name := urlBaseName(uri)
 	switch block.Type {
 	case notionapi.BlockFile:
@@ -454,30 +461,42 @@ func escapeHTML(s string) string {
 	return s
 }
 
+func isURL(uri string) bool {
+	if strings.HasPrefix(uri, "http://") {
+		return true
+	}
+	if strings.HasPrefix(uri, "https://") {
+		return true
+	}
+	return false
+}
+
 func (c *Converter) renderHeader(block *notionapi.Block) {
 	c.Printf(`<header>`)
 	{
 		formatPage := block.FormatPage()
 		// formatPage == nil happened in bf5d1c1f793a443ca4085cc99186d32f
-		if formatPage != nil && formatPage.PageCover != "" {
+		pageCover, _ := block.FormatStringValue("page_cover")
+		if pageCover != "" {
 			position := (1 - formatPage.PageCoverPosition) * 100
-			coverURL := filePathFromPageCoverURL(formatPage.PageCover, block)
+			coverURL := filePathFromPageCoverURL(pageCover, block)
 			// TODO: Notion incorrectly escapes them
 			coverURL = escapeHTML(coverURL)
 			c.Printf(`<img class="page-cover-image" src="%s" style="object-position:center %v%%">`, coverURL, position)
 		}
-		if formatPage != nil && formatPage.PageIcon != "" {
-			// TODO: "undefined" is bad in Notion export
+		pageIcon, _ := block.FormatStringValue("page_icon")
+		if pageIcon != "" {
+			// TODO: "undefined" is a bug in Notion export
 			clsCover := "undefined"
-			if formatPage.PageCover != "" {
+			if pageCover != "" {
 				clsCover = "page-header-icon-with-cover"
 			}
 			c.Printf(`<div class="page-header-icon %s">`, clsCover)
-			if len(block.FileIDs) > 0 {
-				fileName := getDownloadedFileName(formatPage.PageIcon, block)
+			if isURL(pageIcon) {
+				fileName := getDownloadedFileName(pageIcon, block)
 				c.Printf(`<img class="icon" src="%s">`, fileName)
 			} else {
-				c.Printf(`<span class="icon">%s</span>`, formatPage.PageIcon)
+				c.Printf(`<span class="icon">%s</span>`, pageIcon)
 			}
 			c.Printf(`</div>`)
 		}
@@ -519,7 +538,7 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 		c.Printf(`<a href="%s">`, uri)
 		pageIcon, ok := block.FormatStringValue("page_icon")
 		if ok {
-			if len(block.FileIDs) > 0 {
+			if isURL(pageIcon) {
 				fileName := getDownloadedFileName(pageIcon, block)
 				c.Printf(`<img class="icon" src="%s">`, fileName)
 			} else {
@@ -551,7 +570,6 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 			c.Printf(`<body>`)
 		}
 
-		// TODO: sans could be mono, depending on format
 		clsFont := "sans"
 		fp := block.FormatPage()
 		if fp != nil {
