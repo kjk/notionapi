@@ -35,7 +35,8 @@ func testToHTML2() {
 		// Notion missing link to page
 		"86b5223576104fa69dc03675e44571b7",
 	}
-	startWith := "86b5223576104fa69dc03675e44571b7"
+	//startWith := "86b5223576104fa69dc03675e44571b7"
+	startWith := ""
 
 	zipPath := filepath.Join(topDir(), "data", "testdata", "Export-html-884455e1-98f4-4c77-8733-5373a4b47b85.zip")
 
