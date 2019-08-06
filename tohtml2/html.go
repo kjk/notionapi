@@ -795,7 +795,14 @@ func (c *Converter) RenderTableOfContents(block *notionapi.Block) {
 	for _, b := range blocks {
 		s := c.GetInlineContent(b.InlineContent)
 		// TODO: "indent-0" might probably be differnt
-		c.Printf(`<div class="table_of_contents-item table_of_contents-indent-0">`)
+		indent := 0
+		switch b.Type {
+		case notionapi.BlockSubHeader:
+			indent = 1
+		case notionapi.BlockSubSubHeader:
+			indent = 2
+		}
+		c.Printf(`<div class="table_of_contents-item table_of_contents-indent-%d">`, indent)
 		{
 			c.Printf(`<a class="table_of_contents-link" href="#%s">%s</a>`, b.ID, s)
 		}
@@ -823,7 +830,11 @@ func (c *Converter) RenderCaption(block *notionapi.Block) {
 func (c *Converter) RenderBookmark(block *notionapi.Block) {
 	c.Printf(`<figure id="%s">`, block.ID)
 	{
-		c.Printf(`<div class="bookmark source">`)
+		clsCol := getBlockColorClass(block)
+		if clsCol != "" {
+			clsCol += " "
+		}
+		c.Printf(`<div class="%sbookmark source">`, clsCol)
 		{
 			uri := block.Link
 			text := block.Title
@@ -860,8 +871,7 @@ func (c *Converter) RenderVideo(block *notionapi.Block) {
 	c.Printf(`</figure>`)
 }
 
-// RenderTweet renders BlockTweet
-func (c *Converter) RenderTweet(block *notionapi.Block) {
+func (c *Converter) renderEmbed(block *notionapi.Block) {
 	c.Printf(`<figure id="%s">`, block.ID)
 	{
 		c.Printf(`<div class="source">`)
@@ -875,17 +885,24 @@ func (c *Converter) RenderTweet(block *notionapi.Block) {
 	c.Printf(`</figure>`)
 }
 
+// RenderTweet renders BlockTweet
+func (c *Converter) RenderTweet(block *notionapi.Block) {
+	c.renderEmbed(block)
+}
+
 // RenderGist renders BlockGist
 func (c *Converter) RenderGist(block *notionapi.Block) {
-	c.Printf(`<figure id="%s">`, block.ID)
-	{
-		c.Printf(`<div class="source">`)
-		uri := block.Source
-		c.A(uri, uri, "")
-		c.Printf(`</div>`)
-		c.RenderCaption(block)
-	}
-	c.Printf(`</figure>`)
+	c.renderEmbed(block)
+}
+
+// RenderCodepen renders BlockCodepen
+func (c *Converter) RenderCodepen(block *notionapi.Block) {
+	c.renderEmbed(block)
+}
+
+// RenderMaps renders BlockMaps
+func (c *Converter) RenderMaps(block *notionapi.Block) {
+	c.renderEmbed(block)
 }
 
 // RenderEmbed renders BlockEmbed
@@ -1113,6 +1130,10 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderEmbed
 	case notionapi.BlockGist:
 		return c.RenderGist
+	case notionapi.BlockMaps:
+		return c.RenderMaps
+	case notionapi.BlockCodepen:
+		return c.RenderCodepen
 	case notionapi.BlockTweet:
 		return c.RenderTweet
 	case notionapi.BlockVideo:

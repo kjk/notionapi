@@ -29,7 +29,7 @@ func idsEqual(id1, id2 string) bool {
 	return id1 == id2
 }
 
-func testToHTMLRecur(startPageID string, startWith string, validBad []string, referenceFiles map[string][]byte) {
+func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, referenceFiles map[string][]byte) {
 	client := &notionapi.Client{
 		DebugLog:  true,
 		AuthToken: getToken(),
@@ -37,7 +37,7 @@ func testToHTMLRecur(startPageID string, startWith string, validBad []string, re
 	seenPages := map[string]bool{}
 	pages := []string{startPageID}
 	nPage := 0
-	isDoing := (startWith == "")
+	isDoing := (firstToTest == "")
 	for len(pages) > 0 {
 		pageID := pages[0]
 		pages = pages[1:]
@@ -56,7 +56,7 @@ func testToHTMLRecur(startPageID string, startWith string, validBad []string, re
 		fmt.Printf("%02d: %s '%s'", nPage, pageID, name)
 
 		if !isDoing {
-			if idsEqual(pageID, startWith) {
+			if idsEqual(pageID, firstToTest) {
 				isDoing = true
 			}
 		}
