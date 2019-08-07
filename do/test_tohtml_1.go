@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+
+	"github.com/kjk/notionapi"
 )
 
 // https://www.notion.so/Blendle-s-Employee-Handbook-3b617da409454a52bc3a920ba8832bf7
@@ -32,13 +35,22 @@ func testToHTML1() {
 		// Different ids
 		"8f12cc5182a6437aac4dc518cb28b681",
 	}
-	startWith := "8f12cc5182a6437aac4dc518cb28b681"
 
-	zipPath := filepath.Join(topDir(), "data", "testdata", "Export-html-6f6dae04-a337-419e-81ca-f82de3202b9e.zip")
+	//startWith := "8f12cc5182a6437aac4dc518cb28b681"
+	startWith := ""
+
+	// top-level page for blendle handbok
+	startPage := "3b617da409454a52bc3a920ba8832bf7"
+	os.MkdirAll(cacheDir, 0755)
+	name := startPage + "-html.zip"
+	zipPath := filepath.Join("data", name)
+	if _, err := os.Stat(zipPath); err != nil {
+		fmt.Printf("Downloading %s\n", zipPath)
+		must(exportPageToFile(startPage, notionapi.ExportTypeHTML, true, zipPath))
+	}
+
 	zipFiles := readZipFile(zipPath)
 	fmt.Printf("There are %d files in zip file\n", len(zipFiles))
 
-	startPage := "3b617da409454a52bc3a920ba8832bf7"
-	//startPage = "13aa42a5a95d4357aa830c3e7ff35ae1"
 	testToHTMLRecur(startPage, startWith, validBad, zipFiles)
 }

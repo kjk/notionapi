@@ -105,7 +105,7 @@ func (c *Client) ExportPages(id string, exportType string, recursive bool) ([]by
 			return nil, err
 		}
 		status := rsp.Results[0].Status
-		if status.Type == statusComplete {
+		if status != nil && status.Type == statusComplete {
 			exportURL = status.ExportURL
 			break
 		}

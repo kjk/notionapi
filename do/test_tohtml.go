@@ -53,6 +53,7 @@ func testToHTMLRecur(startPageID string, startWith string, validBad []string, re
 		pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
 		name, pageHTML := toHTML2(page)
 		fmt.Printf("%02d: %s '%s'", nPage, pageID, name)
+
 		if !isDoing {
 			if idsEqual(pageID, startWith) {
 				isDoing = true

@@ -143,12 +143,19 @@ func testToMarkdown1() int {
 		"c29a8c69877442278c04ce8cdd49a0a0",
 	}
 
-	zipPath := filepath.Join(topDir(), "data", "testdata", "Export-b676ebbf-10ea-465f-aa21-158fc9b2ec82.zip")
+	// top-level page for blendle handbok
+	startPage := "3b617da409454a52bc3a920ba8832bf7"
+	os.MkdirAll(cacheDir, 0755)
+	name := startPage + "-md.zip"
+	zipPath := filepath.Join("data", name)
+	if _, err := os.Stat(zipPath); err != nil {
+		fmt.Printf("Downloading %s\n", zipPath)
+		must(exportPageToFile(startPage, notionapi.ExportTypeMarkdown, true, zipPath))
+	}
+
 	zipFiles := readZipFile(zipPath)
 	fmt.Printf("There are %d files in zip file\n", len(zipFiles))
 
-	startPage := "3b617da409454a52bc3a920ba8832bf7" // top-level page for blendle handbok
-	//startPage := "2bf22b99850b402882bb885a41cfd981"
 	testToMdRecur(startPage, whiteListed, zipFiles)
 	return 0
 }

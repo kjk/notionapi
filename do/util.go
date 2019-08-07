@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 )
 
 func must(err error) {
@@ -75,7 +76,12 @@ func writeFile(path string, data []byte) {
 }
 
 func openCodeDiff(path1, path2 string) {
+	if runtime.GOOS == "darwin" {
+		path1 = strings.Replace(path1, ".\\", "./", -1)
+		path2 = strings.Replace(path2, ".\\", "./", -1)
+	}
 	cmd := exec.Command("code", "--new-window", "--diff", path1, path2)
+	fmt.Printf("cmd: %s\n", strings.Join(cmd.Args, " "))
 	err := cmd.Start()
 	must(err)
 }

@@ -165,6 +165,31 @@ func getToken() string {
 	return os.Getenv("NOTION_TOKEN")
 }
 
+func exportPageToFile(id string, exportType string, recursive bool, path string) error {
+	client := &notionapi.Client{
+		DebugLog:  true,
+		Logger:    os.Stdout,
+		AuthToken: getToken(),
+	}
+
+	if exportType == "" {
+		exportType = "html"
+	}
+	d, err := client.ExportPages(id, exportType, recursive)
+	if err != nil {
+		fmt.Printf("client.ExportPages() failed with '%s'\n", err)
+		return err
+	}
+
+	err = ioutil.WriteFile(path, d, 0755)
+	if err != nil {
+		fmt.Printf("ioutil.WriteFile() failed with '%s'\n", err)
+		return err
+	}
+	fmt.Printf("Downloaded exported page of id %s as %s\n", id, path)
+	return nil
+}
+
 func exportPage(id string, exportType string, recursive bool) {
 	client := &notionapi.Client{
 		DebugLog:  true,
@@ -185,7 +210,7 @@ func exportPage(id string, exportType string, recursive bool) {
 	if err != nil {
 		fmt.Printf("ioutil.WriteFile() failed with '%s'\n", err)
 	}
-	fmt.Printf("Downloaded `export`ed page of id %s as %s\n", id, name)
+	fmt.Printf("Downloaded exported page of id %s as %s\n", id, name)
 }
 
 func main() {
