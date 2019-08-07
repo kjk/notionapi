@@ -68,7 +68,8 @@ func savePageAsSimpleStructure(page *notionapi.Page) string {
 
 func makeNotionClient() *notionapi.Client {
 	client := &notionapi.Client{
-		DebugLog: true,
+		DebugLog:  true,
+		AuthToken: getToken(),
 	}
 	notionToken := strings.TrimSpace(os.Getenv("NOTION_TOKNE"))
 	if notionToken == "" {

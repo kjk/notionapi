@@ -67,6 +67,7 @@ var (
 	// id of notion page looks like this:
 	// 4c6a54c68b3e4ea2af9cfaabcc88d58d
 
+	flgToken string
 	// id of notion page to download
 	flgDownloadPage string
 
@@ -80,6 +81,10 @@ var (
 	// if true, will not automatically open a browser to display
 	// html generated for a page
 	flgNoOpen bool
+
+	flgExportPage string
+	flgExportType string
+	flgRecursive  bool
 
 	// if true, remove cache directories (data/log, data/cache)
 	flgCleanCache bool
@@ -104,6 +109,10 @@ var (
 func parseFlags() {
 	flag.BoolVar(&flgNoFormat, "no-format", false, "if true, doesn't try to reformat/prettify HTML files during HTML testing")
 	flag.BoolVar(&flgCleanCache, "clean-cache", false, "if true, cleans cache directories (data/log, data/cache")
+	flag.StringVar(&flgToken, "token", "", "auth token")
+	flag.BoolVar(&flgRecursive, "recursive", false, "if true, recursive export")
+	flag.StringVar(&flgExportPage, "export-page", "", "id of the page to export")
+	flag.StringVar(&flgExportType, "export-type", "", "html or markdown")
 	flag.BoolVar(&flgTestToMd, "test-to-md", false, "test markdown generation")
 	flag.BoolVar(&flgTestToHTML1, "test-to-html1", false, "test html 1 generation")
 	flag.BoolVar(&flgTestToHTML2, "test-to-html2", false, "test html 2 generation")
@@ -149,6 +158,36 @@ func removeFilesInDir(dir string) {
 	}
 }
 
+func getToken() string {
+	if flgToken != "" {
+		return flgToken
+	}
+	return os.Getenv("NOTION_TOKEN")
+}
+
+func exportPage(id string, exportType string, recursive bool) {
+	client := &notionapi.Client{
+		DebugLog:  true,
+		Logger:    os.Stdout,
+		AuthToken: getToken(),
+	}
+
+	if exportType == "" {
+		exportType = "html"
+	}
+	d, err := client.ExportPages(id, exportType, recursive)
+	if err != nil {
+		fmt.Printf("client.ExportPages() failed with '%s'\n", err)
+		return
+	}
+	name := notionapi.ToNoDashID(id) + "-" + exportType + ".zip"
+	err = ioutil.WriteFile(name, d, 0755)
+	if err != nil {
+		fmt.Printf("ioutil.WriteFile() failed with '%s'\n", err)
+	}
+	fmt.Printf("Downloaded `export`ed page of id %s as %s\n", id, name)
+}
+
 func main() {
 	cdToTopDir()
 	fmt.Printf("topDir: '%s'\n", topDir())
@@ -166,6 +205,11 @@ func main() {
 			removeFilesInDir(cacheDir)
 		}
 		testToMarkdown1()
+		return
+	}
+
+	if flgExportPage != "" {
+		exportPage(flgExportPage, flgExportType, flgRecursive)
 		return
 	}
 

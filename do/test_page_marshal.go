@@ -23,7 +23,8 @@ func testPageMarshal() {
 	// - format as html
 	// - compare html is identical
 	client := &notionapi.Client{
-		DebugLog: true,
+		DebugLog:  true,
+		AuthToken: getToken(),
 	}
 
 	pageID := "c969c9455d7c4dd79c7f860f3ace6429"

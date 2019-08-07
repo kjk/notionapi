@@ -1,4 +1,4 @@
 #!/bin/bash
 
 cd do
-go run .
+go run . $@

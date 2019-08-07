@@ -29,7 +29,8 @@ func toMD(page *notionapi.Page) (string, []byte) {
 
 func testToMdRecur(startPageID string, whiteListed []string, referenceFiles map[string][]byte) {
 	client := &notionapi.Client{
-		DebugLog: true,
+		DebugLog:  true,
+		AuthToken: getToken(),
 	}
 	seenPages := map[string]bool{}
 	pages := []string{startPageID}

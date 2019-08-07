@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/kjk/notionapi"
 )
@@ -13,7 +12,8 @@ func pageURL(pageID string) string {
 
 func testDownloadImage() {
 	client := &notionapi.Client{
-		DebugLog: true,
+		DebugLog:  true,
+		AuthToken: getToken(),
 	}
 	// page with images
 	pageID := "8511412cbfde432ba226648e9bdfbec2"
@@ -57,7 +57,8 @@ func testDownloadImage() {
 
 func testGist() {
 	client := &notionapi.Client{
-		DebugLog: true,
+		DebugLog:  true,
+		AuthToken: getToken(),
 	}
 	// gist page
 	pageID := "7b9cdf3ab2cf405692e9810b0ac8322e"
@@ -74,11 +75,12 @@ func testGist() {
 }
 
 func testChangeFormat() {
-	authToken := os.Getenv("NOTION_TOKEN")
+	authToken := getToken()
 	if authToken == "" {
 		fmt.Printf("Skipping testChangeFormat() because NOTION_TOKEN env variable not provided")
 		return
 	}
+
 	client := &notionapi.Client{
 		DebugLog:  true,
 		AuthToken: authToken,
@@ -119,7 +121,7 @@ func testChangeFormat() {
 }
 
 func testChangeTitle() {
-	authToken := os.Getenv("NOTION_TOKEN")
+	authToken := getToken()
 	if authToken == "" {
 		fmt.Printf("Skipping testChangeTitle() because NOTION_TOKEN env variable not provided")
 		return
@@ -163,7 +165,8 @@ func testDownloadBig() {
 	// for notion, for testing that we handle everything
 	// page is c969c9455d7c4dd79c7f860f3ace6429 https://www.notion.so/Test-page-all-not-c969c9455d7c4dd79c7f860f3ace6429
 	client := &notionapi.Client{
-		DebugLog: true,
+		DebugLog:  true,
+		AuthToken: getToken(),
 	}
 	// page with images
 	pageID := "c969c9455d7c4dd79c7f860f3ace6429"

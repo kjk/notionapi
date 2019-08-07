@@ -30,7 +30,8 @@ func idsEqual(id1, id2 string) bool {
 
 func testToHTMLRecur(startPageID string, startWith string, validBad []string, referenceFiles map[string][]byte) {
 	client := &notionapi.Client{
-		DebugLog: true,
+		DebugLog:  true,
+		AuthToken: getToken(),
 	}
 	seenPages := map[string]bool{}
 	pages := []string{startPageID}

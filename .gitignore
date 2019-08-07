@@ -3,3 +3,4 @@ www/
 exp.*
 got.*
 *.exe
+.DS_Store
