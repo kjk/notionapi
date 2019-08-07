@@ -8,6 +8,7 @@ import (
 
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml2"
+	"github.com/yosssi/gohtml"
 )
 
 func shouldFormat() bool {
@@ -84,34 +85,29 @@ func testToHTMLRecur(startPageID string, startWith string, validBad []string, re
 			fmt.Printf(" ok\n")
 			continue
 		}
-		if len(pageHTML) == len(expData) {
-			for i, b := range pageHTML {
-				bExp := expData[i]
-				if b != bExp {
-					fmt.Printf("Bytes different at pos %d, got: 0x%x '%c', exp: 0x%x '%c'\n", i, b, b, bExp, bExp)
-					goto endloop
-				}
-			}
-		}
-	endloop:
+
 		if isPageIDInArray(validBad, pageID) {
 			fmt.Printf(" doesn't match but whitelisted\n")
 			continue
 		}
 
-		writeFile("exp.html", expData)
-		writeFile("got.html", pageHTML)
-		if shouldFormat() {
-			formatHTMLFile("exp.html")
-			formatHTMLFile("got.html")
-			if areFilesEuqal("exp.html", "got.html") {
-				fmt.Printf(", files same after formatting\n")
-				pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
-				continue
-			}
+		expDataFormatted := ppHTML(expData)
+		gotDataFormatted := ppHTML(pageHTML)
+
+		if bytes.Equal(expDataFormatted, gotDataFormatted) {
+			fmt.Printf(", files same after formatting\n")
+			continue
 		}
+
+		writeFile("exp.html", expDataFormatted)
+		writeFile("got.html", gotDataFormatted)
 		fmt.Printf("\nHTML in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
 		openCodeDiff(`.\exp.html`, `.\got.html`)
 		os.Exit(1)
 	}
+}
+
+func ppHTML(d []byte) []byte {
+	s := gohtml.Format(string(d))
+	return []byte(s)
 }

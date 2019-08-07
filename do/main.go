@@ -249,18 +249,15 @@ func main() {
 	}
 
 	if flgTestToHTML1 {
-		ensurePrettierExists()
 		testToHTML1()
 		return
 	}
 	if flgTestToHTML2 {
-		ensurePrettierExists()
 		testToHTML2()
 		return
 	}
 
 	if flgTestToHTML3 {
-		ensurePrettierExists()
 		testToHTML3()
 		return
 	}

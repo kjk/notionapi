@@ -482,7 +482,7 @@ func (c *Converter) renderHeader(block *notionapi.Block) {
 			coverURL := filePathFromPageCoverURL(pageCover, block)
 			// TODO: Notion incorrectly escapes them
 			coverURL = escapeHTML(coverURL)
-			c.Printf(`<img class="page-cover-image" src="%s" style="object-position:center %v%%">`, coverURL, position)
+			c.Printf(`<img class="page-cover-image" src="%s" style="object-position:center %v%%"/>`, coverURL, position)
 		}
 		pageIcon, _ := block.FormatStringValue("page_icon")
 		if pageIcon != "" {
@@ -494,7 +494,7 @@ func (c *Converter) renderHeader(block *notionapi.Block) {
 			c.Printf(`<div class="page-header-icon %s">`, clsCover)
 			if isURL(pageIcon) {
 				fileName := getDownloadedFileName(pageIcon, block)
-				c.Printf(`<img class="icon" src="%s">`, fileName)
+				c.Printf(`<img class="icon" src="%s"/>`, fileName)
 			} else {
 				c.Printf(`<span class="icon">%s</span>`, pageIcon)
 			}
@@ -522,7 +522,7 @@ func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 		c.Printf(`<a href="%s">`, filePath)
 		{
 			uri := getCollectionDownloadedFileName(c.Page, col, icon)
-			c.Printf(`<img class="icon" src="%s">`, uri)
+			c.Printf(`<img class="icon" src="%s"/>`, uri)
 		}
 		// TODO: should name be inlines?
 		c.Printf(`%s</a>`, name)
@@ -540,7 +540,7 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 		if ok {
 			if isURL(pageIcon) {
 				fileName := getDownloadedFileName(pageIcon, block)
-				c.Printf(`<img class="icon" src="%s">`, fileName)
+				c.Printf(`<img class="icon" src="%s"/>`, fileName)
 			} else {
 				c.Printf(`<span class="icon">%s</span>`, pageIcon)
 			}
@@ -561,7 +561,7 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 			{
 				c.Printf(`<head>`)
 				{
-					c.Printf(`<meta http-equiv="Content-Type" content="text/html; charset=utf-8">`)
+					c.Printf(`<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
 					c.Printf(`<title>%s</title>`, escapeHTML(block.Title))
 					c.Printf("<style>%s\t\n</style>", cssNotion)
 				}
@@ -806,7 +806,7 @@ func (c *Converter) RenderTableOfContents(block *notionapi.Block) {
 
 // RenderDivider renders BlockDivider
 func (c *Converter) RenderDivider(block *notionapi.Block) {
-	c.Printf(`<hr id="%s">`, block.ID)
+	c.Printf(`<hr id="%s"/>`, block.ID)
 }
 
 func (c *Converter) RenderCaption(block *notionapi.Block) {
@@ -828,7 +828,7 @@ func (c *Converter) RenderBookmark(block *notionapi.Block) {
 			uri := block.Link
 			text := block.Title
 			c.A(uri, text, "")
-			c.Printf(`<br>`)
+			c.Printf(`<br/>`)
 			c.A(uri, uri, "bookmark-href")
 		}
 		c.Printf(`</div>`)
@@ -947,7 +947,7 @@ func (c *Converter) RenderImage(block *notionapi.Block) {
 		uri := getFileOrSourceURL(block)
 		style := getImageStyle(block)
 		c.Printf(`<a href="%s">`, uri)
-		c.Printf(`<img %s src="%s">`, style, uri)
+		c.Printf(`<img %ssrc="%s"/>`, style, uri)
 		c.Printf(`</a>`)
 
 		c.RenderCaption(block)

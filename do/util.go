@@ -81,7 +81,7 @@ func openCodeDiff(path1, path2 string) {
 		path2 = strings.Replace(path2, ".\\", "./", -1)
 	}
 	cmd := exec.Command("code", "--new-window", "--diff", path1, path2)
-	fmt.Printf("cmd: %s\n", strings.Join(cmd.Args, " "))
+	//fmt.Printf("cmd: %s\n", strings.Join(cmd.Args, " "))
 	err := cmd.Start()
 	must(err)
 }
@@ -102,22 +102,4 @@ func openNotepadWithFile(path string) {
 	cmd := exec.Command("notepad.exe", path)
 	err := cmd.Start()
 	must(err)
-}
-
-func formatHTMLFile(path string) {
-	cmd := exec.Command("prettier", "--write", path)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Printf("prettier failed with:\n%s\n", string(out))
-	}
-}
-
-func ensurePrettierExists() {
-	cmd := exec.Command("prettier", "-v")
-	err := cmd.Run()
-	if err != nil {
-		log("prettier doesn't seem to be installed. Either run with -no-reformat or install prettier with:\n")
-		log("npm install --global prettier\n")
-		os.Exit(1)
-	}
 }

@@ -12,14 +12,18 @@ import (
 func testToHTML3() {
 	// to speed up iteration, we skip pages that we know we render correctly
 	validBad := []string{
-		// Notion can't be formatted with prettier
+		// TODO: I'm not formatting table correctly
 		"00f68316d03c4830b00c453e542a1df7",
+		// TODO: I'm not formatting table correctly
 		"02bfca37eae5484ba942a00c99076b7a",
+		// TODO: I'm not formatting table correctly
 		"09e9c8f5c9df445f94d1cf3f39a1039f",
+		// TODO: totally different export
 		"0e684b2e45ea434293274c802b5ad702",
-
 		// TODO: I'm not exporting a table the right way
 		"141c2ef1718b471896c915ae622dae83",
+		// TODO: Bad export
+		"14d22d99fb074352a59d78751646cf3d",
 	}
 
 	startWith := ""
