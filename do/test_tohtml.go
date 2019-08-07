@@ -4,12 +4,39 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml2"
 	"github.com/yosssi/gohtml"
 )
+
+// detect location of https://winmerge.org/
+// if present, we can do directory diffs
+// only works on windows
+func getWinMergePath() string {
+	path, err := exec.LookPath("WinMergeU")
+	if err == nil {
+		return path
+	}
+	dir, err := os.UserHomeDir()
+	if err == nil {
+		path := filepath.Join(dir, "AppData", "Local", "Programs", "WinMerge", "WinMergeU.exe")
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return ""
+}
+
+func dirDiff(dir1, dir2 string) {
+	winMerge := getWinMergePath()
+	cmd := exec.Command(winMerge, "/r", dir1, dir2)
+	err := cmd.Start()
+	must(err)
+}
 
 func shouldFormat() bool {
 	return !flgNoFormat
@@ -38,6 +65,19 @@ func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, 
 	pages := []string{startPageID}
 	nPage := 0
 	isDoing := (firstToTest == "")
+
+	hasDirDiff := getWinMergePath() != ""
+	diffDir := filepath.Join(dataDir, "diff")
+	expDiffDir := filepath.Join(diffDir, "exp")
+	gotDiffDir := filepath.Join(diffDir, "got")
+	if hasDirDiff {
+		must(os.MkdirAll(expDiffDir, 0755))
+		must(os.MkdirAll(gotDiffDir, 0755))
+		removeFilesInDir(expDiffDir)
+		removeFilesInDir(gotDiffDir)
+	}
+	nDifferent := 0
+
 	for len(pages) > 0 {
 		pageID := pages[0]
 		pages = pages[1:]
@@ -81,13 +121,9 @@ func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, 
 			}
 			os.Exit(1)
 		}
+
 		if bytes.Equal(pageHTML, expData) {
 			fmt.Printf(" ok\n")
-			continue
-		}
-
-		if isPageIDInArray(validBad, pageID) {
-			fmt.Printf(" doesn't match but whitelisted\n")
 			continue
 		}
 
@@ -99,10 +135,34 @@ func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, 
 			continue
 		}
 
-		writeFile("exp.html", expDataFormatted)
-		writeFile("got.html", gotDataFormatted)
+		// if we can diff dirs, run through all files and save files that are
+		// differetn in in dirs
+		if hasDirDiff {
+			fileName := fmt.Sprintf("%s.html", notionapi.ToNoDashID(pageID))
+			expPath := filepath.Join(expDiffDir, fileName)
+			writeFile(expPath, expDataFormatted)
+			gotPath := filepath.Join(gotDiffDir, fileName)
+			writeFile(gotPath, gotDataFormatted)
+			fmt.Printf("\nHTML in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
+			if nDifferent == 0 {
+				dirDiff(expDiffDir, gotDiffDir)
+			}
+			nDifferent++
+			continue
+		}
+
+		if isPageIDInArray(validBad, pageID) {
+			fmt.Printf(" doesn't match but whitelisted\n")
+			continue
+		}
+
+		fileName := fmt.Sprintf("%s.html", notionapi.ToNoDashID(pageID))
+		expPath := "exp-" + fileName
+		gotPath := "got-" + fileName
+		writeFile(expPath, expDataFormatted)
+		writeFile(gotPath, gotDataFormatted)
 		fmt.Printf("\nHTML in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
-		openCodeDiff(`.\exp.html`, `.\got.html`)
+		openCodeDiff(expPath, gotPath)
 		os.Exit(1)
 	}
 }

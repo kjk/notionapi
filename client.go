@@ -38,7 +38,7 @@ func (c *Client) getHTTPClient() *http.Client {
 	}
 	// TODO: better defaults (timeouts)
 	httpClient := *http.DefaultClient
-	httpClient.Timeout = time.Second * 15
+	httpClient.Timeout = time.Second * 30
 	return &httpClient
 }
 

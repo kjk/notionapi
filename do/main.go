@@ -98,6 +98,7 @@ var (
 )
 
 var (
+	dataDir  = "data"
 	logDir   = filepath.Join("data", "log")
 	cacheDir = filepath.Join("data", "cache")
 )
