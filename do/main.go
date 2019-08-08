@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/kjk/notionapi"
 )
@@ -90,6 +92,7 @@ var (
 	flgCleanCache bool
 	flgReExport   bool
 
+	flgSanityTest          bool
 	flgTestToMd            string
 	flgTestToHTML          string
 	flgTestToHTML1         bool
@@ -117,6 +120,7 @@ func parseFlags() {
 	flag.BoolVar(&flgTestToHTML1, "test-to-html1", false, "test html 1 generation")
 	flag.BoolVar(&flgTestToHTML2, "test-to-html2", false, "test html 2 generation")
 	flag.BoolVar(&flgTestToHTML3, "test-to-html3", false, "test html 3 generation")
+	flag.BoolVar(&flgSanityTest, "sanity", false, "if true, runs a sanity tests")
 	flag.StringVar(&flgTestPageJSONMarshal, "test-json-marshal", "", "test marshalling of a given page to/from JSON")
 	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
 	flag.StringVar(&flgToHTML, "tohtml", "", "id of notion page to download and convert to html")
@@ -213,6 +217,23 @@ func exportPage(id string, exportType string, recursive bool) {
 	fmt.Printf("Downloaded exported page of id %s as %s\n", id, name)
 }
 
+func runGoTests() {
+	cmd := exec.Command("go", "test", "-v", "./...")
+	fmt.Printf("Running: %s\n", strings.Join(cmd.Args, " "))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	must(cmd.Run())
+}
+
+// sanity tests are basic tests to validate changes
+// meant to not take too long
+func sanityTests() {
+	fmt.Printf("Running sanity tests\n")
+	runGoTests()
+	testPageJSONMarshal("dd5c0a813dfe4487a6cd432f82c0c2fc")
+	// TODO: more tests?
+}
+
 func main() {
 	cdToTopDir()
 	fmt.Printf("topDir: '%s'\n", topDir())
@@ -231,6 +252,11 @@ func main() {
 	if false {
 		flgTestToMd = "0367c2db381a4f8b9ce360f388a6b2e3"
 		testToMarkdown(flgTestToMd)
+		return
+	}
+
+	if flgSanityTest {
+		sanityTests()
 		return
 	}
 
