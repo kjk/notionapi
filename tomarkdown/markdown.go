@@ -181,11 +181,10 @@ func (c *Converter) IsNextBlockOfType(t string) bool {
 	return b.Type == t
 }
 
-// FormatDate formats the data
+// FormatDate formats the date
 func (c *Converter) FormatDate(d *notionapi.Date) string {
 	// TODO: allow over-riding date formatting
-	s := notionapi.FormatDate(d)
-	return fmt.Sprintf(`<span class="notion-date">@%s</span>`, s)
+	return notionapi.FormatDate(d)
 }
 
 func getBeforeWhitespace(text string) (string, string) {
@@ -223,6 +222,22 @@ func shuffleWhitespace(text string) (string, string, string) {
 	return before, text, after
 }
 
+func (c *Converter) bufferEndsWith(s string) bool {
+	d := c.Buf.Bytes()
+	if len(d) < len(s) {
+		return false
+	}
+	n := len(d)
+	ns := len(s)
+	for i := 0; i < ns; i++ {
+		c := s[i]
+		if d[n-ns-i] != c {
+			return false
+		}
+	}
+	return true
+}
+
 // RenderInline renders inline block
 func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 	text := b.Text
@@ -230,14 +245,19 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 	for _, attr := range b.Attrs {
 		switch notionapi.AttrGetType(attr) {
 		case notionapi.AttrBold:
-			start += "**"
-			end = "**" + end
+			// TODO: this needs to be tracked better
+			if !c.bufferEndsWith("**") {
+				start += "**"
+				end = "**" + end
+			}
 		case notionapi.AttrItalic:
 			start += "*"
 			end = "*" + end
 		case notionapi.AttrStrikeThrought:
-			start += "~~"
-			end = "~~" + end
+			if !c.bufferEndsWith("~~") {
+				start += "~~"
+				end = "~~" + end
+			}
 		case notionapi.AttrCode:
 			start += "`"
 			end = "`" + end
@@ -450,7 +470,8 @@ func (c *Converter) RenderBookmark(block *notionapi.Block) {
 	if title == "" && uri == "" {
 		return
 	}
-	c.WriteString(fmt.Sprintf("[%s](%s)\n", title, uri))
+	c.Printf("[%s](%s)\n", title, uri)
+	c.renderCaption(block)
 }
 
 // RenderTweet renders BlockTweet
@@ -460,7 +481,9 @@ func (c *Converter) RenderTweet(block *notionapi.Block) {
 
 // RenderGist renders BlockGist
 func (c *Converter) RenderGist(block *notionapi.Block) {
-	c.WriteString("RenderGist NYI\n")
+	uri := block.Source
+	c.Printf("[%s](%s)\n\n", uri, uri)
+	c.renderCaption(block)
 }
 
 func localFileNameFromURL(fileID, uri string) string {
@@ -531,6 +554,14 @@ func (c *Converter) RenderEmbed(block *notionapi.Block) {
 	c.WriteString(s)
 }
 
+func (c *Converter) renderCaption(block *notionapi.Block) {
+	caption := block.GetCaption()
+	if caption == nil {
+		return
+	}
+	c.RenderInlines(caption, false)
+}
+
 // RenderImage renders BlockImage
 func (c *Converter) RenderImage(block *notionapi.Block) {
 	// TODO: not sure if always has FileIDs
@@ -551,8 +582,8 @@ func (c *Converter) RenderImage(block *notionapi.Block) {
 		fileName = parts[0]
 		ext = "." + parts[1]
 	}
-	s := fmt.Sprintf("![](%s-%s%s)\n", fileName, fileID, ext)
-	c.WriteString(s)
+	c.Printf("![](%s-%s%s)\n", fileName, fileID, ext)
+	c.renderCaption(block)
 }
 
 // RenderColumnList renders BlockColumnList
