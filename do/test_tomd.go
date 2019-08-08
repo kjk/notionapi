@@ -87,7 +87,7 @@ func testToMdRecur(startPageID string, whiteListed []string, referenceFiles map[
 		// if we can diff dirs, run through all files and save files that are
 		// differetn in in dirs
 		if hasDirDiff {
-			fileName := fmt.Sprintf("%s.html", notionapi.ToNoDashID(pageID))
+			fileName := fmt.Sprintf("%s.md", notionapi.ToNoDashID(pageID))
 			expPath := filepath.Join(expDiffDir, fileName)
 			writeFile(expPath, expData)
 			gotPath := filepath.Join(gotDiffDir, fileName)

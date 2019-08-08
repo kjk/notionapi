@@ -314,16 +314,17 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 func (c *Converter) RenderText(block *notionapi.Block) {
 	c.RenderInlines(block.InlineContent, false)
 	c.Newline()
+	c.RenderChildren(block)
 }
 
 // RenderToggle renders BlockToggle
 func (c *Converter) RenderToggle(block *notionapi.Block) {
-	c.incIndent()
-	defer c.decIndent()
-
 	c.WriteString("- ")
 	c.RenderInlines(block.InlineContent, true)
 	c.Eol()
+
+	c.incIndent()
+	defer c.decIndent()
 
 	c.RenderChildren(block)
 }
