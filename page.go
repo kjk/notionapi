@@ -64,13 +64,12 @@ func (p *Page) Root() *Block {
 }
 
 type pageMarshaled struct {
-	Version             string
-	RootPageID          string
-	Blocks              []map[string]interface{}
-	Users               []map[string]interface{}
-	Collections         []map[string]interface{}
-	CollectionViews     []map[string]interface{}
-	CollectionViewInfos []*collectionViewInfoSerialized
+	Version         string
+	RootPageID      string
+	Blocks          []map[string]interface{} `json:"Blocks,omitempty"`
+	Users           []map[string]interface{} `json:"Users,omitempty"`
+	Collections     []map[string]interface{} `json:"Collections,omitempty"`
+	CollectionViews []map[string]interface{} `json:"CollectionViews,omitempty"`
 }
 
 // CollectionViewInfo transformed for serialization to JSON
