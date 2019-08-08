@@ -35,6 +35,19 @@ func testToMdRecur(startPageID string, whiteListed []string, referenceFiles map[
 	seenPages := map[string]bool{}
 	pages := []string{startPageID}
 	nPage := 0
+
+	hasDirDiff := getWinMergePath() != ""
+	diffDir := filepath.Join(dataDir, "diff")
+	expDiffDir := filepath.Join(diffDir, "exp")
+	gotDiffDir := filepath.Join(diffDir, "got")
+	if hasDirDiff {
+		must(os.MkdirAll(expDiffDir, 0755))
+		must(os.MkdirAll(gotDiffDir, 0755))
+		removeFilesInDir(expDiffDir)
+		removeFilesInDir(gotDiffDir)
+	}
+	nDifferent := 0
+
 	for len(pages) > 0 {
 		pageID := pages[0]
 		pages = pages[1:]
@@ -48,9 +61,10 @@ func testToMdRecur(startPageID string, whiteListed []string, referenceFiles map[
 
 		page, err := dl(client, pageID)
 		must(err)
+		pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
 		name, pageMd := toMD(page)
 		fmt.Printf("%02d: '%s'", nPage, name)
-		//fmt.Printf("page as markdown:\n%s\n", string(pageMd))
+
 		expData, ok := referenceFiles[name]
 		if !ok {
 			fmt.Printf("\n'%s' from '%s' doesn't seem correct as it's not present in referenceFiles\n", name, page.Root().Title)
@@ -60,33 +74,45 @@ func testToMdRecur(startPageID string, whiteListed []string, referenceFiles map[
 			}
 			os.Exit(1)
 		}
+
 		if bytes.Equal(pageMd, expData) {
 			if isPageIDInArray(whiteListed, pageID) {
-				fmt.Printf(" ok (and also whitelisted)\n")
-			} else {
-				fmt.Printf(" ok\n")
+				fmt.Printf(" ok (AND ALSO WHITELISTED)\n")
+				continue
 			}
-			pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
+			fmt.Printf(" ok\n")
 			continue
 		}
-		if len(pageMd) == len(expData) {
-			for i, b := range pageMd {
-				bExp := expData[i]
-				if b != bExp {
-					fmt.Printf("Bytes different at pos %d, got: 0x%x '%c', exp: 0x%x '%c'\n", i, b, b, bExp, bExp)
-					goto endloop
-				}
+
+		// if we can diff dirs, run through all files and save files that are
+		// differetn in in dirs
+		if hasDirDiff {
+			fileName := fmt.Sprintf("%s.html", notionapi.ToNoDashID(pageID))
+			expPath := filepath.Join(expDiffDir, fileName)
+			writeFile(expPath, expData)
+			gotPath := filepath.Join(gotDiffDir, fileName)
+			writeFile(gotPath, pageMd)
+			fmt.Printf(" https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
+			if nDifferent == 0 {
+				dirDiff(expDiffDir, gotDiffDir)
 			}
+			nDifferent++
+			continue
 		}
-	endloop:
+
 		if isPageIDInArray(whiteListed, pageID) {
 			fmt.Printf(" doesn't match but whitelisted\n")
 			continue
 		}
+
 		fmt.Printf("\nMarkdown in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
-		writeFile("exp.md", expData)
-		writeFile("got.md", pageMd)
-		openCodeDiff(`.\exp.md`, `.\got.md`)
+
+		fileName := fmt.Sprintf("%s.md", notionapi.ToNoDashID(pageID))
+		expPath := "exp-" + fileName
+		gotPath := "got-" + fileName
+		writeFile(expPath, expData)
+		writeFile(gotPath, pageMd)
+		openCodeDiff(expPath, gotPath)
 		os.Exit(1)
 	}
 }

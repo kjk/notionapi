@@ -237,10 +237,10 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 			end = "*" + end
 		case notionapi.AttrStrikeThrought:
 			start += "~~"
-			end = "~~" + start
+			end = "~~" + end
 		case notionapi.AttrCode:
 			start += "`"
-			end = "`" + start
+			end = "`" + end
 		case notionapi.AttrLink:
 			uri := notionapi.AttrGetLink(attr)
 			if c.RewriteURL != nil {

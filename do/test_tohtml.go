@@ -56,7 +56,7 @@ func idsEqual(id1, id2 string) bool {
 	return id1 == id2
 }
 
-func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, referenceFiles map[string][]byte) {
+func testToHTMLRecur(startPageID string, validBad []string, referenceFiles map[string][]byte) {
 	client := &notionapi.Client{
 		DebugLog:  true,
 		AuthToken: getToken(),
@@ -64,7 +64,6 @@ func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, 
 	seenPages := map[string]bool{}
 	pages := []string{startPageID}
 	nPage := 0
-	isDoing := (firstToTest == "")
 
 	hasDirDiff := getWinMergePath() != ""
 	diffDir := filepath.Join(dataDir, "diff")
@@ -95,17 +94,6 @@ func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, 
 		name, pageHTML := toHTML2(page)
 		fmt.Printf("%02d: %s '%s'", nPage, pageID, name)
 
-		if !isDoing {
-			if idsEqual(pageID, firstToTest) {
-				isDoing = true
-			}
-		}
-		if !isDoing {
-			fmt.Printf(" skipped\n")
-			continue
-		}
-
-		//fmt.Printf("page as html:\n%s\n", string(pageHTML))
 		var expData []byte
 		for refName, d := range referenceFiles {
 			if strings.HasSuffix(refName, name) {
@@ -113,6 +101,7 @@ func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, 
 				break
 			}
 		}
+
 		if len(expData) == 0 {
 			fmt.Printf("\n'%s' from '%s' doesn't seem correct as it's not present in referenceFiles\n", name, page.Root().Title)
 			fmt.Printf("Names in referenceFiles:\n")
@@ -123,6 +112,10 @@ func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, 
 		}
 
 		if bytes.Equal(pageHTML, expData) {
+			if isPageIDInArray(validBad, pageID) {
+				fmt.Printf(" ok (AND ALSO WHITELISTED)\n")
+				continue
+			}
 			fmt.Printf(" ok\n")
 			continue
 		}
@@ -131,6 +124,10 @@ func testToHTMLRecur(startPageID string, firstToTest string, validBad []string, 
 		gotDataFormatted := ppHTML(pageHTML)
 
 		if bytes.Equal(expDataFormatted, gotDataFormatted) {
+			if isPageIDInArray(validBad, pageID) {
+				fmt.Printf(" ok after formatting (AND ALSO WHITELISTED)\n")
+				continue
+			}
 			fmt.Printf(", files same after formatting\n")
 			continue
 		}

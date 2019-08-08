@@ -26,8 +26,6 @@ func testToHTML3() {
 		"14d22d99fb074352a59d78751646cf3d",
 	}
 
-	startWith := ""
-
 	// top-level page for Notion Pok Dex
 	startPage := "d6eb49cfc68f402881af3aef391443e6"
 	os.MkdirAll(cacheDir, 0755)
@@ -41,5 +39,5 @@ func testToHTML3() {
 	zipFiles := readZipFile(zipPath)
 	fmt.Printf("There are %d files in zip file\n", len(zipFiles))
 
-	testToHTMLRecur(startPage, startWith, validBad, zipFiles)
+	testToHTMLRecur(startPage, validBad, zipFiles)
 }

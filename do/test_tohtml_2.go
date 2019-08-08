@@ -23,8 +23,6 @@ func testToHTML2() {
 		"f97ffca91f8949b48004999df34ab1f7",
 	}
 
-	startWith := ""
-
 	// top-level page for blendle handbok
 	startPage := "0367c2db381a4f8b9ce360f388a6b2e3"
 	os.MkdirAll(cacheDir, 0755)
@@ -38,5 +36,5 @@ func testToHTML2() {
 	zipFiles := readZipFile(zipPath)
 	fmt.Printf("There are %d files in zip file\n", len(zipFiles))
 
-	testToHTMLRecur(startPage, startWith, validBad, zipFiles)
+	testToHTMLRecur(startPage, validBad, zipFiles)
 }
