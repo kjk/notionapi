@@ -2,6 +2,7 @@ package notionapi
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 )
@@ -286,9 +287,12 @@ type Block struct {
 // CollectionViewInfo describes a particular view of the collection
 // TODO: same as table?
 type CollectionViewInfo struct {
-	CollectionView *CollectionView
-	Collection     *Collection
-	CollectionRows []*Block
+	OriginatingBlock *Block
+	CollectionView   *CollectionView
+	Collection       *Collection
+	CollectionRows   []*Block
+	// for serialization of state to JSON
+	queryCollectionResponse *QueryCollectionResponse
 }
 
 func (b *Block) FormatStringValue(key string) (string, bool) {
@@ -565,4 +569,20 @@ func (b *Block) CollectionByID(id string) *Collection {
 
 func (b *Block) CollectionViewByID(id string) *CollectionView {
 	return b.Page.CollectionViewByID(id)
+}
+
+func getBlockIDsSorted(idToBlock map[string]*Block) []string {
+	// we want to serialize in a fixed order
+	n := len(idToBlock)
+	if n == 0 {
+		return nil
+	}
+	ids := make([]string, n, n)
+	i := 0
+	for id := range idToBlock {
+		ids[i] = id
+		i++
+	}
+	sort.Strings(ids)
+	return ids
 }

@@ -90,13 +90,13 @@ var (
 	flgCleanCache bool
 	flgReExport   bool
 
-	flgTestToMd        string
-	flgTestToHTML      string
-	flgTestToHTML1     bool
-	flgTestToHTML2     bool
-	flgTestToHTML3     bool
-	flgTestPageMarshal bool
-	flgNoFormat        bool
+	flgTestToMd            string
+	flgTestToHTML          string
+	flgTestToHTML1         bool
+	flgTestToHTML2         bool
+	flgTestToHTML3         bool
+	flgTestPageJSONMarshal string
+	flgNoFormat            bool
 )
 
 var (
@@ -117,7 +117,7 @@ func parseFlags() {
 	flag.BoolVar(&flgTestToHTML1, "test-to-html1", false, "test html 1 generation")
 	flag.BoolVar(&flgTestToHTML2, "test-to-html2", false, "test html 2 generation")
 	flag.BoolVar(&flgTestToHTML3, "test-to-html3", false, "test html 3 generation")
-	flag.BoolVar(&flgTestPageMarshal, "test-page-marshal", false, "test marshalling of Page to/from JSON")
+	flag.StringVar(&flgTestPageJSONMarshal, "test-json-marshal", "", "test marshalling of a given page to/from JSON")
 	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
 	flag.StringVar(&flgToHTML, "tohtml", "", "id of notion page to download and convert to html")
 	flag.BoolVar(&flgReExport, "re-export", false, "if true, will re-export from notion")
@@ -239,8 +239,8 @@ func main() {
 		return
 	}
 
-	if flgTestPageMarshal {
-		testPageMarshal()
+	if flgTestPageJSONMarshal != "" {
+		testPageJSONMarshal(flgTestPageJSONMarshal)
 		return
 	}
 

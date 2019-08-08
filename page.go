@@ -7,6 +7,12 @@ import (
 	"sort"
 )
 
+const (
+	// current version of Page JSON serialization
+	// allows changing the format in the future
+	currPageJSONVersion = "2"
+)
+
 var (
 	// TODO: add more values, see FormatPage struct
 	validFormatValues = map[string]struct{}{
@@ -22,11 +28,12 @@ type Page struct {
 	Users  []*User
 	Tables []*Table
 
-	idToBlock          map[string]*Block
-	idToUser           map[string]*User
-	idToCollection     map[string]*Collection
-	idToCollectionView map[string]*CollectionView
-	blocksToSkip       map[string]struct{} // not alive or when server doesn't return "value" for this block id
+	idToBlock                map[string]*Block
+	idToUser                 map[string]*User
+	idToCollection           map[string]*Collection
+	idToCollectionView       map[string]*CollectionView
+	blocksToSkip             map[string]struct{} // not alive or when server doesn't return "value" for this block id
+	queryCollectionResponses []*QueryCollectionResponse
 
 	client *Client
 }
@@ -56,19 +63,97 @@ func (p *Page) Root() *Block {
 	return p.BlockByID(p.ID)
 }
 
-const (
-	// current version of Page JSON serialization
-	// allows changing the format in the future
-	currPageJSONVersion = "1"
-)
-
 type pageMarshaled struct {
-	Version         string
-	RootPageID      string
-	Blocks          []map[string]interface{}
-	Users           []map[string]interface{}
-	Collections     []map[string]interface{}
-	CollectionViews []map[string]interface{}
+	Version             string
+	RootPageID          string
+	Blocks              []map[string]interface{}
+	Users               []map[string]interface{}
+	Collections         []map[string]interface{}
+	CollectionViews     []map[string]interface{}
+	CollectionViewInfos []*collectionViewInfoSerialized
+}
+
+// CollectionViewInfo transformed for serialization to JSON
+type collectionViewInfoSerialized struct {
+	// CollectionID is derived from the block it belongs to
+	CollectionViewID           string
+	QueryCollectionResponseRAW map[string]interface{}
+}
+
+func unmarshalCollectionViewInfo(p *Page, block *Block, cis *collectionViewInfoSerialized) error {
+	// TODO: verify is in block.ViewIDs
+	collectionViewID := cis.CollectionViewID
+	var res QueryCollectionResponse
+	js := cis.QueryCollectionResponseRAW
+	err := jsonUnmarshalFromMap(js, &res)
+	if err != nil {
+		return err
+	}
+	res.RawJSON = js
+
+	collection := p.idToCollection[block.CollectionID]
+	panicIf(collection == nil)
+	collectionView := p.idToCollectionView[collectionViewID]
+	panicIf(collectionView == nil)
+
+	// same logic as at the end of Client.DownloadPage
+	collInfo := &CollectionViewInfo{
+		CollectionView:          collectionView,
+		Collection:              collection,
+		queryCollectionResponse: &res,
+	}
+
+	blockIds := res.Result.BlockIDS
+	for _, id := range blockIds {
+		rowBlock, ok := res.RecordMap.Blocks[id]
+		if !ok {
+			return fmt.Errorf("didn't find block with id '%s' for collection view with id '%s'", id, collectionViewID)
+		}
+		collInfo.CollectionRows = append(collInfo.CollectionRows, rowBlock.Value)
+	}
+	block.CollectionViews = append(block.CollectionViews, collInfo)
+
+	return nil
+}
+
+func unmarshalCollectionViewInfos(p *Page, block *Block) error {
+	panicIf(len(block.CollectionViews) > 0)
+	js, ok := block.RawJSON["CollectionViews"]
+	if !ok {
+		// it's ok if it's not present
+		return nil
+	}
+	jsa := js.([]interface{})
+	for _, jsi := range jsa {
+		js := jsi.(map[string]interface{})
+		var cis collectionViewInfoSerialized
+		err := jsonUnmarshalFromMap(js, &cis)
+		if err != nil {
+			return err
+		}
+		err = unmarshalCollectionViewInfo(p, block, &cis)
+		if err != nil {
+			return err
+		}
+	}
+	// will be re-generated in MarshallJSON
+	delete(block.RawJSON, "CollectionViews")
+	return nil
+}
+
+func blockMarshalCollectionViews(block *Block) {
+	if len(block.CollectionViews) == 0 {
+		return
+	}
+	var a []*collectionViewInfoSerialized
+	for _, ci := range block.CollectionViews {
+		cis := &collectionViewInfoSerialized{
+			CollectionViewID:           ci.CollectionView.ID,
+			QueryCollectionResponseRAW: ci.queryCollectionResponse.RawJSON,
+		}
+		a = append(a, cis)
+	}
+	block.RawJSON["CollectionViews"] = a
 }
 
 func (p *Page) MarshalJSON() ([]byte, error) {
@@ -78,15 +163,11 @@ func (p *Page) MarshalJSON() ([]byte, error) {
 	}
 
 	{
-		// we want to serialize in a fixed order
-		var ids []string
-		for id := range p.idToBlock {
-			ids = append(ids, id)
-		}
-		sort.Strings(ids)
+		ids := getBlockIDsSorted(p.idToBlock)
 		for _, id := range ids {
 			b := p.idToBlock[id]
 			v.Blocks = append(v.Blocks, b.RawJSON)
+			blockMarshalCollectionViews(b)
 		}
 	}
 
@@ -188,6 +269,12 @@ func (p *Page) UnmarshalJSON(data []byte) error {
 		p.idToCollectionView[v.ID] = &v
 	}
 
+	for _, block := range p.idToBlock {
+		err := unmarshalCollectionViewInfos(p, block)
+		if err != nil {
+			return err
+		}
+	}
 	return p.resolveBlocks()
 }
 

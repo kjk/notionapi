@@ -415,7 +415,9 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 
 	p.resolveBlocks()
 
-	for _, block := range p.idToBlock {
+	blockIDs := getBlockIDsSorted(p.idToBlock)
+	for _, id := range blockIDs {
+		block := p.idToBlock[id]
 		if block.Type != BlockCollectionView {
 			continue
 		}
@@ -447,11 +449,14 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			if err != nil {
 				return nil, err
 			}
-			blockIds := res.Result.BlockIDS
+
+			// this is repeated in unmarshalCollectionViewInfo
 			collInfo := &CollectionViewInfo{
-				CollectionView: collectionView,
-				Collection:     collection,
+				CollectionView:          collectionView,
+				Collection:              collection,
+				queryCollectionResponse: res,
 			}
+			blockIds := res.Result.BlockIDS
 			for _, id := range blockIds {
 				rowBlock, ok := res.RecordMap.Blocks[id]
 				if !ok {

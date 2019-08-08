@@ -40,7 +40,7 @@ type CollectionQuery struct {
 
 // QueryCollectionResponse is json response for /api/v3/queryCollection
 type QueryCollectionResponse struct {
-	RecordMap RecordMap              `json:"recordMap"`
+	RecordMap *RecordMap             `json:"recordMap"`
 	Result    *QueryCollectionResult `json:"result"`
 	RawJSON   map[string]interface{} `json:"-"`
 }
