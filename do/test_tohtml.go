@@ -56,7 +56,15 @@ func idsEqual(id1, id2 string) bool {
 	return id1 == id2
 }
 
-func testToHTMLRecur(startPageID string, validBad []string, referenceFiles map[string][]byte) {
+func testToHTML(startPageID string) {
+	os.MkdirAll(cacheDir, 0755)
+	startPageID = notionapi.ToNoDashID(startPageID)
+
+	knownBad := findKnownBadHTML(startPageID)
+
+	referenceFiles := exportPages(startPageID, notionapi.ExportTypeHTML)
+	fmt.Printf("There are %d files in zip file\n", len(referenceFiles))
+
 	client := &notionapi.Client{
 		DebugLog:  true,
 		AuthToken: getToken(),
@@ -88,7 +96,7 @@ func testToHTMLRecur(startPageID string, validBad []string, referenceFiles map[s
 		seenPages[pageIDNormalized] = true
 		nPage++
 
-		page, err := dl(client, pageID)
+		page, err := downloadPage(client, pageID)
 		must(err)
 		pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
 		name, pageHTML := toHTML2(page)
@@ -112,7 +120,7 @@ func testToHTMLRecur(startPageID string, validBad []string, referenceFiles map[s
 		}
 
 		if bytes.Equal(pageHTML, expData) {
-			if isPageIDInArray(validBad, pageID) {
+			if isPageIDInArray(knownBad, pageID) {
 				fmt.Printf(" ok (AND ALSO WHITELISTED)\n")
 				continue
 			}
@@ -124,7 +132,7 @@ func testToHTMLRecur(startPageID string, validBad []string, referenceFiles map[s
 		gotDataFormatted := ppHTML(pageHTML)
 
 		if bytes.Equal(expDataFormatted, gotDataFormatted) {
-			if isPageIDInArray(validBad, pageID) {
+			if isPageIDInArray(knownBad, pageID) {
 				fmt.Printf(" ok after formatting (AND ALSO WHITELISTED)\n")
 				continue
 			}
@@ -148,7 +156,7 @@ func testToHTMLRecur(startPageID string, validBad []string, referenceFiles map[s
 			continue
 		}
 
-		if isPageIDInArray(validBad, pageID) {
+		if isPageIDInArray(knownBad, pageID) {
 			fmt.Printf(" doesn't match but whitelisted\n")
 			continue
 		}

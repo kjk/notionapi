@@ -75,8 +75,8 @@ var (
 	flgToHTML string
 
 	// if true, will try to avoid downloading the page by using
-	// cached version sved in log/ directory
-	flgUseCache bool
+	// cached version saved in log/ directory
+	flgNoCache bool
 
 	// if true, will not automatically open a browser to display
 	// html generated for a page
@@ -88,8 +88,10 @@ var (
 
 	// if true, remove cache directories (data/log, data/cache)
 	flgCleanCache bool
+	flgReExport   bool
 
-	flgTestToMd        bool
+	flgTestToMd        string
+	flgTestToHTML      string
 	flgTestToHTML1     bool
 	flgTestToHTML2     bool
 	flgTestToHTML3     bool
@@ -103,10 +105,6 @@ var (
 	logDir   = cacheDir
 )
 
-var (
-	useCache = true
-)
-
 func parseFlags() {
 	flag.BoolVar(&flgNoFormat, "no-format", false, "if true, doesn't try to reformat/prettify HTML files during HTML testing")
 	flag.BoolVar(&flgCleanCache, "clean-cache", false, "if true, cleans cache directories (data/log, data/cache")
@@ -114,15 +112,17 @@ func parseFlags() {
 	flag.BoolVar(&flgRecursive, "recursive", false, "if true, recursive export")
 	flag.StringVar(&flgExportPage, "export-page", "", "id of the page to export")
 	flag.StringVar(&flgExportType, "export-type", "", "html or markdown")
-	flag.BoolVar(&flgTestToMd, "test-to-md", false, "test markdown generation")
+	flag.StringVar(&flgTestToMd, "test-to-md", "", "test markdown generation")
+	flag.StringVar(&flgTestToHTML, "test-to-html", "", "id of start page")
 	flag.BoolVar(&flgTestToHTML1, "test-to-html1", false, "test html 1 generation")
 	flag.BoolVar(&flgTestToHTML2, "test-to-html2", false, "test html 2 generation")
 	flag.BoolVar(&flgTestToHTML3, "test-to-html3", false, "test html 3 generation")
 	flag.BoolVar(&flgTestPageMarshal, "test-page-marshal", false, "test marshalling of Page to/from JSON")
 	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
 	flag.StringVar(&flgToHTML, "tohtml", "", "id of notion page to download and convert to html")
-	flag.BoolVar(&flgUseCache, "use-cache", false, "if true will try to avoid downloading the page by using cached version saved in log/ directory")
-	flag.BoolVar(&flgNoOpen, "no-open", false, "if true will not automatically open the browser with html file generated with -tohtml")
+	flag.BoolVar(&flgReExport, "re-export", false, "if true, will re-export from notion")
+	flag.BoolVar(&flgNoCache, "no-cache", false, "if true, will not use a cached version in log/ directory")
+	flag.BoolVar(&flgNoOpen, "no-open", false, "if true, will not automatically open the browser with html file generated with -tohtml")
 	flag.Parse()
 
 	// normalize ids early on
@@ -221,16 +221,11 @@ func main() {
 	parseFlags()
 
 	if flgCleanCache {
-		removeFilesInDir(logDir)
 		removeFilesInDir(cacheDir)
 	}
 
-	if flgTestToMd {
-		if false {
-			removeFilesInDir(logDir)
-			removeFilesInDir(cacheDir)
-		}
-		testToMarkdown1()
+	if flgTestToMd != "" {
+		testToMarkdown(flgTestToMd)
 		return
 	}
 
@@ -245,29 +240,34 @@ func main() {
 	}
 
 	if true {
-		removeFilesInDir(logDir)
 		removeFilesInDir(cacheDir)
 	}
 
+	if flgTestToHTML != "" {
+		testToHTML(flgTestToHTML)
+		return
+	}
+
 	if flgTestToHTML1 {
-		testToHTML1()
+		testToHTML("3b617da409454a52bc3a920ba8832bf7")
 		return
 	}
 	if flgTestToHTML2 {
-		testToHTML2()
+		testToHTML("0367c2db381a4f8b9ce360f388a6b2e3")
 		return
 	}
 
 	if flgTestToHTML3 {
-		testToHTML3()
+		testToHTML("d6eb49cfc68f402881af3aef391443e6")
 		return
 	}
 
 	if flgDownloadPage != "" {
-		emptyLogDir()
-		downloadPageMaybeCached(flgDownloadPage)
+		client := makeNotionClient()
+		downloadPage(client, flgDownloadPage)
 		return
 	}
+
 	if flgToHTML != "" {
 		recreateDir(logDir)
 		toHTML(flgToHTML)

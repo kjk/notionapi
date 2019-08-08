@@ -286,8 +286,12 @@ func (c *Converter) GetInlineContent(blocks []*notionapi.TextSpan, trimeEndSpace
 
 // RenderCode renders BlockCode
 func (c *Converter) RenderCode(block *notionapi.Block) {
-	// TODO: implement me
-	c.WriteString("RenderCode NYI\n")
+	code := block.Code
+	ind := "    "
+	parts := strings.Split(code, "\n")
+	for _, part := range parts {
+		c.WriteString(ind + part + "\n")
+	}
 }
 
 // RenderPage renders BlockPage
@@ -295,7 +299,8 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 	tp := block.GetPageType()
 	if tp == notionapi.BlockPageTopLevel {
 		title := c.GetInlineContent(block.InlineContent, false)
-		c.WriteString("# " + title + "\n")
+		c.WriteString("# " + title)
+		c.Newline()
 		c.RenderChildren(block)
 		return
 	}
@@ -397,15 +402,26 @@ func (c *Converter) RenderSubSubHeader(block *notionapi.Block) {
 	c.RenderHeaderLevel(block, 3)
 }
 
+func (c *Converter) Printf(format string, args ...interface{}) {
+	s := format
+	if len(args) > 0 {
+		s = fmt.Sprintf(format, args...)
+	}
+	c.Buf.WriteString(s)
+}
+
 // RenderTodo renders BlockTodo
 func (c *Converter) RenderTodo(block *notionapi.Block) {
+	text := c.GetInlineContent(block.InlineContent, true)
+
+	if block.IsChecked {
+		c.Printf("- [x]  %s\n", text)
+	} else {
+		c.Printf("- [ ]  %s\n", text)
+	}
+
 	c.incIndent()
 	defer c.decIndent()
-
-	text := c.GetInlineContent(block.InlineContent, true)
-	s := fmt.Sprintf("- [ ]  %s\n", text)
-	c.WriteString(s)
-
 	c.RenderChildren(block)
 }
 
@@ -523,7 +539,10 @@ func (c *Converter) RenderImage(block *notionapi.Block) {
 	}
 	source := block.Source // also present in block.Format.DisplaySource
 	// source looks like: "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e5470cfd-08f0-4fb8-8ec2-452ca1a3f05e/Schermafbeelding2018-06-19om09.52.45.png"
-	fileID := block.FileIDs[0]
+	var fileID string
+	if len(block.FileIDs) > 0 {
+		fileID = block.FileIDs[0]
+	}
 	parts := strings.Split(source, "/")
 	fileName := parts[len(parts)-1]
 	parts = strings.SplitN(fileName, ".", 2)

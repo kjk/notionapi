@@ -18,7 +18,7 @@ func testDownloadImage() {
 	// page with images
 	pageID := "8511412cbfde432ba226648e9bdfbec2"
 	fmt.Printf("testDownloadImage %s\n", pageURL(pageID))
-	page, err := dl(client, pageID)
+	page, err := downloadPage(client, pageID)
 	must(err)
 	block := page.Root()
 	assert(block.Title == "test image", "unexpected title ''%s'", block.Title)
@@ -63,7 +63,7 @@ func testGist() {
 	// gist page
 	pageID := "7b9cdf3ab2cf405692e9810b0ac8322e"
 	fmt.Printf("testGist %s\n", pageURL(pageID))
-	page, err := dl(client, pageID)
+	page, err := downloadPage(client, pageID)
 	must(err)
 	title := page.Root().Title
 	assert(title == "Test Gist", "unexpected title ''%s'", title)
@@ -171,7 +171,7 @@ func testDownloadBig() {
 	// page with images
 	pageID := "c969c9455d7c4dd79c7f860f3ace6429"
 	fmt.Printf("testDownloadImage %s\n", pageURL(pageID))
-	page, err := dl(client, pageID)
+	page, err := downloadPage(client, pageID)
 	must(err)
 	s := notionapi.DumpToString(page)
 	fmt.Printf("Downloaded page %s, %s\n%s\n", page.ID, pageURL(pageID), s)
