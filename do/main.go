@@ -128,7 +128,6 @@ func parseFlags() {
 	// normalize ids early on
 	flgDownloadPage = notionapi.ToNoDashID(flgDownloadPage)
 	flgToHTML = notionapi.ToNoDashID(flgToHTML)
-
 }
 
 // absolute path of top directory in the repo
@@ -229,6 +228,12 @@ func main() {
 		return
 	}
 
+	if false {
+		flgTestToMd = "0367c2db381a4f8b9ce360f388a6b2e3"
+		testToMarkdown(flgTestToMd)
+		return
+	}
+
 	if flgExportPage != "" {
 		exportPage(flgExportPage, flgExportType, flgRecursive)
 		return
@@ -239,7 +244,7 @@ func main() {
 		return
 	}
 
-	if true {
+	if false {
 		removeFilesInDir(cacheDir)
 	}
 

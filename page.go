@@ -161,7 +161,9 @@ func (p *Page) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		v.RawJSON = js
-		p.idToUser[v.ID] = &v
+		user := &v
+		p.idToUser[v.ID] = user
+		p.Users = append(p.Users, user)
 	}
 
 	p.idToCollection = map[string]*Collection{}

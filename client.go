@@ -366,7 +366,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		missingIter++
 
 		// the API worked even with 6k items, but I'll split it into many
-		// smaller requrests anyway
+		// smaller requests anyway
 		maxToGet := 128 * 10
 		for len(missing) > 0 {
 			toGet := missing

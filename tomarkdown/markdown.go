@@ -184,7 +184,8 @@ func (c *Converter) IsNextBlockOfType(t string) bool {
 // FormatDate formats the date
 func (c *Converter) FormatDate(d *notionapi.Date) string {
 	// TODO: allow over-riding date formatting
-	return notionapi.FormatDate(d)
+	s := notionapi.FormatDate(d)
+	return s
 }
 
 func getBeforeWhitespace(text string) (string, string) {
@@ -238,29 +239,35 @@ func (c *Converter) bufferEndsWith(s string) bool {
 	return true
 }
 
-// RenderInline renders inline block
-func (c *Converter) RenderInline(b *notionapi.TextSpan) {
+// InlineToString renders inline block
+func (c *Converter) InlineToString(b *notionapi.TextSpan) string {
 	text := b.Text
 	var start, end, before, after string
 	for _, attr := range b.Attrs {
 		switch notionapi.AttrGetType(attr) {
 		case notionapi.AttrBold:
-			// TODO: this needs to be tracked better
-			if !c.bufferEndsWith("**") {
-				start += "**"
-				end = "**" + end
-			}
+			start += "**"
+			end = "**" + end
 		case notionapi.AttrItalic:
 			start += "*"
 			end = "*" + end
 		case notionapi.AttrStrikeThrought:
-			if !c.bufferEndsWith("~~") {
-				start += "~~"
-				end = "~~" + end
-			}
+			start += "~~"
+			end = "~~" + end
 		case notionapi.AttrCode:
 			start += "`"
 			end = "`" + end
+		case notionapi.AttrPage:
+			pageID := notionapi.AttrGetPageID(attr)
+			// TODO: find the page
+			// TODO: needs to download info when recursively scanning
+			// for pages
+			pageTitle := ""
+			uri := "https://www.notion.so/" + pageID
+			if c.RewriteURL != nil {
+				uri = c.RewriteURL(uri)
+			}
+			start += fmt.Sprintf(`[%s](%s)`, pageTitle, uri)
 		case notionapi.AttrLink:
 			uri := notionapi.AttrGetLink(attr)
 			if c.RewriteURL != nil {
@@ -281,7 +288,12 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 	before, text, after = shuffleWhitespace(text)
 	start = before + start
 	end = end + after
-	c.WriteString(start + text + end)
+	return start + text + end
+}
+
+func (c *Converter) RenderInline(b *notionapi.TextSpan) {
+	s := c.InlineToString(b)
+	c.Printf(s)
 }
 
 // RenderInlines renders inline blocks
@@ -310,7 +322,7 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	ind := "    "
 	parts := strings.Split(code, "\n")
 	for _, part := range parts {
-		c.WriteString(ind + part + "\n")
+		c.Printf(ind + part + "\n")
 	}
 }
 
@@ -319,7 +331,7 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 	tp := block.GetPageType()
 	if tp == notionapi.BlockPageTopLevel {
 		title := c.GetInlineContent(block.InlineContent, false)
-		c.WriteString("# " + title)
+		c.Printf("# " + title)
 		c.Newline()
 		c.RenderChildren(block)
 		return
@@ -330,8 +342,7 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 	// TODO: if block.Title has "[" or "]" in it, needs to escape
 	fileName := markdownFileName(block.Title, block.ID)
 	title := c.GetInlineContent(block.InlineContent, false)
-	s := fmt.Sprintf("[%s](./%s)", title, fileName)
-	c.WriteString(s)
+	c.Printf("[%s](./%s)", title, fileName)
 	c.Eol()
 }
 
@@ -344,7 +355,7 @@ func (c *Converter) RenderText(block *notionapi.Block) {
 
 // RenderToggle renders BlockToggle
 func (c *Converter) RenderToggle(block *notionapi.Block) {
-	c.WriteString("- ")
+	c.Printf("- ")
 	c.RenderInlines(block.InlineContent, true)
 	c.Eol()
 
@@ -460,7 +471,7 @@ func (c *Converter) RenderCallout(block *notionapi.Block) {
 
 // RenderDivider renders BlockDivider
 func (c *Converter) RenderDivider(block *notionapi.Block) {
-	c.WriteString("---\n\n")
+	c.Printf("---\n\n")
 }
 
 // RenderBookmark renders BlockBookmark
@@ -476,14 +487,12 @@ func (c *Converter) RenderBookmark(block *notionapi.Block) {
 
 // RenderTweet renders BlockTweet
 func (c *Converter) RenderTweet(block *notionapi.Block) {
-	c.WriteString("RenderTweet NYI\n")
+	c.RenderEmbed(block)
 }
 
 // RenderGist renders BlockGist
 func (c *Converter) RenderGist(block *notionapi.Block) {
-	uri := block.Source
-	c.Printf("[%s](%s)\n\n", uri, uri)
-	c.renderCaption(block)
+	c.RenderEmbed(block)
 }
 
 func localFileNameFromURL(fileID, uri string) string {
@@ -496,6 +505,15 @@ func localFileNameFromURL(fileID, uri string) string {
 		ext = "." + parts[1]
 	}
 	return fileName + "-" + fileID + ext
+}
+
+func (c *Converter) renderCaption(block *notionapi.Block) {
+	caption := block.GetCaption()
+	if caption == nil {
+		return
+	}
+	c.Newline()
+	c.RenderInlines(caption, false)
 }
 
 // for video, image, pdf
@@ -527,8 +545,8 @@ func getEmbeddedFileNameAndURL(block *notionapi.Block) (string, string) {
 // RenderVideo renders BlockTweet
 func (c *Converter) RenderVideo(block *notionapi.Block) {
 	name, uri := getEmbeddedFileNameAndURL(block)
-	s := fmt.Sprintf("[%s](%s)\n", name, uri)
-	c.WriteString(s)
+	c.Printf("[%s](%s)\n", name, uri)
+	c.renderCaption(block)
 }
 
 // RenderFile renders BlockFile
@@ -536,30 +554,22 @@ func (c *Converter) RenderFile(block *notionapi.Block) {
 	fileID := block.FileIDs[0]
 	localFileName := localFileNameFromURL(fileID, block.Source)
 	name := block.Title
-	s := fmt.Sprintf("[%s](%s)\n", name, localFileName)
-	c.WriteString(s)
+	c.Printf("[%s](%s)\n", name, localFileName)
+	c.renderCaption(block)
 }
 
 // RenderPDF renders BlockPDF
 func (c *Converter) RenderPDF(block *notionapi.Block) {
 	name, uri := getEmbeddedFileNameAndURL(block)
-	s := fmt.Sprintf("[%s](%s)\n", name, uri)
-	c.WriteString(s)
+	c.Printf("[%s](%s)\n", name, uri)
+	c.renderCaption(block)
 }
 
 // RenderEmbed renders BlockEmbed
 func (c *Converter) RenderEmbed(block *notionapi.Block) {
 	uri := block.Source
-	s := fmt.Sprintf("[%s](%s)\n", uri, uri)
-	c.WriteString(s)
-}
-
-func (c *Converter) renderCaption(block *notionapi.Block) {
-	caption := block.GetCaption()
-	if caption == nil {
-		return
-	}
-	c.RenderInlines(caption, false)
+	c.Printf("[%s](%s)\n", uri, uri)
+	c.renderCaption(block)
 }
 
 // RenderImage renders BlockImage
@@ -648,10 +658,14 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderCollectionView
 	case notionapi.BlockEmbed:
 		return c.RenderEmbed
+	case notionapi.BlockMaps:
+		return c.RenderEmbed
+	case notionapi.BlockTweet:
+		return c.RenderEmbed
+	case notionapi.BlockCodepen:
+		return c.RenderEmbed
 	case notionapi.BlockGist:
 		return c.RenderGist
-	case notionapi.BlockTweet:
-		return c.RenderTweet
 	case notionapi.BlockVideo:
 		return c.RenderVideo
 	case notionapi.BlockFile:
