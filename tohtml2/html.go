@@ -627,8 +627,8 @@ func (c *Converter) RenderText(block *notionapi.Block) {
 	cls := getBlockColorClass(block)
 	c.Printf(`<p id="%s" class="%s">`, block.ID, cls)
 	c.RenderInlines(block.InlineContent)
-	c.Printf(`</p>`)
 	c.RenderChildren(block)
+	c.Printf(`</p>`)
 }
 
 // RenderNumberedList renders BlockNumberedList
