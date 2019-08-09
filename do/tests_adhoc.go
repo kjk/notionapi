@@ -180,7 +180,6 @@ func testDownloadBig() {
 func adhocTests() {
 	fmt.Printf("Running page tests\n")
 	recreateDir(cacheDir)
-	recreateDir(logDir)
 
 	testDownloadBig()
 	//testDownloadImage()

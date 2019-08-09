@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -32,15 +30,9 @@ func notionURLForPageID(pageID string) string {
 	return "https://notion.so/" + pageID
 }
 
-func pathForPageLog(pageID string) string {
-	pageID = notionapi.ToNoDashID(pageID)
-	name := fmt.Sprintf("%s.log.txt", pageID)
-	return filepath.Join(logDir, name)
-}
-
 func pathForPageRequestsCache(pageID string) string {
 	pageID = notionapi.ToNoDashID(pageID)
-	name := fmt.Sprintf("%s.page.json", pageID)
+	name := fmt.Sprintf("%s.page.txt", pageID)
 	return filepath.Join(cacheDir, name)
 }
 
@@ -55,16 +47,6 @@ func pathForPageSimpleStructure(pageID string) string {
 	return filepath.Join(cacheDir, name)
 }
 
-func openLogFileForPage(pageID string) (io.WriteCloser, error) {
-	path := pathForPageLog(pageID)
-	f, err := os.Create(path)
-	if err != nil {
-		fmt.Printf("os.Create('%s') failed with %s\n", path, err)
-		return nil, err
-	}
-	return f, nil
-}
-
 func loadRequestCacheForPage(pageID string) *notionapi.HTTPCache {
 	if flgNoCache {
 		return nil
@@ -76,23 +58,19 @@ func loadRequestCacheForPage(pageID string) *notionapi.HTTPCache {
 		// it's ok if file doesn't exit
 		return nil
 	}
-	var httpCache *notionapi.HTTPCache
-	err = json.Unmarshal(d, &httpCache)
-	if err == nil {
-		return httpCache
-	}
+	httpCache, err := deserializeHTTPCache(d)
 	if err != nil {
 		log("json.Unmarshal() failed with %s decoding file %s\n", err, path)
 		err = os.Remove(path)
 		must(err)
 		log("Deleted file %s\n", path)
 	}
-	return nil
+	return httpCache
 }
 
 // returns path of the created file
-func savePageRequestsCacheAsJSON(pageID string, cache *notionapi.HTTPCache) string {
-	d, err := json.MarshalIndent(cache, "", "  ")
+func savePageRequestsCache(pageID string, cache *notionapi.HTTPCache) string {
+	d, err := serializeHTTPCache(cache)
 	must(err)
 	path := pathForPageRequestsCache(pageID)
 	err = ioutil.WriteFile(path, d, 0644)
@@ -110,7 +88,7 @@ func savePageAsSimpleStructure(page *notionapi.Page) string {
 	return path
 }
 
-func downloadPageCached(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
+func downloadPage(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
 	pageID = notionapi.ToNoDashID(pageID)
 	httpCache := loadRequestCacheForPage(pageID)
 	if httpCache == nil {
@@ -123,28 +101,11 @@ func downloadPageCached(client *notionapi.Client, pageID string) (*notionapi.Pag
 		client.HTTPClient = prevClient
 	}()
 
-	client.Logger, _ = openLogFileForPage(pageID)
-	if client.Logger != nil {
-		defer func() {
-			f := client.Logger.(*os.File)
-			f.Close()
-			client.Logger = nil
-		}()
-	}
-
 	res, err := client.DownloadPage(pageID)
 	if err != nil {
+		fmt.Printf("client.DownloadPage('%s') failed with %s\n", pageID, err)
 		return nil, err
 	}
-	savePageRequestsCacheAsJSON(pageID, httpCache)
+	savePageRequestsCache(pageID, httpCache)
 	return res, nil
-}
-
-func downloadPage(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
-	page, err := downloadPageCached(client, pageID)
-	if err != nil {
-		fmt.Printf("downloadPageCached('%s') failed with %s\n", pageID, err)
-		return nil, err
-	}
-	return page, nil
 }
