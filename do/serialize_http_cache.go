@@ -10,6 +10,10 @@ import (
 	"github.com/kjk/siser"
 )
 
+const (
+	recCacheName = "httpcache-v1"
+)
+
 // pretty-print if valid JSON. If not, return unchanged
 func ppJSON(js []byte) []byte {
 	var m map[string]interface{}
@@ -34,6 +38,7 @@ func recGetKey(r *siser.Record, key string, pErr *error) string {
 	}
 	return v
 }
+
 func recGetKeyBytes(r *siser.Record, key string, pErr *error) []byte {
 	return []byte(recGetKey(r, key, pErr))
 }
@@ -45,12 +50,11 @@ func serializeHTTPCache(c *notionapi.HTTPCache) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	w := siser.NewWriter(buf)
 	var r siser.Record
-	r.Name = "httpcache-v1"
 	for _, rr := range c.CachedRequests {
 		r.Reset()
 		body := ppJSON(rr.Body)
 		response := ppJSON(rr.Response)
-		hdr, err := json.Marshal(rr.Header)
+		hdr, err := json.MarshalIndent(rr.Header, "", "  ")
 		if err != nil {
 			return nil, err
 		}
@@ -59,6 +63,7 @@ func serializeHTTPCache(c *notionapi.HTTPCache) ([]byte, error) {
 		r.Append("Body", string(body))
 		r.Append("Response", string(response))
 		r.Append("HeadersJSON", string(hdr))
+		r.Name = recCacheName
 		_, err = w.WriteRecord(&r)
 		if err != nil {
 			return nil, err
@@ -74,8 +79,8 @@ func deserializeHTTPCache(d []byte) (*notionapi.HTTPCache, error) {
 	r := siser.NewReader(br)
 	var err error
 	for r.ReadNextRecord() {
-		if r.Name != "httpcache-1" {
-			return nil, fmt.Errorf("unexpectd record type '%s', wanted '%s'", r.Name, "httpcache-1")
+		if r.Name != recCacheName {
+			return nil, fmt.Errorf("unexpected record type '%s', wanted '%s'", r.Name, recCacheName)
 		}
 		rr := notionapi.RequestResponse{}
 		rr.Method = recGetKey(r.Record, "Method", &err)
