@@ -263,17 +263,6 @@ func main() {
 		return
 	}
 
-	if false {
-		flgTestToMd = "0367c2db381a4f8b9ce360f388a6b2e3"
-		testToMarkdown(flgTestToMd)
-		return
-	}
-
-	if true {
-		testPageJSONMarshal("dd5c0a813dfe4487a6cd432f82c0c2fc")
-		return
-	}
-
 	if flgSanityTest {
 		sanityTests()
 		return
