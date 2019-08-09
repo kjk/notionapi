@@ -58,6 +58,7 @@ func idsEqual(id1, id2 string) bool {
 
 func testToHTML(startPageID string) {
 	os.MkdirAll(cacheDir, 0755)
+	os.MkdirAll(logDir, 0755)
 	startPageID = notionapi.ToNoDashID(startPageID)
 
 	knownBad := findKnownBadHTML(startPageID)

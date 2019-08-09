@@ -179,8 +179,8 @@ func testDownloadBig() {
 
 func adhocTests() {
 	fmt.Printf("Running page tests\n")
-	recreateDir(logDir)
 	recreateDir(cacheDir)
+	recreateDir(logDir)
 
 	testDownloadBig()
 	//testDownloadImage()

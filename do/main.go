@@ -105,7 +105,7 @@ var (
 var (
 	dataDir  = "data"
 	cacheDir = filepath.Join("data", "cache")
-	logDir   = cacheDir
+	logDir   = filepath.Join(cacheDir, "log")
 )
 
 func parseFlags() {
@@ -194,6 +194,20 @@ func exportPageToFile(id string, exportType string, recursive bool, path string)
 	return nil
 }
 
+func panicIf(cond bool, args ...interface{}) {
+	if !cond {
+		return
+	}
+	if len(args) == 0 {
+		panic("condition failed")
+	}
+	format := args[0].(string)
+	if len(args) == 1 {
+		panic(format)
+	}
+	panic(fmt.Sprintf(format, args[1:]))
+}
+
 func exportPage(id string, exportType string, recursive bool) {
 	client := &notionapi.Client{
 		DebugLog:  true,
@@ -252,6 +266,11 @@ func main() {
 	if false {
 		flgTestToMd = "0367c2db381a4f8b9ce360f388a6b2e3"
 		testToMarkdown(flgTestToMd)
+		return
+	}
+
+	if true {
+		testPageJSONMarshal("dd5c0a813dfe4487a6cd432f82c0c2fc")
 		return
 	}
 

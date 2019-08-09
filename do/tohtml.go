@@ -24,7 +24,7 @@ func toHTML(pageID string) {
 	html := r.ToHTML()
 
 	html = makeFullHTML(html)
-	path := htmlFilePathForPageID(pageID)
+	path := pathForPageHTML(pageID)
 	err = ioutil.WriteFile(path, html, 0644)
 	must(err)
 	log("%s : HTML version of the page\n", path)

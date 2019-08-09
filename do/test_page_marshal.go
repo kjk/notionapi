@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 
 	"github.com/kjk/notionapi"
@@ -36,9 +35,13 @@ func testPageJSONMarshal(pageID string) {
 	// - marshal and unmarshal from json
 	// - format as html
 	// - compare html is identical
+	cache := notionapi.NewHTTPCache()
+	cachingClient := notionapi.NewCachingHTTPClient(cache)
 	client := &notionapi.Client{
-		DebugLog:  true,
-		AuthToken: getToken(),
+		DebugLog: true,
+		//Logger:     os.Stdout,
+		AuthToken:  getToken(),
+		HTTPClient: cachingClient,
 	}
 
 	pageID = notionapi.ToNoDashID(pageID)
@@ -48,14 +51,20 @@ func testPageJSONMarshal(pageID string) {
 	html2 := pageToHTML2(page1)
 	md := pageToMarkdown(page1)
 
-	d, err := json.MarshalIndent(page1, "", "  ")
+	nRequests := cache.RequestsFromCache
+	cache.RequestsFromCache = 0
+	cache.RequestsNotFromCache = 0
+
+	// this should satisfy downloads using a cache
+	page2, err := client.DownloadPage(pageID)
 	must(err)
-	var page2 notionapi.Page
-	err = json.Unmarshal(d, &page2)
-	must(err)
-	html1_2 := pageToHTML1(&page2)
-	html2_2 := pageToHTML2(&page2)
-	md_2 := pageToMarkdown(&page2)
+
+	// verify we made the same amount of requests
+	panicIf(nRequests != cache.RequestsNotFromCache, "nRequests: %d, cache.RequestsNotFromCache: %d", nRequests, cache.RequestsNotFromCache)
+
+	html1_2 := pageToHTML1(page2)
+	html2_2 := pageToHTML2(page2)
+	md_2 := pageToMarkdown(page2)
 
 	if !bytes.Equal(html1, html1_2) {
 		fmt.Printf("html1 != html1_2!\n")
