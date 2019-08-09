@@ -133,6 +133,7 @@ func exportPages(pageID string, exportType string) map[string][]byte {
 
 func testToMarkdown(startPageID string) {
 	os.MkdirAll(cacheDir, 0755)
+	os.MkdirAll(logDir, 0755)
 	startPageID = notionapi.ToNoDashID(startPageID)
 
 	knownBad := getKnownBadMarkdown(startPageID)

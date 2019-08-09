@@ -36,7 +36,6 @@ func (c *Client) getHTTPClient() *http.Client {
 	if c.HTTPClient != nil {
 		return c.HTTPClient
 	}
-	// TODO: better defaults (timeouts)
 	httpClient := *http.DefaultClient
 	httpClient.Timeout = time.Second * 30
 	return &httpClient
