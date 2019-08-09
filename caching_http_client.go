@@ -2,6 +2,7 @@ package notionapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -54,6 +55,20 @@ func readAndReplaceReadCloser(pBody *io.ReadCloser) ([]byte, error) {
 	return d, nil
 }
 
+// pretty-print if valid JSON. If not, return unchanged
+func ppJSON2(js []byte) []byte {
+	var m map[string]interface{}
+	err := json.Unmarshal(js, &m)
+	if err != nil {
+		return js
+	}
+	d, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return js
+	}
+	return d
+}
+
 func isBodySame(r *http.Request, rr *RequestResponse, cachedBody *[]byte) (bool, error) {
 	// only POST request takes body
 	if r.Method != http.MethodPost {
@@ -73,17 +88,21 @@ func isBodySame(r *http.Request, rr *RequestResponse, cachedBody *[]byte) (bool,
 		if d == nil {
 			*cachedBody = []byte{}
 		} else {
+			d = ppJSON2(d)
 			*cachedBody = d
 		}
 	}
-	return bytes.Equal(d, rr.Body), nil
+	rrBody := ppJSON2(rr.Body)
+	return bytes.Equal(d, rrBody), nil
 }
 
 func isCachedRequest(r *http.Request, rr *RequestResponse, cachedBody *[]byte) (bool, error) {
 	if rr.Method != r.Method {
 		return false, nil
 	}
-	if rr.URL != r.URL.String() {
+	uri1 := rr.URL
+	uri2 := r.URL.String()
+	if uri1 != uri2 {
 		return false, nil
 	}
 	return isBodySame(r, rr, cachedBody)
