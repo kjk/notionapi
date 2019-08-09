@@ -82,7 +82,7 @@ func deserializeHTTPCache(d []byte) (*notionapi.HTTPCache, error) {
 		if r.Name != recCacheName {
 			return nil, fmt.Errorf("unexpected record type '%s', wanted '%s'", r.Name, recCacheName)
 		}
-		rr := notionapi.RequestResponse{}
+		rr := &notionapi.RequestResponse{}
 		rr.Method = recGetKey(r.Record, "Method", &err)
 		rr.URL = recGetKey(r.Record, "URL", &err)
 		rr.Body = recGetKeyBytes(r.Record, "Body", &err)
@@ -95,6 +95,7 @@ func deserializeHTTPCache(d []byte) (*notionapi.HTTPCache, error) {
 		if err != nil {
 			return nil, err
 		}
+		res.Add(rr)
 	}
 	if r.Err() != nil {
 		return nil, r.Err()
