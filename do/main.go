@@ -105,7 +105,6 @@ var (
 var (
 	dataDir  = "data"
 	cacheDir = filepath.Join("data", "cache")
-	logDir   = filepath.Join(cacheDir, "log")
 )
 
 func parseFlags() {
@@ -308,7 +307,7 @@ func main() {
 	}
 
 	if flgToHTML != "" {
-		recreateDir(logDir)
+		recreateDir(cacheDir)
 		toHTML(flgToHTML)
 		return
 	}

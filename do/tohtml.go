@@ -10,8 +10,7 @@ import (
 
 func toHTML(pageID string) {
 	client := makeNotionClient()
-
-	page, err := downloadPageCached(client, pageID)
+	page, err := downloadPage(client, pageID)
 	must(err)
 	if page == nil {
 		return
