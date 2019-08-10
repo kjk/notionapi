@@ -73,6 +73,8 @@ const (
 	BlockTableOfContents = "table_of_contents"
 	// BlockBreadcrumb is breadcrumb block
 	BlockBreadcrumb = "breadcrumb"
+	// BlockEquation is TeX equation block
+	BlockEquation = "equation"
 )
 
 // BlockPageType defines a type of BlockPage block

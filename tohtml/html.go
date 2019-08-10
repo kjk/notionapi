@@ -139,6 +139,14 @@ func (c *Converter) Newline() {
 	}
 }
 
+func (c *Converter) Printf(format string, args ...interface{}) {
+	s := format
+	if len(args) > 0 {
+		s = fmt.Sprintf(format, args...)
+	}
+	c.Buf.WriteString(s)
+}
+
 // WriteString writes a string to the buffer
 func (c *Converter) WriteString(s string) {
 	c.Buf.WriteString(s)
@@ -352,6 +360,14 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 // RenderText renders BlockText
 func (c *Converter) RenderText(block *notionapi.Block) {
 	attrs := []string{"class", "notion-text"}
+	c.WriteElement(block, "div", attrs, "", true)
+	c.RenderChildren(block)
+	c.WriteElement(block, "div", attrs, "", false)
+}
+
+// RenderEquation renders BlockEquation
+func (c *Converter) RenderEquation(block *notionapi.Block) {
+	attrs := []string{"class", "notion-equation"}
 	c.WriteElement(block, "div", attrs, "", true)
 	c.RenderChildren(block)
 	c.WriteElement(block, "div", attrs, "", false)
@@ -657,6 +673,10 @@ func (c *Converter) RenderColumn(block *notionapi.Block) {
 	c.WriteElement(block, "div", attrs, "", false)
 }
 
+func (c *Converter) RenderNotImplemented(block *notionapi.Block) {
+	c.Printf("<div>TODO: '%s' NYI!</div>", block.Type)
+}
+
 // RenderCollectionView renders BlockCollectionView
 func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	viewInfo := block.CollectionViews[0]
@@ -756,6 +776,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderPage
 	case notionapi.BlockText:
 		return c.RenderText
+	case notionapi.BlockEquation:
+		return c.RenderEquation
 	case notionapi.BlockNumberedList:
 		return c.RenderNumberedList
 	case notionapi.BlockBulletedList:
@@ -805,6 +827,7 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 	case notionapi.BlockBreadcrumb:
 	case notionapi.BlockMaps:
 	case notionapi.BlockCodepen:
+		return c.RenderNotImplemented
 		return nil
 	default:
 		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, c.Page.NotionURL())

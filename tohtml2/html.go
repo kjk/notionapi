@@ -264,32 +264,10 @@ func (c *Converter) PopBuffer() *bytes.Buffer {
 	return res
 }
 
-var (
-	// true only when debugging
-	doNewline = false
-)
-
-// Newline writes a newline to the buffer. It'll suppress multiple newlines.
-func (c *Converter) Newline() {
-	if !doNewline {
-		return
-	}
-	d := c.Buf.Bytes()
-	n := len(d)
-	if n > 0 && d[n-1] != '\n' {
-		c.Buf.WriteByte('\n')
-	}
-}
-
 func (c *Converter) Printf(format string, args ...interface{}) {
 	s := format
 	if len(args) > 0 {
 		s = fmt.Sprintf(format, args...)
-	}
-	if doNewline {
-		if strings.HasPrefix(s, `<`) {
-			c.Newline()
-		}
 	}
 	c.Buf.WriteString(s)
 }
@@ -624,6 +602,16 @@ func getBlockColorClass(block *notionapi.Block) string {
 
 // RenderText renders BlockText
 func (c *Converter) RenderText(block *notionapi.Block) {
+	cls := getBlockColorClass(block)
+	c.Printf(`<p id="%s" class="%s">`, block.ID, cls)
+	c.RenderInlines(block.InlineContent)
+	c.RenderChildren(block)
+	c.Printf(`</p>`)
+}
+
+// RenderEquation renders BlockEquation
+// TODO: compare with Notion rendering
+func (c *Converter) RenderEquation(block *notionapi.Block) {
 	cls := getBlockColorClass(block)
 	c.Printf(`<p id="%s" class="%s">`, block.ID, cls)
 	c.RenderInlines(block.InlineContent)
@@ -998,6 +986,11 @@ func (c *Converter) RenderColumn(block *notionapi.Block) {
 	c.Printf("</div>")
 }
 
+// RenderBreadcrumb renders BlockBreadcrumb
+func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
+	c.Printf("<div>TODO: breadcrumbs not implemented yet!</div>")
+}
+
 // RenderCollectionView renders BlockCollectionView
 func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	pageID := ""
@@ -1094,6 +1087,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderPage
 	case notionapi.BlockText:
 		return c.RenderText
+	case notionapi.BlockEquation:
+		return c.RenderEquation
 	case notionapi.BlockNumberedList:
 		return c.RenderNumberedList
 	case notionapi.BlockBulletedList:
@@ -1146,6 +1141,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderCallout
 	case notionapi.BlockTableOfContents:
 		return c.RenderTableOfContents
+	case notionapi.BlockBreadcrumb:
+		return c.RenderBreadcrumb
 	default:
 		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, c.Page.NotionURL())
 	}
