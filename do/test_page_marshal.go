@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/kjk/caching_http_client"
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml"
 	"github.com/kjk/notionapi/tohtml2"
@@ -35,8 +36,8 @@ func testPageJSONMarshal(pageID string) {
 	// - marshal and unmarshal from json
 	// - format as html
 	// - compare html is identical
-	cache := notionapi.NewHTTPCache()
-	cachingClient := notionapi.NewCachingHTTPClient(cache)
+	cache := caching_http_client.NewCache()
+	cachingClient := caching_http_client.New(cache)
 	client := &notionapi.Client{
 		DebugLog: true,
 		//Logger:     os.Stdout,

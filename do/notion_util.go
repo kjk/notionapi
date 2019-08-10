@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kjk/caching_http_client"
 	"github.com/kjk/notionapi"
 )
 
@@ -47,7 +48,7 @@ func pathForPageSimpleStructure(pageID string) string {
 	return filepath.Join(cacheDir, name)
 }
 
-func loadRequestCacheForPage(pageID string) *notionapi.HTTPCache {
+func loadRequestCacheForPage(pageID string) *caching_http_client.Cache {
 	if flgNoCache {
 		return nil
 	}
@@ -69,7 +70,7 @@ func loadRequestCacheForPage(pageID string) *notionapi.HTTPCache {
 }
 
 // returns path of the created file
-func savePageRequestsCache(pageID string, cache *notionapi.HTTPCache) string {
+func savePageRequestsCache(pageID string, cache *caching_http_client.Cache) string {
 	d, err := serializeHTTPCache(cache)
 	must(err)
 	path := pathForPageRequestsCache(pageID)
@@ -92,9 +93,9 @@ func downloadPage(client *notionapi.Client, pageID string) (*notionapi.Page, err
 	pageID = notionapi.ToNoDashID(pageID)
 	httpCache := loadRequestCacheForPage(pageID)
 	if httpCache == nil {
-		httpCache = notionapi.NewHTTPCache()
+		httpCache = caching_http_client.NewCache()
 	}
-	httpClient := notionapi.NewCachingHTTPClient(httpCache)
+	httpClient := caching_http_client.New(httpCache)
 	prevClient := client.HTTPClient
 	client.HTTPClient = httpClient
 	defer func() {

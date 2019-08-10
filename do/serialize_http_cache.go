@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/kjk/notionapi"
+	"github.com/kjk/caching_http_client"
 	"github.com/kjk/siser"
 )
 
@@ -43,7 +43,7 @@ func recGetKeyBytes(r *siser.Record, key string, pErr *error) []byte {
 	return []byte(recGetKey(r, key, pErr))
 }
 
-func serializeHTTPCache(c *notionapi.HTTPCache) ([]byte, error) {
+func serializeHTTPCache(c *caching_http_client.Cache) ([]byte, error) {
 	if len(c.CachedRequests) == 0 {
 		return []byte{}, nil
 	}
@@ -73,8 +73,8 @@ func serializeHTTPCache(c *notionapi.HTTPCache) ([]byte, error) {
 	return d, nil
 }
 
-func deserializeHTTPCache(d []byte) (*notionapi.HTTPCache, error) {
-	res := &notionapi.HTTPCache{}
+func deserializeHTTPCache(d []byte) (*caching_http_client.Cache, error) {
+	res := caching_http_client.NewCache()
 	br := bufio.NewReader(bytes.NewBuffer(d))
 	r := siser.NewReader(br)
 	var err error
@@ -82,7 +82,7 @@ func deserializeHTTPCache(d []byte) (*notionapi.HTTPCache, error) {
 		if r.Name != recCacheName {
 			return nil, fmt.Errorf("unexpected record type '%s', wanted '%s'", r.Name, recCacheName)
 		}
-		rr := &notionapi.RequestResponse{}
+		rr := &caching_http_client.RequestResponse{}
 		rr.Method = recGetKey(r.Record, "Method", &err)
 		rr.URL = recGetKey(r.Record, "URL", &err)
 		rr.Body = recGetKeyBytes(r.Record, "Body", &err)
