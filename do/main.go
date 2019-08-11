@@ -252,6 +252,7 @@ func main() {
 	fmt.Printf("topDir: '%s'\n", topDir())
 
 	parseFlags()
+	must(os.MkdirAll(cacheDir, 0755))
 
 	if flgCleanCache {
 		removeFilesInDir(cacheDir)
@@ -307,7 +308,7 @@ func main() {
 	}
 
 	if flgToHTML != "" {
-		recreateDir(cacheDir)
+		flgNoCache = true
 		toHTML(flgToHTML)
 		return
 	}

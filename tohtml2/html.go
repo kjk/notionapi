@@ -205,6 +205,10 @@ type Converter struct {
 	// tracks current number of numbered lists
 	ListNo int
 
+	// if true tries to render as closely to Notion's HTML
+	// export as possible
+	NotionCompat bool
+
 	// if true, adds <a href="#{$NotionID}">svg(anchor-icon)</a>
 	// to h1/h2/h3
 	AddHeaderAnchor bool
@@ -612,11 +616,9 @@ func (c *Converter) RenderText(block *notionapi.Block) {
 // RenderEquation renders BlockEquation
 // TODO: compare with Notion rendering
 func (c *Converter) RenderEquation(block *notionapi.Block) {
-	cls := getBlockColorClass(block)
-	c.Printf(`<p id="%s" class="%s">`, block.ID, cls)
+	c.Printf(`<figure id="%s" class="equation">`, block.ID)
 	c.RenderInlines(block.InlineContent)
-	c.RenderChildren(block)
-	c.Printf(`</p>`)
+	c.Printf(`</figre>`)
 }
 
 // RenderNumberedList renders BlockNumberedList
@@ -988,7 +990,16 @@ func (c *Converter) RenderColumn(block *notionapi.Block) {
 
 // RenderBreadcrumb renders BlockBreadcrumb
 func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
-	c.Printf("<div>TODO: breadcrumbs not implemented yet!</div>")
+	if c.NotionCompat {
+		// Notion doesn't render breadcrumbs
+		return
+	}
+	// TODO: implement me
+	c.RenderNYI(block)
+}
+
+func (c *Converter) RenderNYI(block *notionapi.Block) {
+	c.Printf("<div>TODO: '%s' NYI!</div>", block.Type)
 }
 
 // RenderCollectionView renders BlockCollectionView

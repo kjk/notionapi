@@ -124,6 +124,10 @@ func exportPages(pageID string, exportType string) map[string][]byte {
 	}
 
 	if _, err := os.Stat(zipPath); err != nil {
+		if getToken() == "" {
+			fmt.Printf("Must provide token with -token arg or by setting NOTION_TOKEN env variable\n")
+			os.Exit(1)
+		}
 		fmt.Printf("Downloading %s\n", zipPath)
 		must(exportPageToFile(pageID, exportType, true, zipPath))
 	}
@@ -132,7 +136,6 @@ func exportPages(pageID string, exportType string) map[string][]byte {
 }
 
 func testToMarkdown(startPageID string) {
-	os.MkdirAll(cacheDir, 0755)
 	startPageID = notionapi.ToNoDashID(startPageID)
 
 	knownBad := getKnownBadMarkdown(startPageID)
@@ -148,7 +151,7 @@ func testToMarkdown(startPageID string) {
 	pages := []string{startPageID}
 	nPage := 0
 
-	hasDirDiff := getWinMergePath() != ""
+	hasDirDiff := getDiffToolPath() != ""
 	diffDir := filepath.Join(dataDir, "diff")
 	expDiffDir := filepath.Join(diffDir, "exp")
 	gotDiffDir := filepath.Join(diffDir, "got")
