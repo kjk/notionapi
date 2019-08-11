@@ -48,7 +48,7 @@ func toHTML(pageID string) {
 	}
 	{
 		c := tohtml2.NewConverter(page)
-		html := c.ToHTML()
+		html, _ := c.ToHTML()
 		path := htmlPath(pageID, 2)
 		err = ioutil.WriteFile(path, html, 0644)
 		must(err)

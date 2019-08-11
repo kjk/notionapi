@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"html"
+	"os"
+	"os/exec"
 
 	"path"
 	"strings"
@@ -209,6 +211,18 @@ type Converter struct {
 	// export as possible
 	NotionCompat bool
 
+	// UseKatexToRenderEquation requires katex CLI to be installed
+	// https://katex.org/docs/cli.html
+	// If true, converts BlockEquation to HTML using
+	// katex
+	UseKatexToRenderEquation bool
+
+	// If UseKatexToRenderEquation is true, you can provide path to katex binary
+	// here. Otherwise we'll try to locate it using exec.LookPath()
+	// If UseKatexToRenderEquation is true but we can't locate katex binary
+	// we'll return an error
+	KatexPath string
+
 	// if true, adds <a href="#{$NotionID}">svg(anchor-icon)</a>
 	// to h1/h2/h3
 	AddHeaderAnchor bool
@@ -233,7 +247,8 @@ type Converter struct {
 	CurrBlocks   []*notionapi.Block
 	CurrBlockIdx int
 
-	bufs []*bytes.Buffer
+	didImportKatexCSS bool
+	bufs              []*bytes.Buffer
 }
 
 var (
@@ -614,11 +629,43 @@ func (c *Converter) RenderText(block *notionapi.Block) {
 }
 
 // RenderEquation renders BlockEquation
-// TODO: compare with Notion rendering
+// TODO: Notion must be using slightly different version of katex
+// because it has small differences. I tried 0.10.2 and 0.10.0
 func (c *Converter) RenderEquation(block *notionapi.Block) {
+	if !c.UseKatexToRenderEquation {
+		c.Printf(`<figure id="%s" class="equation">`, block.ID)
+		c.RenderInlines(block.InlineContent)
+		c.Printf(`</figre>`)
+		return
+	}
+	ts := block.InlineContent
+	s := notionapi.TextSpansToString(ts)
+	html, err := equationToHTML(c.KatexPath, s)
+	if err != nil {
+		c.Printf(`<figure id="%s" class="equation">`, block.ID)
+		c.RenderInlines(block.InlineContent)
+		c.Printf(`</figre>`)
+		return
+	}
+
 	c.Printf(`<figure id="%s" class="equation">`, block.ID)
-	c.RenderInlines(block.InlineContent)
-	c.Printf(`</figre>`)
+	{
+		if !c.didImportKatexCSS {
+			c.Printf(`<style>
+			@import url('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css')
+			</style>`)
+			c.didImportKatexCSS = true
+		}
+		c.Printf(`<div class="equation-container">`)
+		{
+			c.Printf(`<span class="katex-display">`)
+			c.Printf(html)
+			c.Printf(`</span>`)
+		}
+		c.Printf(`</div>`)
+
+	}
+	c.Printf(`</figure>`)
 }
 
 // RenderNumberedList renders BlockNumberedList
@@ -1217,16 +1264,74 @@ func (c *Converter) RenderBlock(block *notionapi.Block) {
 	}
 }
 
+func equationToHTML(katexPath string, equation string) (string, error) {
+	cmd := exec.Command(katexPath)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return "", err
+	}
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err = cmd.Start()
+	if err != nil {
+		return "", err
+	}
+	_, err = stdin.Write([]byte(equation))
+	if err != nil {
+		cmd.Process.Kill()
+		return "", err
+	}
+	err = stdin.Close()
+	if err != nil {
+		return "", err
+	}
+	if err = cmd.Wait(); err != nil {
+		return "", err
+	}
+	res := string(out.Bytes())
+	return res, nil
+}
+
+func (c *Converter) detectKatex() error {
+	path := c.KatexPath
+	if path != "" {
+		if _, err := os.Stat(c.KatexPath); err == nil {
+			return nil
+		}
+	}
+	path, err := exec.LookPath("katex")
+	if err != nil {
+		if c.KatexPath != "" {
+			return fmt.Errorf("UseKatexToRenderEquation is set but KatexPath ('%s') doesn't exist")
+		}
+		return fmt.Errorf("UseKatexToRenderEquation is set but couldn't locate katex binary. You can provide the path to katex binary via KatexPath")
+	}
+	c.KatexPath = path
+	return nil
+}
+
 // ToHTML renders a page to html
-func (c *Converter) ToHTML() []byte {
+func (c *Converter) ToHTML() ([]byte, error) {
+	if c.NotionCompat {
+		c.UseKatexToRenderEquation = true
+	}
+	if c.UseKatexToRenderEquation {
+		if err := c.detectKatex(); err != nil {
+			return nil, err
+		}
+	}
+
 	c.PushNewBuffer()
 	c.RenderBlock(c.Page.Root())
 	buf := c.PopBuffer()
-	return buf.Bytes()
+	return buf.Bytes(), nil
 }
 
 // ToHTML converts a page to HTML
 func ToHTML(page *notionapi.Page) []byte {
 	r := NewConverter(page)
-	return r.ToHTML()
+	// the only error that can happen is katex binary
+	// not existing. Since we don't ask
+	res, _ := r.ToHTML()
+	return res
 }

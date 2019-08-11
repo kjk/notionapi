@@ -52,9 +52,18 @@ func shouldFormat() bool {
 
 func toHTML2(page *notionapi.Page) (string, []byte) {
 	name := tohtml2.HTMLFileNameForPage(page)
-	r := tohtml2.NewConverter(page)
-	r.FullHTML = true
-	d := r.ToHTML()
+	c := tohtml2.NewConverter(page)
+	c.FullHTML = true
+	d, _ := c.ToHTML()
+	return name, d
+}
+
+func toHTML2NotionCompat(page *notionapi.Page) (string, []byte) {
+	name := tohtml2.HTMLFileNameForPage(page)
+	c := tohtml2.NewConverter(page)
+	c.FullHTML = true
+	c.NotionCompat = true
+	d, _ := c.ToHTML()
 	return name, d
 }
 
@@ -109,7 +118,7 @@ func testToHTML(startPageID string) {
 		page, err := downloadPage(client, pageID)
 		must(err)
 		pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
-		name, pageHTML := toHTML2(page)
+		name, pageHTML := toHTML2NotionCompat(page)
 		fmt.Printf("%02d: %s '%s'", nPage, pageID, name)
 
 		var expData []byte

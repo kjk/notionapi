@@ -19,7 +19,7 @@ func pageToHTML1(page *notionapi.Page) []byte {
 
 func pageToHTML2(page *notionapi.Page) []byte {
 	converter := tohtml2.NewConverter(page)
-	d := converter.ToHTML()
+	d, _ := converter.ToHTML()
 	return d
 }
 
