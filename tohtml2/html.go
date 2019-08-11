@@ -213,8 +213,8 @@ type Converter struct {
 
 	// UseKatexToRenderEquation requires katex CLI to be installed
 	// https://katex.org/docs/cli.html
-	// If true, converts BlockEquation to HTML using
-	// katex
+	// If true, converts BlockEquation to HTML using katex
+	// Tested with katex 0.10.2
 	UseKatexToRenderEquation bool
 
 	// If UseKatexToRenderEquation is true, you can provide path to katex binary
@@ -628,14 +628,40 @@ func (c *Converter) RenderText(block *notionapi.Block) {
 	c.Printf(`</p>`)
 }
 
+func equationToHTML(katexPath string, equation string) (string, error) {
+	cmd := exec.Command(katexPath, "-d")
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return "", err
+	}
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err = cmd.Start()
+	if err != nil {
+		return "", err
+	}
+	_, err = stdin.Write([]byte(equation))
+	if err != nil {
+		cmd.Process.Kill()
+		return "", err
+	}
+	err = stdin.Close()
+	if err != nil {
+		return "", err
+	}
+	if err = cmd.Wait(); err != nil {
+		return "", err
+	}
+	res := string(out.Bytes())
+	return res, nil
+}
+
 // RenderEquation renders BlockEquation
-// TODO: Notion must be using slightly different version of katex
-// because it has small differences. I tried 0.10.2 and 0.10.0
 func (c *Converter) RenderEquation(block *notionapi.Block) {
 	if !c.UseKatexToRenderEquation {
 		c.Printf(`<figure id="%s" class="equation">`, block.ID)
 		c.RenderInlines(block.InlineContent)
-		c.Printf(`</figre>`)
+		c.Printf(`</figure>`)
 		return
 	}
 	ts := block.InlineContent
@@ -644,23 +670,19 @@ func (c *Converter) RenderEquation(block *notionapi.Block) {
 	if err != nil {
 		c.Printf(`<figure id="%s" class="equation">`, block.ID)
 		c.RenderInlines(block.InlineContent)
-		c.Printf(`</figre>`)
+		c.Printf(`</figure>`)
 		return
 	}
 
 	c.Printf(`<figure id="%s" class="equation">`, block.ID)
 	{
 		if !c.didImportKatexCSS {
-			c.Printf(`<style>
-			@import url('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css')
-			</style>`)
+			c.Printf(`<style>@import url('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css')</style>`)
 			c.didImportKatexCSS = true
 		}
 		c.Printf(`<div class="equation-container">`)
 		{
-			c.Printf(`<span class="katex-display">`)
 			c.Printf(html)
-			c.Printf(`</span>`)
 		}
 		c.Printf(`</div>`)
 
@@ -1262,34 +1284,6 @@ func (c *Converter) RenderBlock(block *notionapi.Block) {
 	if def != nil {
 		def(block)
 	}
-}
-
-func equationToHTML(katexPath string, equation string) (string, error) {
-	cmd := exec.Command(katexPath)
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return "", err
-	}
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err = cmd.Start()
-	if err != nil {
-		return "", err
-	}
-	_, err = stdin.Write([]byte(equation))
-	if err != nil {
-		cmd.Process.Kill()
-		return "", err
-	}
-	err = stdin.Close()
-	if err != nil {
-		return "", err
-	}
-	if err = cmd.Wait(); err != nil {
-		return "", err
-	}
-	res := string(out.Bytes())
-	return res, nil
 }
 
 func (c *Converter) detectKatex() error {
