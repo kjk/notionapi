@@ -1296,7 +1296,7 @@ func (c *Converter) detectKatex() error {
 	path, err := exec.LookPath("katex")
 	if err != nil {
 		if c.KatexPath != "" {
-			return fmt.Errorf("UseKatexToRenderEquation is set but KatexPath ('%s') doesn't exist")
+			return fmt.Errorf("UseKatexToRenderEquation is set but KatexPath ('%s') doesn't exist", c.KatexPath)
 		}
 		return fmt.Errorf("UseKatexToRenderEquation is set but couldn't locate katex binary. You can provide the path to katex binary via KatexPath")
 	}

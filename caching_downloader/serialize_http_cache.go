@@ -1,4 +1,4 @@
-package main
+package caching_downloader
 
 import (
 	"bufio"
@@ -9,6 +9,49 @@ import (
 	"github.com/kjk/caching_http_client"
 	"github.com/kjk/siser"
 )
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// FmtArgs formats args as a string. First argument should be format string
+// and the rest are arguments to the format
+func FmtArgs(args ...interface{}) string {
+	if len(args) == 0 {
+		return ""
+	}
+	format := args[0].(string)
+	if len(args) == 1 {
+		return format
+	}
+	return fmt.Sprintf(format, args[1:]...)
+}
+
+func panicWithMsg(defaultMsg string, args ...interface{}) {
+	s := FmtArgs(args...)
+	if s == "" {
+		s = defaultMsg
+	}
+	fmt.Printf("%s\n", s)
+	panic(s)
+}
+
+func panicIf(cond bool, args ...interface{}) {
+	if !cond {
+		return
+	}
+	panicWithMsg("PanicIf: condition failed", args...)
+}
+
+func lg(format string, args ...interface{}) {
+	s := format
+	if len(args) > 0 {
+		s = fmt.Sprintf(format, args...)
+	}
+	fmt.Print(s)
+}
 
 const (
 	recCacheName = "httpcache-v1"
@@ -74,7 +117,7 @@ func serializeHTTPCache(c *caching_http_client.Cache) ([]byte, error) {
 }
 
 func deserializeHTTPCache(d []byte) (*caching_http_client.Cache, error) {
-	res := caching_http_client.NewCache()
+	res := &caching_http_client.Cache{}
 	br := bufio.NewReader(bytes.NewBuffer(d))
 	r := siser.NewReader(br)
 	var err error
