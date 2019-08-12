@@ -148,6 +148,7 @@ func (d *CachingDownloader) updateVersionsForPages(ids []string) error {
 	for i := 0; i < len(ids); i++ {
 		id := ids[i]
 		ver := versions[i]
+		id = notionapi.ToNoDashID(id)
 		d.IdToPageLatestVersion[id] = ver
 	}
 	return nil
@@ -235,14 +236,15 @@ func (d *CachingDownloader) canReturnCachedPage(p *notionapi.Page) bool {
 	if !d.RedownloadNewerVersions {
 		return true
 	}
-	if _, ok := d.IdToPageLatestVersion[p.ID]; !ok {
+	pageID := notionapi.ToNoDashID(p.ID)
+	if _, ok := d.IdToPageLatestVersion[pageID]; !ok {
 		// we don't have have latest version
-		err := d.updateVersionsForPages([]string{p.ID})
+		err := d.updateVersionsForPages([]string{pageID})
 		if err != nil {
 			return false
 		}
 	}
-	ver := d.IdToPageLatestVersion[p.ID]
+	ver := d.IdToPageLatestVersion[pageID]
 	pageVer := p.Root().Version
 	return pageVer >= ver
 }
