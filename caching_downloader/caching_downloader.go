@@ -98,7 +98,7 @@ func (d *CachingDownloader) pathForPageID(pageID string) string {
 	return filepath.Join(d.CacheDir, pageID+".txt")
 }
 
-func (d *CachingDownloader) getClientCopy() *notionapi.Client {
+func (d *CachingDownloader) GetClientCopy() *notionapi.Client {
 	var c = *d.Client
 	return &c
 }
@@ -107,7 +107,7 @@ func (d *CachingDownloader) getClientCopy() *notionapi.Client {
 func (d *CachingDownloader) getVersionsForPages(ids []string) ([]int64, error) {
 	// using new client because we don't want caching of http requests here
 	normalizeIDS(ids)
-	c := d.getClientCopy()
+	c := d.GetClientCopy()
 	recVals, err := c.GetRecordValues(ids)
 	if err != nil {
 		return nil, err
@@ -210,7 +210,7 @@ func (d *CachingDownloader) readPageFromDisk(pageID string) (*notionapi.Page, er
 	}
 	httpCache.CompareNormalizedJSONBody = true
 	nPrevRequestsFromCache := httpCache.RequestsNotFromCache
-	c := d.getClientCopy()
+	c := d.GetClientCopy()
 	c.HTTPClient = caching_http_client.New(httpCache)
 	page, err := c.DownloadPage(pageID)
 	if err != nil {
@@ -271,7 +271,7 @@ func (d *CachingDownloader) downloadPageRetry(pageID string) (*notionapi.Page, *
 			d.logf("Download %s failed with '%s'\n", pageID, err)
 			time.Sleep(5 * time.Second) // not sure if it matters
 		}
-		c := d.getClientCopy()
+		c := d.GetClientCopy()
 		httpCache := caching_http_client.NewCache()
 		c.HTTPClient = caching_http_client.New(httpCache)
 		res, err = c.DownloadPage(pageID)
