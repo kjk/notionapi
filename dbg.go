@@ -35,5 +35,5 @@ func ppJSON(js []byte) []byte {
 
 // log JSON after pretty printing it
 func logJSON(client *Client, js []byte) {
-	log(client, "%s\n", string(ppJSON(js)))
+	//log(client, "%s\n", string(ppJSON(js)))
 }
