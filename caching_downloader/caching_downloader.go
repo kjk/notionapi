@@ -228,7 +228,7 @@ func (d *CachingDownloader) canReturnCachedPage(p *notionapi.Page) bool {
 		return false
 	}
 	if !d.RedownloadNewerVersions {
-		return false
+		return true
 	}
 	if _, ok := d.IdToPageLatestVersion[p.ID]; !ok {
 		// we don't have have latest version
