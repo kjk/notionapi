@@ -244,9 +244,9 @@ func (d *CachingDownloader) canReturnCachedPage(p *notionapi.Page) bool {
 			return false
 		}
 	}
-	ver := d.IdToPageLatestVersion[pageID]
+	newestVer := d.IdToPageLatestVersion[pageID]
 	pageVer := p.Root().Version
-	return pageVer >= ver
+	return pageVer >= newestVer
 }
 
 func (d *CachingDownloader) getPageFromCache(pageID string) *notionapi.Page {
@@ -325,7 +325,7 @@ func (d *CachingDownloader) DownloadPage(pageID string) (*notionapi.Page, error)
 		d.logf("%s : downloaded\n", pageID)
 	} else {
 		d.FromCacheCount++
-		d.logf("%s : got from cache\n", pageID)
+		//d.logf("%s : got from cache\n", pageID)
 	}
 
 	d.IdToPage[pageID] = page
