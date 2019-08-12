@@ -302,26 +302,27 @@ func (d *CachingDownloader) downloadAndCachePage(pageID string) (*notionapi.Page
 		// ignore file writing error
 	}
 
-	d.IdToPage[pageID] = page
-	d.IdToPageLatestVersion[pageID] = page.Root().Version
 	return page, nil
 }
 
 func (d *CachingDownloader) DownloadPage(pageID string) (*notionapi.Page, error) {
 	pageID = notionapi.ToNoDashID(pageID)
-	p := d.getPageFromCache(pageID)
-	if p != nil {
+	page := d.getPageFromCache(pageID)
+	if page == nil {
+		var err error
+		page, err = d.downloadAndCachePage(pageID)
+		if err != nil {
+			return nil, err
+		}
+		d.DownloadedCount++
+		d.logf("%s : downloaded\n", pageID)
+	} else {
 		d.FromCacheCount++
 		d.logf("%s : got from cache\n", pageID)
-		return p, nil
 	}
 
-	page, err := d.downloadAndCachePage(pageID)
-	if err != nil {
-		return nil, err
-	}
-	d.DownloadedCount++
-	d.logf("%s : downloaded\n", pageID)
+	d.IdToPage[pageID] = page
+	d.IdToPageLatestVersion[pageID] = page.Root().Version
 	return page, nil
 }
 
