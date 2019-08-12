@@ -186,7 +186,12 @@ func (d *CachingDownloader) checkVersionsOfCachedPages() error {
 		}
 		ids = append(ids, id)
 	}
-	return d.updateVersionsForPages(ids)
+	err = d.updateVersionsForPages(ids)
+	if err != nil {
+		return err
+	}
+	d.didCheckVersionsOfCachedPages = true
+	return nil
 }
 
 func loadHTTPCache(path string) *caching_http_client.Cache {
