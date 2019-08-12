@@ -33,7 +33,7 @@ func isIDEqual(id1, id2 string) bool {
 // of the page (as opposed to returning possibly outdated version
 // from cache). We do it more efficiently than just blindly re-downloading.
 type CachingDownloader struct {
-	client *notionapi.Client
+	Client *notionapi.Client
 	// cached pages are stored in CacheDir as ${pageID}.txt files
 	CacheDir string
 	// NoReadCache disables reading from cache i.e. downloaded pages
@@ -60,7 +60,7 @@ type CachingDownloader struct {
 	FromCacheCount int
 }
 
-func (d *CachingDownloader) lg(format string, args ...interface{}) {
+func (d *CachingDownloader) logf(format string, args ...interface{}) {
 	if d.Logger == nil {
 		return
 	}
@@ -82,7 +82,7 @@ func New(cacheDir string, client *notionapi.Client) (*CachingDownloader, error) 
 		client = &notionapi.Client{}
 	}
 	res := &CachingDownloader{
-		client:                client,
+		Client:                client,
 		CacheDir:              cacheDir,
 		IdToPage:              make(map[string]*notionapi.Page),
 		IdToPageLatestVersion: make(map[string]int64),
@@ -99,7 +99,7 @@ func (d *CachingDownloader) pathForPageID(pageID string) string {
 }
 
 func (d *CachingDownloader) getClientCopy() *notionapi.Client {
-	var c = *d.client
+	var c = *d.Client
 	return &c
 }
 
@@ -144,7 +144,7 @@ func (d *CachingDownloader) updateVersionsForPages(ids []string) error {
 	if len(ids) != len(versions) {
 		return fmt.Errorf("d.updateVersionsForPages() asked for %d pages but got %d results\n", len(ids), len(versions))
 	}
-	d.lg("Got versions for %d pages\n", len(versions))
+	d.logf("Got versions for %d pages\n", len(versions))
 	for i := 0; i < len(ids); i++ {
 		id := ids[i]
 		ver := versions[i]
@@ -181,7 +181,7 @@ func (d *CachingDownloader) checkVersionsOfCachedPages() error {
 		}
 		id := notionapi.ToNoDashID(parts[0])
 		if !notionapi.IsValidNoDashID(id) {
-			d.lg("checkVersionsOfCachedPages: unexpected file '%s' in CacheDir '%s'\n", fi.Name(), d.CacheDir)
+			d.logf("checkVersionsOfCachedPages: unexpected file '%s' in CacheDir '%s'\n", fi.Name(), d.CacheDir)
 			continue
 		}
 		ids = append(ids, id)
@@ -218,7 +218,7 @@ func (d *CachingDownloader) readPageFromDisk(pageID string) (*notionapi.Page, er
 	}
 	newHTTPRequests := httpCache.RequestsNotFromCache - nPrevRequestsFromCache
 	if newHTTPRequests > 0 {
-		d.lg("CachingDownloader.readPageFromDisk() unexpectedly made %d server connections for page %s", newHTTPRequests, pageID)
+		d.logf("CachingDownloader.readPageFromDisk() unexpectedly made %d server connections for page %s", newHTTPRequests, pageID)
 	}
 	return page, nil
 }
@@ -268,7 +268,7 @@ func (d *CachingDownloader) downloadPageRetry(pageID string) (*notionapi.Page, *
 	var err error
 	for i := 0; i < 3; i++ {
 		if i > 0 {
-			d.lg("Download %s failed with '%s'\n", pageID, err)
+			d.logf("Download %s failed with '%s'\n", pageID, err)
 			time.Sleep(5 * time.Second) // not sure if it matters
 		}
 		c := d.getClientCopy()
@@ -298,7 +298,7 @@ func (d *CachingDownloader) downloadAndCachePage(pageID string) (*notionapi.Page
 	os.MkdirAll(filepath.Dir(path), 0755)
 	err = ioutil.WriteFile(path, data, 0644)
 	if err != nil {
-		d.lg("CachingDownloader.downloadAndCachePage(): ioutil.WriteFile('%s') failed with '%s'\n", path, err)
+		d.logf("CachingDownloader.downloadAndCachePage(): ioutil.WriteFile('%s') failed with '%s'\n", path, err)
 		// ignore file writing error
 	}
 
@@ -312,6 +312,7 @@ func (d *CachingDownloader) DownloadPage(pageID string) (*notionapi.Page, error)
 	p := d.getPageFromCache(pageID)
 	if p != nil {
 		d.FromCacheCount++
+		d.logf("%s : got from cache\n", pageID)
 		return p, nil
 	}
 
@@ -320,6 +321,7 @@ func (d *CachingDownloader) DownloadPage(pageID string) (*notionapi.Page, error)
 		return nil, err
 	}
 	d.DownloadedCount++
+	d.logf("%s : downloaded\n", pageID)
 	return page, nil
 }
 
