@@ -144,7 +144,7 @@ func testToMarkdown(startPageID string) {
 	fmt.Printf("There are %d files in zip file\n", len(referenceFiles))
 
 	client := &notionapi.Client{
-		DebugLog:  true,
+		DebugLog:  flgVerbose,
 		AuthToken: getToken(),
 	}
 	seenPages := map[string]bool{}

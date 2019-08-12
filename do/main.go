@@ -87,6 +87,7 @@ var (
 	flgExportPage string
 	flgExportType string
 	flgRecursive  bool
+	flgVerbose    bool
 
 	// if true, remove cache directories (data/log, data/cache)
 	flgCleanCache bool
@@ -112,6 +113,7 @@ func parseFlags() {
 	flag.BoolVar(&flgCleanCache, "clean-cache", false, "if true, cleans cache directories (data/log, data/cache")
 	flag.StringVar(&flgToken, "token", "", "auth token")
 	flag.BoolVar(&flgRecursive, "recursive", false, "if true, recursive export")
+	flag.BoolVar(&flgVerbose, "verbose", false, "if true, verbose logging")
 	flag.StringVar(&flgExportPage, "export-page", "", "id of the page to export")
 	flag.StringVar(&flgExportType, "export-type", "", "html or markdown")
 	flag.StringVar(&flgTestToMd, "test-to-md", "", "test markdown generation")
@@ -170,7 +172,7 @@ func getToken() string {
 
 func exportPageToFile(id string, exportType string, recursive bool, path string) error {
 	client := &notionapi.Client{
-		DebugLog:  true,
+		DebugLog:  flgVerbose,
 		Logger:    os.Stdout,
 		AuthToken: getToken(),
 	}
@@ -209,7 +211,7 @@ func panicIf(cond bool, args ...interface{}) {
 
 func exportPage(id string, exportType string, recursive bool) {
 	client := &notionapi.Client{
-		DebugLog:  true,
+		DebugLog:  flgVerbose,
 		Logger:    os.Stdout,
 		AuthToken: getToken(),
 	}
@@ -258,13 +260,17 @@ func main() {
 		removeFilesInDir(cacheDir)
 	}
 
-	if flgTestToMd != "" {
-		testToMarkdown(flgTestToMd)
+	if flgSanityTest {
+		sanityTests()
 		return
 	}
 
-	if flgSanityTest {
-		sanityTests()
+	if true {
+		flgTestToMd = "0367c2db381a4f8b9ce360f388a6b2e3"
+	}
+
+	if flgTestToMd != "" {
+		testToMarkdown(flgTestToMd)
 		return
 	}
 
@@ -276,10 +282,6 @@ func main() {
 	if flgTestPageJSONMarshal != "" {
 		testPageJSONMarshal(flgTestPageJSONMarshal)
 		return
-	}
-
-	if false {
-		removeFilesInDir(cacheDir)
 	}
 
 	if flgTestToHTML != "" {

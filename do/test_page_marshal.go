@@ -39,7 +39,7 @@ func testPageJSONMarshal(pageID string) {
 	cache := caching_http_client.NewCache()
 	cachingClient := caching_http_client.New(cache)
 	client := &notionapi.Client{
-		DebugLog: true,
+		DebugLog: flgVerbose,
 		//Logger:     os.Stdout,
 		AuthToken:  getToken(),
 		HTTPClient: cachingClient,

@@ -10,41 +10,6 @@ import (
 	"github.com/kjk/siser"
 )
 
-func must(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-// FmtArgs formats args as a string. First argument should be format string
-// and the rest are arguments to the format
-func FmtArgs(args ...interface{}) string {
-	if len(args) == 0 {
-		return ""
-	}
-	format := args[0].(string)
-	if len(args) == 1 {
-		return format
-	}
-	return fmt.Sprintf(format, args[1:]...)
-}
-
-func panicWithMsg(defaultMsg string, args ...interface{}) {
-	s := FmtArgs(args...)
-	if s == "" {
-		s = defaultMsg
-	}
-	fmt.Printf("%s\n", s)
-	panic(s)
-}
-
-func panicIf(cond bool, args ...interface{}) {
-	if !cond {
-		return
-	}
-	panicWithMsg("PanicIf: condition failed", args...)
-}
-
 func lg(format string, args ...interface{}) {
 	s := format
 	if len(args) > 0 {
@@ -97,17 +62,12 @@ func serializeHTTPCache(c *caching_http_client.Cache) ([]byte, error) {
 		r.Reset()
 		body := ppJSON(rr.Body)
 		response := ppJSON(rr.Response)
-		hdr, err := json.MarshalIndent(rr.Header, "", "  ")
-		if err != nil {
-			return nil, err
-		}
 		r.Append("Method", rr.Method)
 		r.Append("URL", rr.URL)
 		r.Append("Body", string(body))
 		r.Append("Response", string(response))
-		r.Append("HeadersJSON", string(hdr))
 		r.Name = recCacheName
-		_, err = w.WriteRecord(&r)
+		_, err := w.WriteRecord(&r)
 		if err != nil {
 			return nil, err
 		}
@@ -130,14 +90,6 @@ func deserializeHTTPCache(d []byte) (*caching_http_client.Cache, error) {
 		rr.URL = recGetKey(r.Record, "URL", &err)
 		rr.Body = recGetKeyBytes(r.Record, "Body", &err)
 		rr.Response = recGetKeyBytes(r.Record, "Response", &err)
-		hdrsJSON := recGetKeyBytes(r.Record, "HeadersJSON", &err)
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(hdrsJSON, &rr.Header)
-		if err != nil {
-			return nil, err
-		}
 		res.Add(rr)
 	}
 	if r.Err() != nil {

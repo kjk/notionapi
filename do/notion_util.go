@@ -13,7 +13,7 @@ import (
 
 func makeNotionClient() *notionapi.Client {
 	client := &notionapi.Client{
-		DebugLog:  true,
+		DebugLog:  flgVerbose,
 		AuthToken: getToken(),
 	}
 	notionToken := strings.TrimSpace(os.Getenv("NOTION_TOKNE"))
@@ -53,7 +53,11 @@ func savePageAsSimpleStructure(page *notionapi.Page) string {
 }
 
 func downloadPage(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
-	d := caching_downloader.NewCachingDownloader(cacheDir)
-	d.NoCache = flgNoCache
+	d, err := caching_downloader.New(cacheDir, client)
+	if err != nil {
+		return nil, err
+	}
+	d.NoReadCache = flgNoCache
+	d.Logger = os.Stdout
 	return d.DownloadPage(pageID)
 }

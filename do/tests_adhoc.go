@@ -12,7 +12,7 @@ func pageURL(pageID string) string {
 
 func testDownloadImage() {
 	client := &notionapi.Client{
-		DebugLog:  true,
+		DebugLog:  flgVerbose,
 		AuthToken: getToken(),
 	}
 	// page with images
@@ -57,7 +57,7 @@ func testDownloadImage() {
 
 func testGist() {
 	client := &notionapi.Client{
-		DebugLog:  true,
+		DebugLog:  flgVerbose,
 		AuthToken: getToken(),
 	}
 	// gist page
@@ -82,7 +82,7 @@ func testChangeFormat() {
 	}
 
 	client := &notionapi.Client{
-		DebugLog:  true,
+		DebugLog:  flgVerbose,
 		AuthToken: authToken,
 	}
 	// https://www.notion.so/Test-for-change-title-7e825831be07487e87e756e52914233b
@@ -127,7 +127,7 @@ func testChangeTitle() {
 		return
 	}
 	client := &notionapi.Client{
-		DebugLog:  true,
+		DebugLog:  flgVerbose,
 		AuthToken: authToken,
 	}
 	// https://www.notion.so/Test-for-change-title-7e825831be07487e87e756e52914233b
@@ -165,7 +165,7 @@ func testDownloadBig() {
 	// for notion, for testing that we handle everything
 	// page is c969c9455d7c4dd79c7f860f3ace6429 https://www.notion.so/Test-page-all-not-c969c9455d7c4dd79c7f860f3ace6429
 	client := &notionapi.Client{
-		DebugLog:  true,
+		DebugLog:  flgVerbose,
 		AuthToken: getToken(),
 	}
 	// page with images
