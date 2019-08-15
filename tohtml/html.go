@@ -331,21 +331,30 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	c.Newline()
 }
 
+// IsRootPage returns true if this
+func (c *Converter) IsRootPage(block *notionapi.Block) bool {
+	rootBlock := c.Page.Root()
+	return rootBlock.ID == block.ID
+}
+
+func (c *Converter) renderRootPage(block *notionapi.Block) {
+	title := html.EscapeString(block.Title)
+	content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
+	attrs := []string{"class", "notion-page"}
+	c.WriteElement(block, "div", attrs, content, true)
+	c.RenderChildren(block)
+	c.WriteElement(block, "div", attrs, content, false)
+}
+
 // RenderPage renders BlockPage
 func (c *Converter) RenderPage(block *notionapi.Block) {
-	tp := block.GetPageType()
-	if tp == notionapi.BlockPageTopLevel {
-		title := html.EscapeString(block.Title)
-		content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
-		attrs := []string{"class", "notion-page"}
-		c.WriteElement(block, "div", attrs, content, true)
-		c.RenderChildren(block)
-		c.WriteElement(block, "div", attrs, content, false)
+	if c.IsRootPage(block) {
+		c.renderRootPage(block)
 		return
 	}
 
 	cls := "notion-page-link"
-	if tp == notionapi.BlockPageSubPage {
+	if block.IsSubPage() {
 		cls = "notion-sub-page"
 	}
 	id := notionapi.ToNoDashID(block.ID)
@@ -828,7 +837,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 	case notionapi.BlockMaps:
 	case notionapi.BlockCodepen:
 		return c.RenderNotImplemented
-		return nil
+	case notionapi.BlockCollectionViewPage:
+		return c.RenderNotImplemented
 	default:
 		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, c.Page.NotionURL())
 	}

@@ -527,6 +527,12 @@ func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 	c.Printf(`</figure>`)
 }
 
+// IsRootPage returns true if this
+func (c *Converter) IsRootPage(block *notionapi.Block) bool {
+	rootBlock := c.Page.Root()
+	return rootBlock.ID == block.ID
+}
+
 func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 	uri := filePathForPage(block)
 	cls := appendClass(getBlockColorClass(block), "link-to-page")
@@ -549,43 +555,50 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 	c.Printf(`</figure>`)
 }
 
+func (c *Converter) renderRootPage(block *notionapi.Block) {
+	if c.FullHTML {
+		c.Printf(`<html>`)
+		{
+			c.Printf(`<head>`)
+			{
+				c.Printf(`<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
+				c.Printf(`<title>%s</title>`, escapeHTML(block.Title))
+				c.Printf("<style>%s\t\n</style>", cssNotion)
+			}
+			c.Printf(`</head>`)
+		}
+		c.Printf(`<body>`)
+	}
+	clsFont := "sans"
+	fp := block.FormatPage()
+	if fp != nil {
+		if fp.PageFont != "" {
+			clsFont = fp.PageFont
+		}
+	}
+	c.Printf(`<article id="%s" class="page %s">`, block.ID, clsFont)
+	c.renderHeader(block)
+	{
+		c.Printf(`<div class="page-body">`)
+		c.RenderChildren(block)
+		c.Printf(`</div>`)
+	}
+	c.Printf(`</article>`)
+
+	if c.FullHTML {
+		c.Printf(`</body></html>`)
+	}
+}
+
+func (c *Converter) renderSubPage(block *notionapi.Block) {
+	// TODO: probably a differnt look
+	c.renderLinkToPage(block)
+}
+
 // RenderPage renders BlockPage
 func (c *Converter) RenderPage(block *notionapi.Block) {
-	tp := block.GetPageType()
-	if tp == notionapi.BlockPageTopLevel {
-		if c.FullHTML {
-			c.Printf(`<html>`)
-			{
-				c.Printf(`<head>`)
-				{
-					c.Printf(`<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
-					c.Printf(`<title>%s</title>`, escapeHTML(block.Title))
-					c.Printf("<style>%s\t\n</style>", cssNotion)
-				}
-				c.Printf(`</head>`)
-			}
-			c.Printf(`<body>`)
-		}
-
-		clsFont := "sans"
-		fp := block.FormatPage()
-		if fp != nil {
-			if fp.PageFont != "" {
-				clsFont = fp.PageFont
-			}
-		}
-		c.Printf(`<article id="%s" class="page %s">`, block.ID, clsFont)
-		c.renderHeader(block)
-		{
-			c.Printf(`<div class="page-body">`)
-			c.RenderChildren(block)
-			c.Printf(`</div>`)
-		}
-		c.Printf(`</article>`)
-
-		if c.FullHTML {
-			c.Printf(`</body></html>`)
-		}
+	if c.IsRootPage(block) {
+		c.renderRootPage(block)
 		return
 	}
 

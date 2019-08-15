@@ -77,18 +77,6 @@ const (
 	BlockEquation = "equation"
 )
 
-// BlockPageType defines a type of BlockPage block
-type BlockPageType int
-
-const (
-	// BlockPageTopLevel is top-level block for the whole page
-	BlockPageTopLevel BlockPageType = iota
-	// BlockPageSubPage is a sub-page
-	BlockPageSubPage
-	// BlockPageLink a link to a page
-	BlockPageLink
-)
-
 // FormatToggle describes format for BlockToggle
 type FormatToggle struct {
 	BlockColor string `json:"block_color"`
@@ -324,15 +312,14 @@ func (b *Block) IsLinkToPage() bool {
 	return b.ParentTable == TableSpace
 }
 
-// GetPageType returns type of this page
-func (b *Block) GetPageType() BlockPageType {
+// IsSubPage returns true if this is a sub-page (as opposed to
+// link to a page that is not a child of that page)
+func (b *Block) IsSubPage() bool {
+	panicIf(b.Type != BlockPage)
 	if b.Parent == nil {
-		return BlockPageTopLevel
+		return false
 	}
-	if b.ParentID == b.Parent.ID {
-		return BlockPageSubPage
-	}
-	return BlockPageLink
+	return b.ParentID == b.Parent.ID
 }
 
 // IsPage returns true if block represents a page (either a

@@ -326,18 +326,23 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	}
 }
 
+// IsRootPage returns true if this
+func (c *Converter) IsRootPage(block *notionapi.Block) bool {
+	rootBlock := c.Page.Root()
+	return rootBlock.ID == block.ID
+}
+
+func (c *Converter) renderRootPage(block *notionapi.Block) {
+	title := c.GetInlineContent(block.InlineContent, false)
+	c.Printf("# " + title)
+	c.Newline()
+	c.RenderChildren(block)
+}
+
 // RenderPage renders BlockPage
 func (c *Converter) RenderPage(block *notionapi.Block) {
-	tp := block.GetPageType()
-	if tp == notionapi.BlockPageTopLevel {
-		title := c.GetInlineContent(block.InlineContent, false)
-		c.Printf("# " + title)
-		c.Newline()
-		c.RenderChildren(block)
-		return
-	}
-	if tp == notionapi.BlockPageLink {
-		return
+	if c.IsRootPage(block) {
+		c.renderRootPage(block)
 	}
 	// TODO: if block.Title has "[" or "]" in it, needs to escape
 	fileName := markdownFileName(block.Title, block.ID)
@@ -685,20 +690,19 @@ func isEmptyBlock(block *notionapi.Block) bool {
 		return len(block.InlineContent) == 0
 	}
 	if block.Type == notionapi.BlockPage {
-		return block.GetPageType() == notionapi.BlockPageLink
+		return !block.IsSubPage()
 	}
 	return false
 }
 
-func skipChildren(block *notionapi.Block) bool {
+func (c *Converter) skipChildren(block *notionapi.Block) bool {
 	if len(block.Content) == 0 {
 		// optimization for blocks that don't have children
 		// even if they can have them
 		return true
 	}
 	if block.Type == notionapi.BlockPage {
-		tp := block.GetPageType()
-		if tp == notionapi.BlockPageTopLevel {
+		if c.IsRootPage(block) {
 			return false
 		}
 		// those are just links to pages but can have Content
@@ -709,7 +713,7 @@ func skipChildren(block *notionapi.Block) bool {
 }
 
 func (c *Converter) RenderChildren(block *notionapi.Block) {
-	if skipChildren(block) {
+	if c.skipChildren(block) {
 		return
 	}
 	currIdx := c.CurrBlockIdx
