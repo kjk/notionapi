@@ -85,9 +85,6 @@ type Converter struct {
 	// RenderBlockOverride
 	Data interface{}
 
-	// Level is current depth of the tree. Useuful for pretty-printing indentation
-	Level int
-
 	// we need this to properly render ordered and numbered lists
 	CurrBlocks   []*notionapi.Block
 	CurrBlockIdx int
@@ -149,16 +146,6 @@ func (c *Converter) WriteString(s string) {
 	c.Buf.WriteString(s)
 }
 
-// WriteIndent writes 2 * Level spaces
-func (c *Converter) WriteIndent() {
-	if c.Level < 0 {
-		panic("r.Level is < 0")
-	}
-	for n := 0; n < c.Level; n++ {
-		c.WriteString("  ")
-	}
-}
-
 func (c *Converter) maybeGetID(block *notionapi.Block) string {
 	return notionapi.ToNoDashID(block.ID)
 }
@@ -168,7 +155,6 @@ func (c *Converter) maybeGetID(block *notionapi.Block) string {
 func (c *Converter) WriteElement(block *notionapi.Block, tag string, attrs []string, content string, entering bool) {
 	if !entering {
 		if !isSelfClosing(tag) {
-			c.WriteIndent()
 			c.WriteString("</" + tag + ">")
 			c.Newline()
 		}
@@ -188,11 +174,9 @@ func (c *Converter) WriteElement(block *notionapi.Block, tag string, attrs []str
 		s += ` id="` + id + `"`
 	}
 	s += ">"
-	c.WriteIndent()
 	c.WriteString(s)
 	c.Newline()
 	if len(content) > 0 {
-		c.WriteIndent()
 		c.WriteString(content)
 		c.Newline()
 	} else {
@@ -288,13 +272,9 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 
 // RenderInlines renders inline blocks
 func (c *Converter) RenderInlines(blocks []*notionapi.TextSpan) {
-	c.Level++
-	c.WriteIndent()
 	for _, block := range blocks {
 		c.RenderInline(block)
 	}
-
-	c.Level--
 }
 
 // GetInlineContent is like RenderInlines but instead of writing to
@@ -355,7 +335,6 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 	uri := "https://notion.so/" + id
 	title := html.EscapeString(block.Title)
 	s := fmt.Sprintf(`<div class="%s"><a href="%s">%s</a></div>`, cls, uri, title)
-	c.WriteIndent()
 	c.WriteString(s)
 	c.Newline()
 }
@@ -380,7 +359,6 @@ func (c *Converter) RenderEquation(block *notionapi.Block) {
 func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 	isPrevSame := c.IsPrevBlockOfType(notionapi.BlockNumberedList)
 	if !isPrevSame {
-		c.WriteIndent()
 		c.WriteString(`<ol class="notion-numbered-list">`)
 	}
 	attrs := []string{"class", "notion-numbered-list"}
@@ -388,11 +366,9 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 
 	c.RenderChildren(block)
 
-	c.WriteIndent()
 	c.WriteString(`</li>`)
 	isNextSame := c.IsNextBlockOfType(notionapi.BlockNumberedList)
 	if !isNextSame {
-		c.WriteIndent()
 		c.WriteString(`</ol>`)
 	}
 	c.Newline()
@@ -403,23 +379,18 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 
 	isPrevSame := c.IsPrevBlockOfType(notionapi.BlockBulletedList)
 	if !isPrevSame {
-		c.WriteIndent()
 		c.WriteString(`<ul class="notion-bulleted-list">`)
 		c.Newline()
-		c.Level++
 	}
 	attrs := []string{"class", "notion-bulleted-list"}
 	c.WriteElement(block, "li", attrs, "", true)
 
 	c.RenderChildren(block)
 
-	c.WriteIndent()
 	c.WriteString(`</li>`)
 	isNextSame := c.IsNextBlockOfType(notionapi.BlockBulletedList)
 	if !isNextSame {
-		c.Level--
 		c.Newline()
-		c.WriteIndent()
 		c.WriteString(`</ul>`)
 	}
 	c.Newline()
@@ -690,16 +661,11 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	columns := view.Format.TableProperties
 
 	c.Newline()
-	c.WriteIndent()
 	c.WriteString("\n" + `<table class="notion-collection-view">` + "\n")
 
 	// generate header row
-	c.Level++
-	c.WriteIndent()
 	c.WriteString("<thead>\n")
 
-	c.Level++
-	c.WriteIndent()
 	c.WriteString("<tr>\n")
 
 	for _, col := range columns {
@@ -707,31 +673,19 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		colInfo := viewInfo.Collection.CollectionSchema[colName]
 		if colInfo != nil {
 			name := colInfo.Name
-			c.Level++
-			c.WriteIndent()
 			c.WriteString(`<th>` + html.EscapeString(name) + "</th>\n")
-			c.Level--
 		} else {
-			c.Level++
-			c.WriteIndent()
 			c.WriteString(`<th>&nbsp;` + "</th>\n")
-			c.Level--
 		}
 	}
-	c.WriteIndent()
 	c.WriteString("</tr>\n")
 
-	c.Level--
-	c.WriteIndent()
 	c.WriteString("</thead>\n\n")
 
-	c.WriteIndent()
 	c.WriteString("<tbody>\n")
 
 	for _, row := range viewInfo.CollectionRows {
-		c.Level++
-		c.WriteIndent()
-		c.WriteString("<tr>\n")
+		c.Printf("<tr>\n")
 
 		props := row.Properties
 		for _, col := range columns {
@@ -745,25 +699,16 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 			//pretty.Print(inlineContent)
 			colVal := c.GetInlineContent(inlineContent)
 			//fmt.Printf("colVal: '%s'\n", colVal)
-			c.Level++
-			c.WriteIndent()
 			//colInfo := viewInfo.Collection.CollectionSchema[colName]
 			// TODO: format colVal according to colInfo
-			c.WriteString(`<td>` + colVal + `</td>`)
+			c.Printf(`<td>` + colVal + `</td>`)
 			c.Newline()
-			c.Level--
 		}
-		c.WriteIndent()
-		c.WriteString("</tr>\n")
-		c.Level--
+		c.Printf("</tr>\n")
 	}
 
-	c.WriteIndent()
-	c.WriteString("</tbody>\n")
-
-	c.Level--
-	c.WriteIndent()
-	c.WriteString("</table>\n")
+	c.Printf("</tbody>\n")
+	c.Printf("</table>\n")
 }
 
 // DefaultRenderFunc returns a defult rendering function for a type of
@@ -828,6 +773,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderNotImplemented
 	case notionapi.BlockCollectionViewPage:
 		return c.RenderNotImplemented
+	case notionapi.BlockFactory:
+		return c.RenderNotImplemented
 	default:
 		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, c.Page.NotionURL())
 	}
@@ -854,12 +801,10 @@ func (c *Converter) RenderChildren(block *notionapi.Block) {
 	// .notion-wrap provides indentation for children
 	if needsWrapper(block) {
 		c.Newline()
-		c.WriteIndent()
-		c.WriteString(`<div class="notion-wrap">`)
+		c.Printf(`<div class="notion-wrap">`)
 		c.Newline()
 	}
 
-	c.Level++
 	currIdx := c.CurrBlockIdx
 	currBlocks := c.CurrBlocks
 	c.CurrBlocks = block.Content
@@ -870,12 +815,10 @@ func (c *Converter) RenderChildren(block *notionapi.Block) {
 	}
 	c.CurrBlockIdx = currIdx
 	c.CurrBlocks = currBlocks
-	c.Level--
 
 	if needsWrapper(block) {
 		c.Newline()
-		c.WriteIndent()
-		c.WriteString(`</div>`)
+		c.Printf(`</div>`)
 		c.Newline()
 	}
 }
@@ -900,14 +843,10 @@ func (c *Converter) RenderBlock(block *notionapi.Block) {
 
 // ToHTML renders a page to html
 func (c *Converter) ToHTML() []byte {
-	c.Level = 0
 	c.PushNewBuffer()
 
 	c.RenderBlock(c.Page.Root())
 	buf := c.PopBuffer()
-	if c.Level != 0 {
-		panic(fmt.Sprintf("r.Level is %d, should be 0", c.Level))
-	}
 	return buf.Bytes()
 }
 

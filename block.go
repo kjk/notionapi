@@ -75,6 +75,8 @@ const (
 	BlockBreadcrumb = "breadcrumb"
 	// BlockEquation is TeX equation block
 	BlockEquation = "equation"
+	// BlockFactory represents a factory block
+	BlockFactory = "factory"
 )
 
 // FormatToggle describes format for BlockToggle
