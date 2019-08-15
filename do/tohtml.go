@@ -29,7 +29,6 @@ func toHTML(pageID string) {
 
 	{
 		c := tohtml.NewConverter(page)
-		c.AddIDAttribute = true
 		c.AddHeaderAnchor = true
 		html := c.ToHTML()
 

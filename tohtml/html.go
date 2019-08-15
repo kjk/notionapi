@@ -69,9 +69,6 @@ type Converter struct {
 	Buf  *bytes.Buffer
 	Page *notionapi.Page
 
-	// if true, adds id=${NotionID} attribute to HTML nodes
-	AddIDAttribute bool
-
 	// if true, adds <a href="#{$NotionID}">svg(anchor-icon)</a>
 	// to h1/h2/h3
 	AddHeaderAnchor bool
@@ -163,10 +160,7 @@ func (c *Converter) WriteIndent() {
 }
 
 func (c *Converter) maybeGetID(block *notionapi.Block) string {
-	if c.AddIDAttribute {
-		return notionapi.ToNoDashID(block.ID)
-	}
-	return ""
+	return notionapi.ToNoDashID(block.ID)
 }
 
 // WriteElement is a helper class that writes HTML with
@@ -474,28 +468,23 @@ func (c *Converter) RenderTodo(block *notionapi.Block) {
 	c.WriteElement(block, "div", attrs, "", false)
 }
 
+func (c *Converter) RenderBlockInlines(block *notionapi.Block) {
+	c.RenderInlines(block.InlineContent)
+}
+
 // RenderToggle renders BlockToggle
 func (c *Converter) RenderToggle(block *notionapi.Block) {
-	s := `<details class="notion-toggle"`
-	id := c.maybeGetID(block)
-	if id != "" {
-		s += fmt.Sprintf(` id="%s"`, id)
-	}
-	c.WriteString(s + `>`)
-	c.Newline()
+	c.Printf(`<details class="notion-toggle" id="%s">`, block.ID)
 
 	// we don't want id on summary but on <details> above
-	prevAddID := c.AddIDAttribute
-	c.AddIDAttribute = false
-	c.WriteElement(block, "summary", nil, "", true)
-	c.WriteString(`</summary>`)
-	c.AddIDAttribute = prevAddID
-
-	c.Newline()
-
+	{
+		c.Printf(`<summary`)
+		c.RenderBlockInlines(block)
+		c.Printf(`</summary>`)
+	}
 	c.RenderChildren(block)
 
-	c.WriteString("</details>\n")
+	c.Printf("</details>\n")
 }
 
 // RenderQuote renders BlockQuote
