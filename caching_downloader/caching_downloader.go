@@ -69,7 +69,7 @@ type Downloader struct {
 
 // New returns a new Downloader which caches page loads on disk
 // and can return pages from that cache
-func New(cache Cache, client *notionapi.Client) (*Downloader, error) {
+func New(cache Cache, client *notionapi.Client) *Downloader {
 	if client == nil {
 		client = &notionapi.Client{}
 	}
@@ -79,7 +79,7 @@ func New(cache Cache, client *notionapi.Client) (*Downloader, error) {
 		IdToPage:              make(map[string]*notionapi.Page),
 		IdToPageLatestVersion: make(map[string]int64),
 	}
-	return res, nil
+	return res
 }
 
 func (d *Downloader) useReadCache() bool {

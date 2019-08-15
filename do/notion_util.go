@@ -52,12 +52,29 @@ func savePageAsSimpleStructure(page *notionapi.Page) string {
 	return path
 }
 
+func eventObserver(ev interface{}) {
+	switch v := ev.(type) {
+	case caching_downloader.EventError:
+		log(v.Error)
+	case caching_downloader.EventDidDownload:
+		log("'%s' : downloaded in %s\n", v.PageID, v.Duration)
+	case caching_downloader.EventDidReadFromCache:
+		// TODO: only verbose
+		log("'%s' : read from cache in %s\n", v.PageID, v.Duration)
+	case caching_downloader.EventGotVersions:
+		log("downloaded info about %d versions in %s\n", v.Count, v.Duration)
+	}
+}
 func downloadPage(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
-	d, err := caching_downloader.New(cacheDir, client)
+	cache, err := caching_downloader.NewDirectoryCache(cacheDir)
 	if err != nil {
 		return nil, err
 	}
+	d := caching_downloader.New(cache, client)
+	if err != nil {
+		return nil, err
+	}
+	d.EventObserver = eventObserver
 	d.NoReadCache = flgNoCache
-	d.Logger = os.Stdout
 	return d.DownloadPage(pageID)
 }
