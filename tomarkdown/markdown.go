@@ -326,12 +326,6 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	}
 }
 
-// IsRootPage returns true if this
-func (c *Converter) IsRootPage(block *notionapi.Block) bool {
-	rootBlock := c.Page.Root()
-	return rootBlock.ID == block.ID
-}
-
 func (c *Converter) renderRootPage(block *notionapi.Block) {
 	title := c.GetInlineContent(block.InlineContent, false)
 	c.Printf("# " + title)
@@ -341,7 +335,7 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 
 // RenderPage renders BlockPage
 func (c *Converter) RenderPage(block *notionapi.Block) {
-	if c.IsRootPage(block) {
+	if c.Page.IsRoot(block) {
 		c.renderRootPage(block)
 	}
 	// TODO: if block.Title has "[" or "]" in it, needs to escape
@@ -702,7 +696,7 @@ func (c *Converter) skipChildren(block *notionapi.Block) bool {
 		return true
 	}
 	if block.Type == notionapi.BlockPage {
-		if c.IsRootPage(block) {
+		if c.Page.IsRoot(block) {
 			return false
 		}
 		// those are just links to pages but can have Content

@@ -176,7 +176,7 @@ func testToMarkdown(startPageID string) {
 
 		page, err := downloadPage(client, pageID)
 		must(err)
-		pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
+		pages = append(pages, page.GetSubPages()...)
 		name, pageMd := toMarkdown(page)
 		fmt.Printf("%02d: '%s'", nPage, name)
 

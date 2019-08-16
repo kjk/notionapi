@@ -305,12 +305,6 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	c.Newline()
 }
 
-// IsRootPage returns true if this
-func (c *Converter) IsRootPage(block *notionapi.Block) bool {
-	rootBlock := c.Page.Root()
-	return rootBlock.ID == block.ID
-}
-
 func (c *Converter) renderRootPage(block *notionapi.Block) {
 	title := html.EscapeString(block.Title)
 	content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
@@ -322,7 +316,7 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 
 // RenderPage renders BlockPage
 func (c *Converter) RenderPage(block *notionapi.Block) {
-	if c.IsRootPage(block) {
+	if c.Page.IsRoot(block) {
 		c.renderRootPage(block)
 		return
 	}

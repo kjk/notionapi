@@ -349,7 +349,7 @@ func (d *Downloader) DownloadPagesRecursively(startPageID string) ([]*notionapi.
 		}
 		downloaded[pageID] = page
 
-		subPages := notionapi.GetSubPages(page.Root().Content)
+		subPages := page.GetSubPages()
 		toVisit = append(toVisit, subPages...)
 	}
 	n := len(downloaded)

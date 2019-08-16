@@ -124,32 +124,62 @@ func panicIf(cond bool, args ...interface{}) {
 	panic(fmt.Sprintf(format, args[1:]))
 }
 
-// GetSubPages return list of ids for pages reachable from those block
-func GetSubPages(blocks []*Block) []string {
-	pageIDs := map[string]struct{}{}
-	seen := map[string]struct{}{}
-	toVisit := blocks
-	for len(toVisit) > 0 {
-		block := toVisit[0]
-		toVisit = toVisit[1:]
-		id := ToNoDashID(block.ID)
-		if block.Type == BlockPage {
-			pageIDs[id] = struct{}{}
-			seen[id] = struct{}{}
+// IsSubPage returns true if a given block is BlockPage and
+// a direct child of this page (as opposed to a link to
+// arbitrary page)
+func (p *Page) IsSubPage(block *Block) bool {
+	if block == nil || block.Type != BlockPage {
+		return false
+	}
+	for {
+		parentID := block.ParentID
+		if parentID == p.ID {
+			return true
 		}
-		for _, b := range block.Content {
-			if b == nil {
-				continue
-			}
-			id := ToNoDashID(block.ID)
-			if _, ok := seen[id]; ok {
-				continue
-			}
-			toVisit = append(toVisit, b)
+		parent := p.BlockByID(block.ParentID)
+		if parent == nil {
+			return false
 		}
+		// parent is page but not our page, so it can't be sub-page
+		if parent.Type == BlockPage {
+			return false
+		}
+		block = parent
+	}
+}
+
+// IsRoot returns true if this block is root block of the page
+// i.e. of type BlockPage and very first block
+func (p *Page) IsRoot(block *Block) bool {
+	if block == nil || block.Type != BlockPage {
+		return false
+	}
+	return block.ParentID == p.ID
+}
+
+// GetSubPages return list of ids for direct sub-pages of this page
+func (p *Page) GetSubPages() []string {
+	root := p.Root()
+	panicIf(root.Type != BlockPage)
+	subPages := map[string]struct{}{}
+	seenBlocks := map[string]struct{}{}
+	blocksToVisit := append([]string{}, root.ContentIDs...)
+	for len(blocksToVisit) > 0 {
+		id := ToDashID(blocksToVisit[0])
+		blocksToVisit = blocksToVisit[1:]
+		if _, ok := seenBlocks[id]; ok {
+			continue
+		}
+		seenBlocks[id] = struct{}{}
+		block := p.BlockByID(id)
+		if p.IsSubPage(block) {
+			subPages[id] = struct{}{}
+		}
+		// need to recursively scan blocks with children
+		blocksToVisit = append(blocksToVisit, block.ContentIDs...)
 	}
 	res := []string{}
-	for id := range pageIDs {
+	for id := range subPages {
 		res = append(res, id)
 	}
 	sort.Strings(res)

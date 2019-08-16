@@ -82,7 +82,5 @@ func testPageJSONMarshal(pageID string) {
 		return
 	}
 
-	fmt.Printf("testPageJSONMarshal() of %s ok!\n", pageID)
-
 	//fmt.Printf("json:\n%s\n", string(d))
 }

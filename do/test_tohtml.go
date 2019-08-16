@@ -118,7 +118,7 @@ func testToHTML(startPageID string) {
 
 		page, err := downloadPage(client, pageID)
 		must(err)
-		pages = append(pages, notionapi.GetSubPages(page.Root().Content)...)
+		pages = append(pages, page.GetSubPages()...)
 		name, pageHTML := toHTML2NotionCompat(page)
 		fmt.Printf("%02d: %s '%s'", nPage, pageID, name)
 

@@ -151,7 +151,7 @@ func panicIf(cond bool, args ...interface{}) {
 	if len(args) == 1 {
 		panic(format)
 	}
-	panic(fmt.Sprintf(format, args[1:]))
+	panic(fmt.Sprintf(format, args[1:]...))
 }
 
 func exportPage(id string, exportType string, recursive bool) {
@@ -185,12 +185,29 @@ func runGoTests() {
 	must(cmd.Run())
 }
 
+func testSubPages() {
+	// test that GetSubPages() only returns direct children
+	// of a page, not link to pages
+	client := &notionapi.Client{}
+	uri := "https://www.notion.so/Test-sub-pages-in-mono-font-381243f4ba4d4670ac491a3da87b8994"
+	pageID := "381243f4ba4d4670ac491a3da87b8994"
+	page, err := client.DownloadPage(pageID)
+	must(err)
+	subPages := page.GetSubPages()
+	nExp := 7
+	panicIf(len(subPages) != nExp, "expected %d sub-pages of '%s', got %d", nExp, uri, len(subPages))
+}
+
 // sanity tests are basic tests to validate changes
 // meant to not take too long
 func sanityTests() {
 	fmt.Printf("Running sanity tests\n")
 	runGoTests()
-	testPageJSONMarshal("dd5c0a813dfe4487a6cd432f82c0c2fc")
+	testSubPages()
+	fmt.Printf("ok\ttestSubPages()\n")
+	pageID := "dd5c0a813dfe4487a6cd432f82c0c2fc"
+	testPageJSONMarshal(pageID)
+	fmt.Printf("ok\ttestPageJSONMarshal() of %s ok!\n", pageID)
 	// TODO: more tests?
 }
 

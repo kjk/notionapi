@@ -528,12 +528,6 @@ func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 	c.Printf(`</figure>`)
 }
 
-// IsRootPage returns true if this
-func (c *Converter) IsRootPage(block *notionapi.Block) bool {
-	rootBlock := c.Page.Root()
-	return rootBlock.ID == block.ID
-}
-
 func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 	uri := filePathForPage(block)
 	cls := appendClass(getBlockColorClass(block), "link-to-page")
@@ -599,7 +593,7 @@ func (c *Converter) renderSubPage(block *notionapi.Block) {
 
 // RenderPage renders BlockPage
 func (c *Converter) RenderPage(block *notionapi.Block) {
-	if c.IsRootPage(block) {
+	if c.Page.IsRoot(block) {
 		c.renderRootPage(block)
 		return
 	}
