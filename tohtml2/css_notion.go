@@ -1,6 +1,11 @@
 package tohtml2
 
-const cssNotion = `
+// CSS we use. If Converter.FullHTML is true, it's included
+// as part of generated HTML. Otherwise you have to provide
+// HTML wrapper where you can either embed this CSS
+// as <style>${css}</style> or reference it as
+// <link rel="stylesheet" href="${css_file}">
+const CSS = `
 /* webkit printing magic: print all background colors */
 html {
 	-webkit-print-color-adjust: exact;

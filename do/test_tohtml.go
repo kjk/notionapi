@@ -63,7 +63,8 @@ func toHTML2NotionCompat(page *notionapi.Page) (string, []byte) {
 	c := tohtml2.NewConverter(page)
 	c.FullHTML = true
 	c.NotionCompat = true
-	d, _ := c.ToHTML()
+	d, err := c.ToHTML()
+	must(err)
 	return name, d
 }
 
@@ -148,6 +149,19 @@ func testToHTML(startPageID string) {
 			}
 			fmt.Printf(" ok\n")
 			continue
+		}
+
+		{
+			{
+				fileName := fmt.Sprintf("%s.1-from-notion.html", notionapi.ToNoDashID(pageID))
+				path := filepath.Join(diffDir, fileName)
+				writeFile(path, expData)
+			}
+			{
+				fileName := fmt.Sprintf("%s.2-mine.html", notionapi.ToNoDashID(pageID))
+				path := filepath.Join(diffDir, fileName)
+				writeFile(path, pageHTML)
+			}
 		}
 
 		expDataFormatted := ppHTML(expData)

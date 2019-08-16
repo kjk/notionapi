@@ -213,6 +213,7 @@ type Converter struct {
 
 	// UseKatexToRenderEquation requires katex CLI to be installed
 	// https://katex.org/docs/cli.html
+	// npm install -g katex
 	// If true, converts BlockEquation to HTML using katex
 	// Tested with katex 0.10.2
 	UseKatexToRenderEquation bool
@@ -563,12 +564,13 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 			{
 				c.Printf(`<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
 				c.Printf(`<title>%s</title>`, escapeHTML(block.Title))
-				c.Printf("<style>%s\t\n</style>", cssNotion)
+				c.Printf("<style>%s\t\n</style>", CSS)
 			}
 			c.Printf(`</head>`)
 		}
 		c.Printf(`<body>`)
 	}
+
 	clsFont := "sans"
 	fp := block.FormatPage()
 	if fp != nil {
@@ -1313,7 +1315,7 @@ func (c *Converter) detectKatex() error {
 		if c.KatexPath != "" {
 			return fmt.Errorf("UseKatexToRenderEquation is set but KatexPath ('%s') doesn't exist", c.KatexPath)
 		}
-		return fmt.Errorf("UseKatexToRenderEquation is set but couldn't locate katex binary. You can provide the path to katex binary via KatexPath")
+		return fmt.Errorf("UseKatexToRenderEquation is set but couldn't locate katex binary (see https://katex.org/). You can install Katex with `npm install -g katex`. You can provide the path to katex binary via KatexPath. ")
 	}
 	c.KatexPath = path
 	return nil
