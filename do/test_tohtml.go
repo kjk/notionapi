@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kjk/fmthtml"
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml2"
-	"github.com/yosssi/gohtml"
 )
 
 // detect location of https://winmerge.org/
@@ -195,6 +195,6 @@ func testToHTML(startPageID string) {
 }
 
 func ppHTML(d []byte) []byte {
-	s := gohtml.Format(string(d))
-	return []byte(s)
+	s := fmthtml.Format(d)
+	return s
 }
