@@ -54,14 +54,14 @@ func savePageAsSimpleStructure(page *notionapi.Page) string {
 
 func eventObserver(ev interface{}) {
 	switch v := ev.(type) {
-	case caching_downloader.EventError:
+	case *caching_downloader.EventError:
 		logf(v.Error)
-	case caching_downloader.EventDidDownload:
+	case *caching_downloader.EventDidDownload:
 		logf("'%s' : downloaded in %s\n", v.PageID, v.Duration)
-	case caching_downloader.EventDidReadFromCache:
+	case *caching_downloader.EventDidReadFromCache:
 		// TODO: only verbose
 		logf("'%s' : read from cache in %s\n", v.PageID, v.Duration)
-	case caching_downloader.EventGotVersions:
+	case *caching_downloader.EventGotVersions:
 		logf("downloaded info about %d versions in %s\n", v.Count, v.Duration)
 	}
 }
