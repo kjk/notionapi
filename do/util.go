@@ -26,8 +26,12 @@ func assert(ok bool, format string, args ...interface{}) {
 	panic(s)
 }
 
-// a centralized place allows us to tweak loggign, if need be
-func log(format string, args ...interface{}) {
+// a centralized place allows us to tweak logging, if need be
+func logf(format string, args ...interface{}) {
+	if len(args) == 0 {
+		fmt.Print(format)
+		return
+	}
 	fmt.Printf(format, args...)
 }
 

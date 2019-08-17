@@ -18,9 +18,9 @@ func makeNotionClient() *notionapi.Client {
 	}
 	notionToken := strings.TrimSpace(os.Getenv("NOTION_TOKNE"))
 	if notionToken == "" {
-		log("NOTION_TOKEN env variable not set. Can only access public pages\n")
+		logf("NOTION_TOKEN env variable not set. Can only access public pages\n")
 	} else {
-		log("NOTION_TOKEN env variable set, can access private pages\n")
+		logf("NOTION_TOKEN env variable set, can access private pages\n")
 		// TODO: validate that the token looks legit
 		client.AuthToken = notionToken
 	}
@@ -55,16 +55,17 @@ func savePageAsSimpleStructure(page *notionapi.Page) string {
 func eventObserver(ev interface{}) {
 	switch v := ev.(type) {
 	case caching_downloader.EventError:
-		log(v.Error)
+		logf(v.Error)
 	case caching_downloader.EventDidDownload:
-		log("'%s' : downloaded in %s\n", v.PageID, v.Duration)
+		logf("'%s' : downloaded in %s\n", v.PageID, v.Duration)
 	case caching_downloader.EventDidReadFromCache:
 		// TODO: only verbose
-		log("'%s' : read from cache in %s\n", v.PageID, v.Duration)
+		logf("'%s' : read from cache in %s\n", v.PageID, v.Duration)
 	case caching_downloader.EventGotVersions:
-		log("downloaded info about %d versions in %s\n", v.Count, v.Duration)
+		logf("downloaded info about %d versions in %s\n", v.Count, v.Duration)
 	}
 }
+
 func downloadPage(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
 	cache, err := caching_downloader.NewDirectoryCache(cacheDir)
 	if err != nil {

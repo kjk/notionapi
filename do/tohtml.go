@@ -36,12 +36,12 @@ func toHTML(pageID string) {
 		path := htmlPath(pageID, 1)
 		err = ioutil.WriteFile(path, html, 0644)
 		must(err)
-		log("%s : HTML version of the page\n", path)
+		logf("%s : HTML version of the page\n", path)
 		if !flgNoOpen {
 			path, err := filepath.Abs(path)
 			must(err)
 			uri := "file://" + path
-			log("Opening browser with %s\n", uri)
+			logf("Opening browser with %s\n", uri)
 			openBrowser(uri)
 		}
 	}
@@ -52,12 +52,12 @@ func toHTML(pageID string) {
 		err = ioutil.WriteFile(path, html, 0644)
 		must(err)
 		must(err)
-		log("%s : HTML version of the page\n", path)
+		logf("%s : HTML version of the page\n", path)
 		if !flgNoOpen {
 			path, err := filepath.Abs(path)
 			must(err)
 			uri := "file://" + path
-			log("Opening browser with %s\n", uri)
+			logf("Opening browser with %s\n", uri)
 			openBrowser(uri)
 		}
 	}

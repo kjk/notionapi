@@ -59,7 +59,7 @@ func loadCSS() string {
 	if len(cssFromFile) > 0 {
 		return cssFromFile
 	}
-	log("couldn't load css from the following files:\n'%s'\n'%s'\nCurr directory: %s\n", path1, path2, currDir)
+	logf("couldn't load css from the following files:\n'%s'\n'%s'\nCurr directory: %s\n", path1, path2, currDir)
 	os.Exit(1)
 	return ""
 }
