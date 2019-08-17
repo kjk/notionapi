@@ -110,6 +110,12 @@ func ForEachBlock(blocks []*Block, cb func(*Block)) {
 	forEachBlockWithParent(blocks, nil, cb)
 }
 
+func (p *Page) ForEachBlock(cb func(*Block)) {
+	root := p.Root()
+	cb(root)
+	forEachBlockWithParent(root.Content, nil, cb)
+}
+
 func panicIf(cond bool, args ...interface{}) {
 	if !cond {
 		return
