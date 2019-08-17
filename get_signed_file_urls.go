@@ -51,8 +51,10 @@ func (c *Client) GetSignedFileUrls(urls []string) (*GetSignedFileUrlsResponse, e
 
 // DownloadFileResponse is a result of DownloadFile()
 type DownloadFileResponse struct {
-	Data   []byte
-	Header http.Header
+	URL           string
+	CacheFileName string
+	Data          []byte
+	Header        http.Header
 }
 
 // sometimes image url in "source" is not accessible but can

@@ -1,17 +1,25 @@
 package caching_downloader
 
 import (
+	"crypto/sha1"
 	"fmt"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/kjk/caching_http_client"
 	"github.com/kjk/notionapi"
 )
 
-// EventDidDownload is for logging. Emitted when page is downloaded
+// EventDidDownload is for logging. Emitted when page
+// or file is downloaded
 type EventDidDownload struct {
-	PageID   string
+	// if page, PageID is set
+	PageID string
+	// if file, URL is set
+	FileURL string
+	// how long did it take to download
 	Duration time.Duration
 }
 
@@ -21,9 +29,13 @@ type EventError struct {
 }
 
 // EventDidReadFromCache is for logging. Emitted when page
-// is read from cache.
+// or file is read from cache.
 type EventDidReadFromCache struct {
-	PageID   string
+	// if page, PageID is set
+	PageID string
+	// if file, URL is set
+	FileURL string
+	// how long did it take to download
 	Duration time.Duration
 }
 
@@ -63,6 +75,11 @@ type Downloader struct {
 	DownloadedCount int
 	// number of pages we got from cache
 	FromCacheCount int
+
+	// for diagnostics, number of downloaded files
+	DownloadedFilesCount int
+	// number of files we got from cache
+	FilesFromCacheCount int
 
 	EventObserver func(interface{})
 }
@@ -283,7 +300,6 @@ func (d *Downloader) emitError(format string, args ...interface{}) {
 
 func (d *Downloader) downloadAndCachePage(pageID string) (*notionapi.Page, error) {
 	pageID = notionapi.ToNoDashID(pageID)
-
 	page, httpCache, err := d.downloadPageRetry(pageID)
 	if err != nil {
 		return nil, err
@@ -366,6 +382,64 @@ func (d *Downloader) DownloadPagesRecursively(startPageID string) ([]*notionapi.
 		pages[i] = downloaded[id]
 	}
 	return pages, nil
+}
+
+func sha1OfLink(link string) string {
+	link = strings.ToLower(link)
+	h := sha1.New()
+	h.Write([]byte(link))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func getCacheFileNameFromURL(uri string) string {
+	parts := strings.Split(uri, "/")
+	name := parts[len(parts)-1]
+	ext := filepath.Ext(name)
+	ext = strings.ToLower(ext)
+	name = sha1OfLink(uri) + ext
+	return name
+}
+
+// DownloadFile downloads a file, caching in the cache
+func (d *Downloader) DownloadFile(uri string) (*notionapi.DownloadFileResponse, error) {
+	cacheFileName := getCacheFileNameFromURL(uri)
+	var data []byte
+	var err error
+	if d.useReadCache() {
+		timeStart := time.Now()
+		data, err = d.Cache.ReadFile(cacheFileName)
+		if err != nil {
+			d.Cache.Remove(cacheFileName)
+		} else {
+			res := &notionapi.DownloadFileResponse{
+				URL:           uri,
+				Data:          data,
+				CacheFileName: cacheFileName,
+			}
+			ev := &EventDidDownload{
+				FileURL:  uri,
+				Duration: time.Since(timeStart),
+			}
+			d.emitEvent(ev)
+			d.FilesFromCacheCount++
+			return res, nil
+		}
+	}
+	timeStart := time.Now()
+	res, err := d.Client.DownloadFile(uri)
+	if err != nil {
+		d.emitError("Downloader.DownloadFile(): failed to download %s, error: %s", uri, err)
+		return nil, err
+	}
+	ev := &EventDidReadFromCache{
+		FileURL:  uri,
+		Duration: time.Since(timeStart),
+	}
+	d.emitEvent(ev)
+	_ = d.Cache.WriteFile(cacheFileName, res.Data)
+	res.CacheFileName = cacheFileName
+	d.DownloadedFilesCount++
+	return res, nil
 }
 
 func normalizeIDS(ids []string) {
