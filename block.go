@@ -77,6 +77,8 @@ const (
 	BlockEquation = "equation"
 	// BlockFactory represents a factory block
 	BlockFactory = "factory"
+	// BlockFigma represents figma embed
+	BlockFigma = "figma"
 )
 
 // FormatToggle describes format for BlockToggle
