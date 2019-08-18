@@ -384,25 +384,30 @@ func (d *Downloader) DownloadPagesRecursively(startPageID string) ([]*notionapi.
 	return pages, nil
 }
 
-func sha1OfLink(link string) string {
-	link = strings.ToLower(link)
+// Sha1OfURL returns sha1 of url
+func Sha1OfURL(uri string) string {
+	// TODO: could benefit from normalizaing url, e.g. with
+	// https://github.com/PuerkitoBio/purell
 	h := sha1.New()
-	h.Write([]byte(link))
+	h.Write([]byte(uri))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func getCacheFileNameFromURL(uri string) string {
+// GetCacheFileNameFromURL returns name of the file in cache
+// for this URL. The name is files/${sha1OfURL}.${ext}
+// It's a consistent, one-way transform
+func GetCacheFileNameFromURL(uri string) string {
 	parts := strings.Split(uri, "/")
 	name := parts[len(parts)-1]
 	ext := filepath.Ext(name)
 	ext = strings.ToLower(ext)
-	name = sha1OfLink(uri) + ext
-	return name
+	name = Sha1OfURL(uri) + ext
+	return filepath.Join("files", name)
 }
 
 // DownloadFile downloads a file, caching in the cache
 func (d *Downloader) DownloadFile(uri string) (*notionapi.DownloadFileResponse, error) {
-	cacheFileName := getCacheFileNameFromURL(uri)
+	cacheFileName := GetCacheFileNameFromURL(uri)
 	var data []byte
 	var err error
 	if d.useReadCache() {
@@ -416,7 +421,7 @@ func (d *Downloader) DownloadFile(uri string) (*notionapi.DownloadFileResponse, 
 				Data:          data,
 				CacheFileName: cacheFileName,
 			}
-			ev := &EventDidDownload{
+			ev := &EventDidReadFromCache{
 				FileURL:  uri,
 				Duration: time.Since(timeStart),
 			}
@@ -425,13 +430,14 @@ func (d *Downloader) DownloadFile(uri string) (*notionapi.DownloadFileResponse, 
 			return res, nil
 		}
 	}
+
 	timeStart := time.Now()
 	res, err := d.Client.DownloadFile(uri)
 	if err != nil {
 		d.emitError("Downloader.DownloadFile(): failed to download %s, error: %s", uri, err)
 		return nil, err
 	}
-	ev := &EventDidReadFromCache{
+	ev := &EventDidDownload{
 		FileURL:  uri,
 		Duration: time.Since(timeStart),
 	}
