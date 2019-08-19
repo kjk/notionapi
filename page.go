@@ -160,7 +160,7 @@ func (p *Page) IsRoot(block *Block) bool {
 	if block == nil || block.Type != BlockPage {
 		return false
 	}
-	return block.ParentID == p.ID
+	return block.ID == p.ID
 }
 
 // GetSubPages return list of ids for direct sub-pages of this page
