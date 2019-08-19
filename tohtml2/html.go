@@ -1007,7 +1007,23 @@ func (c *Converter) RenderEmbed(block *notionapi.Block) {
 	c.Printf(`</figure>`)
 }
 
-// RenderFile renders BlockFile, BlockDrive
+// RenderFigma renders BlockFigma
+func (c *Converter) RenderFigma(block *notionapi.Block) {
+	c.Printf(`<figure id="%s">`, block.ID)
+	{
+		c.Printf(`<div class="source">`)
+		{
+			uri := block.Source
+			c.Printf(`<a href="%s">%s</a>`, uri, uri)
+		}
+
+		c.Printf(`</div>`)
+		c.RenderCaption(block)
+	}
+	c.Printf(`</figure>`)
+}
+
+// RenderFile renders BlockFile
 func (c *Converter) RenderFile(block *notionapi.Block) {
 	c.Printf(`<figure id="%s">`, block.ID)
 	{
@@ -1038,6 +1054,7 @@ func (c *Converter) RenderDrive(block *notionapi.Block) {
 			c.Printf(`<a class="bookmark-href" href="%s">%s</a>`, docURL, docURL)
 		}
 		c.Printf(`</div>`)
+		c.RenderCaption(block)
 	}
 	c.Printf(`</figure>`)
 }
@@ -1264,6 +1281,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderFile
 	case notionapi.BlockDrive:
 		return c.RenderDrive
+	case notionapi.BlockFigma:
+		return c.RenderFigma
 	case notionapi.BlockPDF:
 		return c.RenderPDF
 	case notionapi.BlockCallout:
