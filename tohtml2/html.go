@@ -236,10 +236,6 @@ type Converter struct {
 	// to destination URLs
 	RewriteURL func(url string) string
 
-	// data provided by they caller, useful when providing
-	// RenderBlockOverride
-	Data interface{}
-
 	// if true, generates stand-alone HTML with inline CSS
 	// otherwise it's just the inner part going inside the body
 	FullHTML bool
@@ -248,18 +244,17 @@ type Converter struct {
 	CurrBlocks   []*notionapi.Block
 	CurrBlockIdx int
 
+	// related pages if this page is rendered as part of
+	// collection of pages (like a website)
+	Pages    []*notionapi.Page
+	idToPage map[string]*notionapi.Page
+
+	// data provided by they caller, useful when providing
+	// RenderBlockOverride
+	Data interface{}
+
 	didImportKatexCSS bool
 	bufs              []*bytes.Buffer
-}
-
-var (
-	selfClosingTags = map[string]bool{
-		"img": true,
-	}
-)
-
-func isSelfClosing(tag string) bool {
-	return selfClosingTags[tag]
 }
 
 // NewConverter returns customizable HTML renderer
@@ -267,6 +262,23 @@ func NewConverter(page *notionapi.Page) *Converter {
 	return &Converter{
 		Page: page,
 	}
+}
+
+// PageByID returns Page given its ID
+func (c *Converter) PageByID(pageID string) *notionapi.Page {
+	if len(c.Pages) == 0 {
+		return nil
+	}
+	// build a map to speed up future lookups
+	if len(c.idToPage) == 0 {
+		c.idToPage = map[string]*notionapi.Page{}
+		for _, page := range c.Pages {
+			id := notionapi.ToDashID(page.ID)
+			c.idToPage[id] = page
+		}
+	}
+	pageID = notionapi.ToDashID(pageID)
+	return c.idToPage[pageID]
 }
 
 // PushNewBuffer creates a new buffer and sets Buf to it
