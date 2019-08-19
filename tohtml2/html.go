@@ -486,7 +486,7 @@ func (c *Converter) renderHeader(block *notionapi.Block) {
 	{
 		formatPage := block.FormatPage()
 		// formatPage == nil happened in bf5d1c1f793a443ca4085cc99186d32f
-		pageCover, _ := block.FormatStringValue("page_cover")
+		pageCover, _ := block.PropAsString("format.page_cover")
 		if pageCover != "" {
 			position := (1 - formatPage.PageCoverPosition) * 100
 			coverURL := filePathFromPageCoverURL(pageCover, block)
@@ -494,7 +494,7 @@ func (c *Converter) renderHeader(block *notionapi.Block) {
 			coverURL = escapeHTML(coverURL)
 			c.Printf(`<img class="page-cover-image" src="%s" style="object-position:center %v%%"/>`, coverURL, position)
 		}
-		pageIcon, _ := block.FormatStringValue("page_icon")
+		pageIcon, _ := block.PropAsString("format.page_icon")
 		if pageIcon != "" {
 			// TODO: "undefined" is a bug in Notion export
 			clsCover := "undefined"
@@ -546,7 +546,7 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 	c.Printf(`<figure id="%s" class="%s">`, block.ID, cls)
 	{
 		c.Printf(`<a href="%s">`, uri)
-		pageIcon, ok := block.FormatStringValue("page_icon")
+		pageIcon, ok := block.PropAsString("format.page_icon")
 		if ok {
 			if isURL(pageIcon) {
 				fileName := getDownloadedFileName(pageIcon, block)
@@ -599,7 +599,7 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 }
 
 func (c *Converter) renderSubPage(block *notionapi.Block) {
-	// TODO: probably a differnt look
+	// TODO: probably a different look
 	c.renderLinkToPage(block)
 }
 
@@ -610,18 +610,6 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 		return
 	}
 
-	if false && block.Parent != nil && block.Parent.Type == notionapi.BlockToggle {
-		// TODO: seem like a bug in Notion exporter
-		// page: https://www.notion.so/Soft-shizzle-13aa42a5a95d4357aa830c3e7ff35ae1
-		return
-	}
-
-	// TODO: fixes some pages, breaks some other pages
-	if false && block.Parent != nil && block.Parent.Type == notionapi.BlockPage {
-		// TODO: seem like a bug in Notion exporter
-		// page: https://www.notion.so/b1b31f6d3405466c988676f996ce03ad
-		return
-	}
 	c.renderLinkToPage(block)
 }
 
@@ -633,7 +621,7 @@ func appendClass(s, cls string) string {
 }
 
 func getBlockColorClass(block *notionapi.Block) string {
-	col, _ := block.FormatStringValue("block_color")
+	col, _ := block.PropAsString("format.block_color")
 	if col == "" {
 		return ""
 	}
@@ -839,8 +827,26 @@ func (c *Converter) RenderQuote(block *notionapi.Block) {
 
 // RenderCallout renders BlockCallout
 func (c *Converter) RenderCallout(block *notionapi.Block) {
-	fmt.Printf(`<div class="notion-callout">`)
-	fmt.Printf(`</div>`)
+	clsCol := getBlockColorClass(block)
+	if clsCol != "" {
+		clsCol += " "
+	}
+	c.Printf(`<figure class="%scallout" style="white-space:pre-wrap;display:flex" id="%s">`, clsCol, block.ID)
+	{
+		c.Printf(`<div style="font-size:1.5em">`)
+		{
+			pageIcon, _ := block.PropAsString("format.page_icon")
+			c.Printf(`<span class="icon">%s</span>`, pageIcon)
+		}
+		c.Printf(`</div>`)
+
+		{
+			c.Printf(`<div style="width:100%">`)
+			c.RenderInlines(block.InlineContent)
+			c.Printf(`</div>`)
+		}
+	}
+	c.Printf(`</figure>`)
 }
 
 func isHeaderBlock(block *notionapi.Block) bool {
@@ -1012,6 +1018,26 @@ func (c *Converter) RenderFile(block *notionapi.Block) {
 		}
 		c.Printf(`</div>`)
 		c.RenderCaption(block)
+	}
+	c.Printf(`</figure>`)
+}
+
+// RenderDrive renders BlockDrive
+func (c *Converter) RenderDrive(block *notionapi.Block) {
+	c.Printf(`<figure id="%s">`, block.ID)
+	{
+		c.Printf(`<div class="bookmark source">`)
+		{
+			icon, _ := block.PropAsString("format.drive_properties.icon")
+			c.Printf(`<img style="width:1em;height:1em;margin-right:0.5em;vertical-align:text-bottom" src="%s"/>`, icon)
+
+			docURL, _ := block.PropAsString("format.drive_properties.url")
+			title, _ := block.PropAsString("format.drive_properties.title")
+			c.Printf(`<a href="%s">%s</a>`, docURL, title)
+			c.Printf(`<br/>`)
+			c.Printf(`<a class="bookmark-href" href="%s">%s</a>`, docURL, docURL)
+		}
+		c.Printf(`</div>`)
 	}
 	c.Printf(`</figure>`)
 }
@@ -1234,8 +1260,10 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderTweet
 	case notionapi.BlockVideo:
 		return c.RenderVideo
-	case notionapi.BlockFile, notionapi.BlockDrive:
+	case notionapi.BlockFile:
 		return c.RenderFile
+	case notionapi.BlockDrive:
+		return c.RenderDrive
 	case notionapi.BlockPDF:
 		return c.RenderPDF
 	case notionapi.BlockCallout:

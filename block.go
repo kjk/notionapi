@@ -289,12 +289,34 @@ type CollectionViewInfo struct {
 	queryCollectionResponse *QueryCollectionResponse
 }
 
-func (b *Block) FormatStringValue(key string) (string, bool) {
-	format := jsonGetMap(b.RawJSON, "format")
-	if format == nil {
+func (b *Block) Prop(key string) (interface{}, bool) {
+	parts := strings.Split(key, ".")
+	js := b.RawJSON
+	var ok bool
+	lastIdx := len(parts) - 1
+	for i := 0; i < lastIdx; i++ {
+		key = parts[i]
+		v := js[key]
+		if v == nil {
+			return nil, false
+		}
+		js, ok = v.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+	}
+	key = parts[lastIdx]
+	v, ok := js[key]
+	return v, ok
+}
+
+func (b *Block) PropAsString(key string) (string, bool) {
+	v, ok := b.Prop(key)
+	if !ok || v == nil {
 		return "", false
 	}
-	return jsonGetString(format, key)
+	s, ok := v.(string)
+	return s, ok
 }
 
 // CreatedOn return the time the page was created
