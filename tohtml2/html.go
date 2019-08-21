@@ -542,8 +542,8 @@ func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 
 func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 	uri := filePathForPage(block)
-	cls := appendClass(getBlockColorClass(block), "link-to-page")
-	c.Printf(`<figure id="%s" class="%s">`, block.ID, cls)
+	clsCol := getBlockColorClass(block)
+	c.Printf(`<figure id="%s" class="%s link-to-page">`, block.ID, clsCol)
 	{
 		c.Printf(`<a href="%s">`, uri)
 		pageIcon, ok := block.PropAsString("format.page_icon")
@@ -630,8 +630,8 @@ func getBlockColorClass(block *notionapi.Block) string {
 
 // RenderText renders BlockText
 func (c *Converter) RenderText(block *notionapi.Block) {
-	cls := getBlockColorClass(block)
-	c.Printf(`<p id="%s" class="%s">`, block.ID, cls)
+	clsCol := getBlockColorClass(block)
+	c.Printf(`<p id="%s" class="%s">`, block.ID, clsCol)
 	c.RenderInlines(block.InlineContent)
 	c.RenderChildren(block)
 	c.Printf(`</p>`)
@@ -708,9 +708,8 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 		c.ListNo = 1
 	}
 
-	cls := getBlockColorClass(block)
-	cls = appendClass(cls, "numbered-list")
-	c.Printf(`<ol id="%s" class="%s" start="%d">`, block.ID, cls, c.ListNo)
+	clsCol := getBlockColorClass(block)
+	c.Printf(`<ol id="%s" class="%s numbered-list" start="%d">`, block.ID, clsCol, c.ListNo)
 	{
 		c.Printf(`<li>`)
 		{
@@ -724,9 +723,8 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 
 // RenderBulletedList renders BlockBulletedList
 func (c *Converter) RenderBulletedList(block *notionapi.Block) {
-	cls := getBlockColorClass(block)
-	cls = appendClass(cls, "bulleted-list")
-	c.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
+	clsCol := getBlockColorClass(block)
+	c.Printf(`<ul id="%s" class="%s bulleted-list">`, block.ID, clsCol)
 	{
 		c.Printf(`<li>`)
 		{
@@ -740,8 +738,8 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 
 // RenderHeaderLevel renders BlockHeader, SubHeader and SubSubHeader
 func (c *Converter) RenderHeaderLevel(block *notionapi.Block, level int) {
-	cls := getBlockColorClass(block)
-	c.Printf(`<h%d id="%s" class="%s">`, level, block.ID, cls)
+	clsCol := getBlockColorClass(block)
+	c.Printf(`<h%d id="%s" class="%s">`, level, block.ID, clsCol)
 	id := block.ID
 	if c.AddHeaderAnchor {
 		c.Printf(`<a class="notion-header-anchor" href="#%s" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M5.88.03c-.18.01-.36.03-.53.09-.27.1-.53.25-.75.47a.5.5 0 1 0 .69.69c.11-.11.24-.17.38-.22.35-.12.78-.07 1.06.22.39.39.39 1.04 0 1.44l-1.5 1.5c-.44.44-.8.48-1.06.47-.26-.01-.41-.13-.41-.13a.5.5 0 1 0-.5.88s.34.22.84.25c.5.03 1.2-.16 1.81-.78l1.5-1.5c.78-.78.78-2.04 0-2.81-.28-.28-.61-.45-.97-.53-.18-.04-.38-.04-.56-.03zm-2 2.31c-.5-.02-1.19.15-1.78.75l-1.5 1.5c-.78.78-.78 2.04 0 2.81.56.56 1.36.72 2.06.47.27-.1.53-.25.75-.47a.5.5 0 1 0-.69-.69c-.11.11-.24.17-.38.22-.35.12-.78.07-1.06-.22-.39-.39-.39-1.04 0-1.44l1.5-1.5c.4-.4.75-.45 1.03-.44.28.01.47.09.47.09a.5.5 0 1 0 .44-.88s-.34-.2-.84-.22z"></path></svg></a>`, id)
@@ -794,9 +792,8 @@ func (c *Converter) RenderTodo(block *notionapi.Block) {
 
 // RenderToggle renders BlockToggle
 func (c *Converter) RenderToggle(block *notionapi.Block) {
-	cls := getBlockColorClass(block)
-	cls = appendClass(cls, "toggle")
-	c.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
+	clsCol := getBlockColorClass(block)
+	c.Printf(`<ul id="%s" class="%s toggle">`, block.ID, clsCol)
 	{
 		c.Printf(`<li>`)
 		{
@@ -828,10 +825,7 @@ func (c *Converter) RenderQuote(block *notionapi.Block) {
 // RenderCallout renders BlockCallout
 func (c *Converter) RenderCallout(block *notionapi.Block) {
 	clsCol := getBlockColorClass(block)
-	if clsCol != "" {
-		clsCol += " "
-	}
-	c.Printf(`<figure class="%scallout" style="white-space:pre-wrap;display:flex" id="%s">`, clsCol, block.ID)
+	c.Printf(`<figure class="%s callout" style="white-space:pre-wrap;display:flex" id="%s">`, clsCol, block.ID)
 	{
 		c.Printf(`<div style="font-size:1.5em">`)
 		{
@@ -873,21 +867,44 @@ func getHeaderBlocks(blocks []*notionapi.Block) []*notionapi.Block {
 	return res
 }
 
+func cmpBlockTypes(prev, curr string) int {
+	if prev == curr {
+		return 0
+	}
+	if prev == notionapi.BlockHeader {
+		return 1
+	}
+	if prev == notionapi.BlockSubHeader {
+		if curr == notionapi.BlockHeader {
+			return -1
+		}
+		return 1
+	}
+	if prev == notionapi.BlockSubSubHeader {
+		return -1
+	}
+	// shouldn't happen
+	return 0
+}
+
+func adjustIndent(blocks []*notionapi.Block, i int) int {
+	if i == 0 {
+		return 0
+	}
+	prevType := blocks[i-1].Type
+	currType := blocks[i].Type
+	return cmpBlockTypes(prevType, currType)
+}
+
 // RenderTableOfContents renders BlockTableOfContents
 func (c *Converter) RenderTableOfContents(block *notionapi.Block) {
-	// TODO: block-color-gray comes from "format": { "block_color" }
-	c.Printf(`<nav id="%s" class="block-color-gray table_of_contents">`, block.ID)
+	clsCol := getBlockColorClass(block)
+	c.Printf(`<nav id="%s" class="%s table_of_contents">`, block.ID, clsCol)
 	blocks := getHeaderBlocks(c.Page.Root().Content)
-	for _, b := range blocks {
+	indent := 0
+	for i, b := range blocks {
+		indent += adjustIndent(blocks, i)
 		s := c.GetInlineContent(b.InlineContent)
-		// TODO: "indent-0" might probably be differnt
-		indent := 0
-		switch b.Type {
-		case notionapi.BlockSubHeader:
-			indent = 1
-		case notionapi.BlockSubSubHeader:
-			indent = 2
-		}
 		c.Printf(`<div class="table_of_contents-item table_of_contents-indent-%d">`, indent)
 		{
 			c.Printf(`<a class="table_of_contents-link" href="#%s">%s</a>`, b.ID, s)
@@ -917,10 +934,7 @@ func (c *Converter) RenderBookmark(block *notionapi.Block) {
 	c.Printf(`<figure id="%s">`, block.ID)
 	{
 		clsCol := getBlockColorClass(block)
-		if clsCol != "" {
-			clsCol += " "
-		}
-		c.Printf(`<div class="%sbookmark source">`, clsCol)
+		c.Printf(`<div class="%s bookmark source">`, clsCol)
 		{
 			uri := block.Link
 			text := block.Title
