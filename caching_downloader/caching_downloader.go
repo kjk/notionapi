@@ -82,6 +82,10 @@ type Downloader struct {
 	FilesFromCacheCount int
 
 	EventObserver func(interface{})
+
+	// says if last readPageFromDisk made http requests
+	// (can happen if we tweak the logic)
+	didMakeHTTPRequests bool
 }
 
 // New returns a new Downloader which caches page loads on disk
@@ -213,9 +217,12 @@ func (d *Downloader) readPageFromDisk(pageID string) (*notionapi.Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	newHTTPRequests := httpCache.RequestsNotFromCache - nPrevRequestsFromCache
-	if newHTTPRequests > 0 {
-		d.emitError("Downloader.readPageFromDisk() unexpectedly made %d server connections for page %s", newHTTPRequests, pageID)
+	d.didMakeHTTPRequests = httpCache.RequestsNotFromCache > nPrevRequestsFromCache
+
+	if d.didMakeHTTPRequests {
+		d.Cache.Remove(name)
+		nNew := httpCache.RequestsNotFromCache - nPrevRequestsFromCache
+		d.emitError("Downloader.readPageFromDisk() unexpectedly made %d server connections for page %s", nNew, pageID)
 	}
 	return page, nil
 }

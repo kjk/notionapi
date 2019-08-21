@@ -11,7 +11,7 @@
       "mode": "auto",
       "program": "${fileDirname}",
       "env": {},
-      "args": ["-test-to-html", "04f306fbf59a413fae15f42e2a1ab029"]
+      "args": ["-test-to-html", "0faba286086c42faa960c35af798baf6"]
     }
   ]
 }

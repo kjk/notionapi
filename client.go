@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 )
@@ -246,38 +247,34 @@ func ExtractNoDashIDFromNotionURL(uri string) string {
 	return ""
 }
 
-// recursively find blocks that we don't have yet
-func (p *Page) findMissingBlocks(startIds []string) []string {
-	var missing []string
-	seen := map[string]struct{}{}
-	toCheck := append([]string{}, startIds...)
-	for len(toCheck) > 0 {
-		id := toCheck[0]
-		toCheck = toCheck[1:]
-		if _, ok := seen[id]; ok {
+// find referenced blocks that we don't have yet
+func (p *Page) findMissingBlocks() []string {
+	missing := map[string]struct{}{}
+	for _, block := range p.idToBlock {
+		if !block.Alive {
 			continue
 		}
+		// don't want to recursively pull information about sub-pages
+		// or linked pages
+		if block.Type == BlockPage {
+			continue
+		}
+		for _, id := range block.ContentIDs {
+			if _, ok := p.idToBlock[id]; !ok {
+				missing[id] = struct{}{}
+			}
+		}
+	}
+
+	var res []string
+	for id := range missing {
 		if _, ok := p.blocksToSkip[id]; ok {
 			continue
 		}
-		seen[id] = struct{}{}
-		block := p.idToBlock[id]
-		if block == nil {
-			missing = append(missing, id)
-			continue
-		}
-
-		// we don't have the content of this block.
-		// get it unless this is a page block becuase this is only
-		// a link to a page
-		switch block.Type {
-		case BlockPage:
-		// skip those blocks
-		default:
-			toCheck = append(toCheck, block.ContentIDs...)
-		}
+		res = append(res, id)
 	}
-	return missing
+	sort.Strings(res)
+	return res
 }
 
 // DownloadPage returns Notion page data given its id
@@ -357,7 +354,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	// get blocks that are not already loaded
 	missingIter := 1
 	for {
-		missing := p.findMissingBlocks(root.ContentIDs)
+		missing := p.findMissingBlocks()
 		if len(missing) == 0 {
 			break
 		}
@@ -384,26 +381,24 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				block := blockWithRole.Value
 				// This can happen e.g. in 157765353f2c4705bd45474e5ba8b46c
 				// Server returns { "role": "none" },
-				if block == nil {
-					expectedID := toGet[n]
-					p.blocksToSkip[expectedID] = struct{}{}
-					if n > 0 {
-						prevBlock := recVals.Results[n-1]
-						if prevBlock == nil || prevBlock.Value == nil {
-							// this can happen if we don't have access to this page
-							dbg(c, "prevBlock.Value is nil at position n = %d with expected id %s.\n", n, expectedID)
-						} else {
-							prevBlockID := prevBlock.Value.ID
-							dbg(c, "block is nil at position n = %d with expected id %s. Prev block id: %s\n", n, expectedID, prevBlockID)
-						}
-					} else {
-						dbg(c, "block is nil at position n = %v with expected id %s.\n", n, expectedID)
-					}
+				expectedID := toGet[n]
+				if block != nil {
+					p.idToBlock[block.ID] = block
 					continue
 				}
-
-				id := block.ID
-				p.idToBlock[id] = block
+				p.blocksToSkip[expectedID] = struct{}{}
+				if n > 0 {
+					prevBlock := recVals.Results[n-1]
+					if prevBlock == nil || prevBlock.Value == nil {
+						// this can happen if we don't have access to this page
+						dbg(c, "prevBlock.Value is nil at position n = %d with expected id %s.\n", n, expectedID)
+					} else {
+						prevBlockID := prevBlock.Value.ID
+						dbg(c, "block is nil at position n = %d with expected id %s. Prev block id: %s\n", n, expectedID, prevBlockID)
+					}
+				} else {
+					dbg(c, "block is nil at position n = %v with expected id %s.\n", n, expectedID)
+				}
 			}
 		}
 	}
