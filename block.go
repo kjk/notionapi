@@ -51,6 +51,8 @@ const (
 	BlockCollectionViewPage = "collection_view_page"
 	// BlockVideo is youtube video embed
 	BlockVideo = "video"
+	// BlockAudio is audio embed (e.g. an mp3 file)
+	BlockAudio = "audio"
 	// BlockFile is an embedded file
 	BlockFile = "file"
 	// BlockPDF is an embedded pdf file

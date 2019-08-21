@@ -934,6 +934,29 @@ func (c *Converter) RenderBookmark(block *notionapi.Block) {
 	c.Printf(`</figure>`)
 }
 
+// RenderAudio renders BlockAudio
+func (c *Converter) RenderAudio(block *notionapi.Block) {
+	c.Printf(`<figure id="%s">`, block.ID)
+	{
+		c.Printf(`<div class="source">`)
+		{
+			source := block.Source
+			fileName := source
+			if len(block.FileIDs) > 0 {
+				fileName = getDownloadedFileName(source, block)
+			}
+			if source == "" {
+				c.Printf(`<a></a>`)
+			} else {
+				c.A(fileName, source, "")
+			}
+		}
+		c.Printf(`</div>`)
+		c.RenderCaption(block)
+	}
+	c.Printf(`</figure>`)
+}
+
 // RenderVideo renders BlockVideo
 func (c *Converter) RenderVideo(block *notionapi.Block) {
 	c.Printf(`<figure id="%s">`, block.ID)
@@ -1277,6 +1300,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderTweet
 	case notionapi.BlockVideo:
 		return c.RenderVideo
+	case notionapi.BlockAudio:
+		return c.RenderAudio
 	case notionapi.BlockFile:
 		return c.RenderFile
 	case notionapi.BlockDrive:
