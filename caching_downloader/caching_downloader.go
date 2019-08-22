@@ -338,14 +338,14 @@ func (d *Downloader) DownloadPage(pageID string) (*notionapi.Page, error) {
 		}
 		d.DownloadedCount++
 		ev := &EventDidDownload{
-			PageID:   pageID,
+			PageID:   notionapi.ToDashID(pageID),
 			Duration: time.Since(timeStart),
 		}
 		d.emitEvent(ev)
 	} else {
 		d.FromCacheCount++
 		ev := &EventDidReadFromCache{
-			PageID:   pageID,
+			PageID:   notionapi.ToDashID(pageID),
 			Duration: time.Since(timeStart),
 		}
 		d.emitEvent(ev)
