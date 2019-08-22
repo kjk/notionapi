@@ -10,15 +10,6 @@ func jsonUnmarshalFromMap(m map[string]interface{}, v interface{}) error {
 	return json.Unmarshal(d, v)
 }
 
-func jsonGetString(m map[string]interface{}, key string) (string, bool) {
-	if v, ok := m[key]; ok {
-		if s, ok := v.(string); ok {
-			return s, true
-		}
-	}
-	return "", false
-}
-
 func jsonGetMap(m map[string]interface{}, key string) map[string]interface{} {
 	if v, ok := m[key]; ok {
 		if m, ok := v.(map[string]interface{}); ok {

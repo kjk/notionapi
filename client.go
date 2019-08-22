@@ -334,7 +334,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		// this might happen e.g. when a page is not publicly visible
 		root = res.Value
 		if root == nil {
-			return nil, fmt.Errorf("Couldn't retrieve page with id %s", pageID)
+			return nil, fmt.Errorf("couldn't retrieve page with id %s", pageID)
 		}
 		panicIf(p.ID != root.ID, "%s != %s", p.ID, root.ID)
 		p.idToBlock[root.ID] = root
@@ -456,7 +456,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			user := p.Users[0]
 			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {
-				return nil, fmt.Errorf("Didn't find collection_view with id '%s'", collectionViewID)
+				return nil, fmt.Errorf("didn't find collection_view with id '%s'", collectionViewID)
 			}
 			collection, ok := p.idToCollection[collectionID]
 			if !ok {

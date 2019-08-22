@@ -15,10 +15,6 @@ func (w *writer) writeString(s string) {
 	_, _ = io.WriteString(w.w, s)
 }
 
-func (w *writer) cr() {
-	w.writeString("\n")
-}
-
 func (w *writer) writeLevel() {
 	for n := 0; n < w.level; n++ {
 		w.writeString("  ")
@@ -50,5 +46,5 @@ func Dump(w io.Writer, page *Page) {
 func DumpToString(page *Page) string {
 	buf := &bytes.Buffer{}
 	Dump(buf, page)
-	return string(buf.Bytes())
+	return buf.String()
 }

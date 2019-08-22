@@ -1,7 +1,5 @@
 package notionapi
 
-import "time"
-
 type submitTransactionRequest struct {
 	Operations []*Operation `json:"operations"`
 }
@@ -39,15 +37,13 @@ func buildSetTitleOp(id string, title string) *Operation {
 	}
 }
 
+/*
 // last_edited_time seems to be Unix() * 1000.
 // It doesn't matter if we do UTC() or not
 func notionTimeNow() int64 {
 	return time.Now().Unix() * 1000
 }
 
-/*
-
- */
 func buildLastEditedTimeOp(id string) *Operation {
 	args := map[string]interface{}{
 		"last_edited_time": notionTimeNow(),
@@ -60,6 +56,7 @@ func buildLastEditedTimeOp(id string) *Operation {
 		Args:    args,
 	}
 }
+*/
 
 func buildSetPageFormat(id string, args map[string]interface{}) *Operation {
 	return &Operation{
@@ -71,6 +68,7 @@ func buildSetPageFormat(id string, args map[string]interface{}) *Operation {
 	}
 }
 
+/*
 // TODO: add constants for known languages
 func buildUpdateCodeBlockLang(id string, lang string) *Operation {
 	args := map[string]interface{}{
@@ -84,3 +82,4 @@ func buildUpdateCodeBlockLang(id string, lang string) *Operation {
 		Args:    args,
 	}
 }
+*/

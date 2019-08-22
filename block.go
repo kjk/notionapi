@@ -608,7 +608,7 @@ func getBlockIDsSorted(idToBlock map[string]*Block) []string {
 	if n == 0 {
 		return nil
 	}
-	ids := make([]string, n, n)
+	ids := make([]string, n)
 	i := 0
 	for id := range idToBlock {
 		ids[i] = id
