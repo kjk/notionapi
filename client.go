@@ -247,6 +247,27 @@ func ExtractNoDashIDFromNotionURL(uri string) string {
 	return ""
 }
 
+func (p *Page) findInlinePageReferences(block *Block) []string {
+	// TODO: maybe note which blocks were already processed
+	// to avoid checking things multiple times
+	parseTitle(block)
+	if len(block.InlineContent) == 0 {
+		return nil
+	}
+	var res []string
+
+	for _, ts := range block.InlineContent {
+		for _, attr := range ts.Attrs {
+			switch AttrGetType(attr) {
+			case AttrPage:
+				pageID := AttrGetPageID(attr)
+				res = append(res, pageID)
+			}
+		}
+	}
+	return res
+}
+
 // find referenced blocks that we don't have yet
 func (p *Page) findMissingBlocks() []string {
 	missing := map[string]struct{}{}
@@ -259,7 +280,14 @@ func (p *Page) findMissingBlocks() []string {
 		if block.Type == BlockPage {
 			continue
 		}
+
 		for _, id := range block.ContentIDs {
+			if _, ok := p.idToBlock[id]; !ok {
+				missing[id] = struct{}{}
+			}
+		}
+		referencedPages := p.findInlinePageReferences(block)
+		for _, id := range referencedPages {
 			if _, ok := p.idToBlock[id]; !ok {
 				missing[id] = struct{}{}
 			}

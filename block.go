@@ -399,25 +399,39 @@ func (b *Block) GetTitle() []*TextSpan {
 	return b.GetProperty("title")
 }
 
-func parseProperties(block *Block) error {
-	var err error
-	props := block.Properties
-	if title, ok := props["title"]; ok {
-		block.InlineContent, err = ParseTextSpans(title)
-		if err != nil {
-			return err
-		}
-		switch block.Type {
-		case BlockPage, BlockFile, BlockBookmark:
-			block.Title, err = getInlineText(title)
-		case BlockCode:
-			block.Code, err = getFirstInlineBlock(title)
-		default:
-		}
-		if err != nil {
-			return err
-		}
+func parseTitle(block *Block) error {
+	// has already been parsed
+	if block.InlineContent != nil {
+		return nil
 	}
+	props := block.Properties
+	title, ok := props["title"]
+	if !ok {
+		return nil
+	}
+	var err error
+
+	block.InlineContent, err = ParseTextSpans(title)
+	if err != nil {
+		return err
+	}
+	switch block.Type {
+	case BlockPage, BlockFile, BlockBookmark:
+		block.Title, err = getInlineText(title)
+	case BlockCode:
+		block.Code, err = getFirstInlineBlock(title)
+	default:
+	}
+	return err
+}
+
+func parseProperties(block *Block) error {
+	err := parseTitle(block)
+	if err != nil {
+		return err
+	}
+
+	props := block.Properties
 
 	if BlockTodo == block.Type {
 		if checked, ok := props["checked"]; ok {
