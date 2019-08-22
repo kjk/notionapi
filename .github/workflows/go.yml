@@ -25,4 +25,8 @@ jobs:
       - name: Staticcheck
         run: |
           go get -v -u honnef.co/go/tools/cmd/staticcheck
+          export GOBINPATH=`go env GOPATH`/bin
+          export PATH="${PATH}:${GOBINPATH}"
+          ls -lah `go env GOPATH`
+          ls -lah `go env GOPATH`/bin
           staticcheck ./...
