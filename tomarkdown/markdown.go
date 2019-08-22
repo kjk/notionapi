@@ -8,10 +8,6 @@ import (
 	"github.com/kjk/notionapi"
 )
 
-func log(format string, args ...interface{}) {
-	fmt.Printf(format, args...)
-}
-
 func maybePanic(format string, args ...interface{}) {
 	notionapi.MaybePanic(format, args...)
 }
@@ -223,6 +219,7 @@ func shuffleWhitespace(text string) (string, string, string) {
 	return before, text, after
 }
 
+/*
 func (c *Converter) bufferEndsWith(s string) bool {
 	d := c.Buf.Bytes()
 	if len(d) < len(s) {
@@ -238,6 +235,7 @@ func (c *Converter) bufferEndsWith(s string) bool {
 	}
 	return true
 }
+*/
 
 // InlineToString renders inline block
 func (c *Converter) InlineToString(b *notionapi.TextSpan) string {
@@ -696,12 +694,8 @@ func (c *Converter) skipChildren(block *notionapi.Block) bool {
 		return true
 	}
 	if block.Type == notionapi.BlockPage {
-		if c.Page.IsRoot(block) {
-			return false
-		}
-		// those are just links to pages but can have Content
-		// list. We don't want to render those
-		return true
+		// we don't want to render content of links to pages
+		return !c.Page.IsRoot(block)
 	}
 	return false
 }

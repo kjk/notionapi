@@ -615,14 +615,11 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 		return
 	}
 
-	c.renderLinkToPage(block)
-}
-
-func appendClass(s, cls string) string {
-	if len(s) == 0 {
-		return cls
+	if c.Page.IsSubPage(block) {
+		c.renderSubPage(block)
+	} else {
+		c.renderLinkToPage(block)
 	}
-	return s + " " + cls
 }
 
 func getBlockColorClass(block *notionapi.Block) string {
@@ -666,7 +663,7 @@ func equationToHTML(katexPath string, equation string) (string, error) {
 	if err = cmd.Wait(); err != nil {
 		return "", err
 	}
-	res := string(out.Bytes())
+	res := out.String()
 	return res, nil
 }
 

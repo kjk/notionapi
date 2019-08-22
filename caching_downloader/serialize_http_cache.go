@@ -10,14 +10,6 @@ import (
 	"github.com/kjk/siser"
 )
 
-func lg(format string, args ...interface{}) {
-	s := format
-	if len(args) > 0 {
-		s = fmt.Sprintf(format, args...)
-	}
-	fmt.Print(s)
-}
-
 const (
 	recCacheName = "httpcache-v1"
 )

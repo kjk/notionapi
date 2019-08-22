@@ -153,10 +153,10 @@ func (d *Downloader) updateVersionsForPages(ids []string) error {
 	timeStart := time.Now()
 	versions, err := d.getVersionsForPages(ids)
 	if err != nil {
-		return fmt.Errorf("d.updateVersionsForPages() for %d pages failed with '%s'\n", len(ids), err)
+		return fmt.Errorf("d.updateVersionsForPages() for %d pages failed with '%s'", len(ids), err)
 	}
 	if len(ids) != len(versions) {
-		return fmt.Errorf("d.updateVersionsForPages() asked for %d pages but got %d results\n", len(ids), len(versions))
+		return fmt.Errorf("d.updateVersionsForPages() asked for %d pages but got %d results", len(ids), len(versions))
 	}
 
 	ev := &EventGotVersions{
@@ -384,7 +384,7 @@ func (d *Downloader) DownloadPagesRecursively(startPageID string) ([]*notionapi.
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
-	pages := make([]*notionapi.Page, n, n)
+	pages := make([]*notionapi.Page, n)
 	for i, id := range ids {
 		pages[i] = downloaded[id]
 	}
