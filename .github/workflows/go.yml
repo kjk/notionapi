@@ -14,19 +14,14 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v1
 
-      - name: Print go env
-        run: |
-          go env
-          echo "PATH: ${PATH}"
-
       - name: Test
         run: go test -v ./...
 
       - name: Staticcheck
         run: |
+          # add executables installed with go get to PATH
+          # TODO: this will hopefully be fixed by
+          # https://github.com/actions/setup-go/issues/14
+          export PATH=${PATH}:`go env GOPATH`/bin
           go get -v -u honnef.co/go/tools/cmd/staticcheck
-          export GOBINPATH=`go env GOPATH`/bin
-          export PATH="${PATH}:${GOBINPATH}"
-          ls -lah `go env GOPATH`
-          ls -lah `go env GOPATH`/bin
           staticcheck ./...
