@@ -11,7 +11,7 @@ jobs:
           go-version: 1.12
         id: go
 
-      - name: Check out code into the Go module directory
+      - name: Check out source code
         uses: actions/checkout@v1
 
       - name: Test
@@ -23,5 +23,5 @@ jobs:
           # TODO: this will hopefully be fixed by
           # https://github.com/actions/setup-go/issues/14
           export PATH=${PATH}:`go env GOPATH`/bin
-          go get -v -u honnef.co/go/tools/cmd/staticcheck
+          go get -u honnef.co/go/tools/cmd/staticcheck
           staticcheck ./...
