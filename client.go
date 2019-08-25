@@ -42,6 +42,29 @@ func (c *Client) getHTTPClient() *http.Client {
 	return &httpClient
 }
 
+// ErrPageNotFound is returned by Client.DownloadPage if page
+// cannot be found
+type ErrPageNotFound struct {
+	PageID string
+}
+
+func newErrPageNotFound(pageID string) *ErrPageNotFound {
+	return &ErrPageNotFound{
+		PageID: pageID,
+	}
+}
+
+// Error return error string
+func (e *ErrPageNotFound) Error() string {
+	return fmt.Sprintf("couldn't retrieve page '%s'", e.PageID)
+}
+
+// IsErrPageNotFound returns true if err is an instance of ErrPageNotFound
+func IsErrPageNotFound(err error) bool {
+	_, ok := err.(*ErrPageNotFound)
+	return ok
+}
+
 func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
 	var js []byte
 	var err error
@@ -334,7 +357,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		// this might happen e.g. when a page is not publicly visible
 		root = res.Value
 		if root == nil {
-			return nil, fmt.Errorf("couldn't retrieve page with id %s", pageID)
+			return nil, newErrPageNotFound(pageID)
 		}
 		panicIf(p.ID != root.ID, "%s != %s", p.ID, root.ID)
 		p.idToBlock[root.ID] = root

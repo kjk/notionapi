@@ -284,6 +284,12 @@ func (d *Downloader) downloadPageRetry(pageID string) (*notionapi.Page, *caching
 			d.emitError("Download %s failed with '%s'\n", pageID, err)
 			time.Sleep(5 * time.Second) // not sure if it matters
 		}
+		// don't retry if it can't succeed
+		// TODO: probably should change to check for temporary
+		// network failures
+		if notionapi.IsErrPageNotFound(err) {
+			return nil, nil, err
+		}
 	}
 	return nil, nil, err
 }
