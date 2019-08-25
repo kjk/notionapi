@@ -251,18 +251,10 @@ func ExtractNoDashIDFromNotionURL(uri string) string {
 	if IsValidNoDashID(maybeID) {
 		return maybeID
 	}
-	trimmed := strings.TrimPrefix(uri, "https://www.notion.so/")
-	if uri == trimmed {
-		return ""
-	}
-	// could be c674bebe8adf44d18c3a36cc18c131e2 from https://www.notion.so/c674bebe8adf44d18c3a36cc18c131e2
-	id := trimmed
-	parts := strings.Split(trimmed, "-")
-	n := len(parts)
-	if n >= 2 {
-		// could be ea07db1b9bff415ab180b0525f3898f6 from Advanced-web-spidering-with-Puppeteer-ea07db1b9bff415ab180b0525f3898f6
-		id = parts[n-1]
-	}
+	parts := strings.Split(uri, "/")
+	uri = parts[len(parts)-1]
+	parts = strings.Split(uri, "-")
+	id := parts[len(parts)-1]
 	id = ToNoDashID(id)
 	if IsValidNoDashID(id) {
 		return id
