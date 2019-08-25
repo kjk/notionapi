@@ -272,16 +272,17 @@ func (d *Downloader) downloadPageRetry(pageID string) (*notionapi.Page, *caching
 	var res *notionapi.Page
 	var err error
 	for i := 0; i < 3; i++ {
-		if i > 0 {
-			d.emitError("Download %s failed with '%s'\n", pageID, err)
-			time.Sleep(5 * time.Second) // not sure if it matters
-		}
 		c := d.GetClientCopy()
 		httpCache := caching_http_client.NewCache()
 		c.HTTPClient = caching_http_client.New(httpCache)
 		res, err = c.DownloadPage(pageID)
 		if err == nil {
 			return res, httpCache, nil
+		}
+		// only report errors on the first failure
+		if i == 0 {
+			d.emitError("Download %s failed with '%s'\n", pageID, err)
+			time.Sleep(5 * time.Second) // not sure if it matters
 		}
 	}
 	return nil, nil, err
