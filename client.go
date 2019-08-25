@@ -251,10 +251,16 @@ func ExtractNoDashIDFromNotionURL(uri string) string {
 	if IsValidNoDashID(maybeID) {
 		return maybeID
 	}
-	parts := strings.Split(uri, "/")
-	uri = parts[len(parts)-1]
-	parts = strings.Split(uri, "-")
-	id := parts[len(parts)-1]
+	id := uri
+	// only look at the last part of the url
+	parts := strings.Split(id, "/")
+	id = parts[len(parts)-1]
+	// look at last '-' part
+	parts = strings.Split(id, "-")
+	id = parts[len(parts)-1]
+	// remove url fragment
+	parts = strings.Split(id, "#")
+	id = parts[0]
 	id = ToNoDashID(id)
 	if IsValidNoDashID(id) {
 		return id
