@@ -229,10 +229,10 @@ func (c *Converter) FormatDate(d *notionapi.Date) string {
 }
 
 // RenderInline renders inline block
-func (c *Converter) RenderInline(b *notionapi.TextSpan) {
+func (c *Converter) RenderInline(ts *notionapi.TextSpan) {
 	var start, close string
-	text := b.Text
-	for _, attr := range b.Attrs {
+	text := ts.Text
+	for _, attr := range ts.Attrs {
 		switch notionapi.AttrGetType(attr) {
 		case notionapi.AttrBold:
 			start += `<b>`

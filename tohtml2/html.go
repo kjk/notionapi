@@ -309,8 +309,8 @@ func (c *Converter) A(uri, text, cls string) {
 	// TODO: Notion seems to encode url but it's probably not correct
 	// (it encodes "&" as "&amp;")
 	// at best should only encoede as url
-	uri = escapeHTML(uri)
-	text = escapeHTML(text)
+	uri = EscapeHTML(uri)
+	text = EscapeHTML(text)
 	if cls != "" {
 		cls = fmt.Sprintf(` class="%s"`, cls)
 	}
@@ -405,7 +405,7 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 			if c.RewriteURL != nil {
 				uri = c.RewriteURL(uri)
 			}
-			start += fmt.Sprintf(`<a href="%s">%s</a>`, uri, escapeHTML(pageTitle))
+			start += fmt.Sprintf(`<a href="%s">%s</a>`, uri, EscapeHTML(pageTitle))
 			text = ""
 		case notionapi.AttrLink:
 			uri := notionapi.AttrGetLink(attr)
@@ -416,7 +416,7 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 				start += `<a>`
 			} else {
 				// TODO: notion escapes url but it seems to be wrong
-				uri = escapeHTML(uri)
+				uri = EscapeHTML(uri)
 				start += fmt.Sprintf(`<a href="%s">`, uri)
 			}
 			close = `</a>` + close
@@ -431,7 +431,7 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 			text = ""
 		}
 	}
-	c.Printf(start + escapeHTML(text) + close)
+	c.Printf(start + EscapeHTML(text) + close)
 }
 
 // RenderInlines renders inline blocks
@@ -459,19 +459,19 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	cls := "code"
 	c.Printf(`<pre id="%s" class="%s">`, block.ID, cls)
 	{
-		code := escapeHTML(block.Code)
+		code := EscapeHTML(block.Code)
 		c.Printf(`<code>%s</code>`, code)
 	}
 	c.Printf("</pre>")
 }
 
-func escapeHTML(s string) string {
+// EscapeHTML escapes HTML in the same way as Notion.
+func EscapeHTML(s string) string {
 	s = html.EscapeString(s)
 	// don't get why this is needed but it happens in
 	// https://www.notion.so/Blendle-s-Employee-Handbook-3b617da409454a52bc3a920ba8832bf7
 	s = strings.Replace(s, "&#39;", "&#x27;", -1)
 	s = strings.Replace(s, "&#34;", "&quot;", -1)
-	//s = strings.Replace(s, "&#x27;", "'", -1)
 	return s
 }
 
@@ -495,7 +495,7 @@ func (c *Converter) renderHeader(block *notionapi.Block) {
 			position := (1 - formatPage.PageCoverPosition) * 100
 			coverURL := filePathFromPageCoverURL(pageCover, block)
 			// TODO: Notion incorrectly escapes them
-			coverURL = escapeHTML(coverURL)
+			coverURL = EscapeHTML(coverURL)
 			c.Printf(`<img class="page-cover-image" src="%s" style="object-position:center %v%%"/>`, coverURL, position)
 		}
 		pageIcon, _ := block.PropAsString("format.page_icon")
@@ -561,7 +561,7 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 			}
 		}
 		// TODO: possibly r.RenderInlines(block.InlineContent)
-		c.Printf(escapeHTML(block.Title))
+		c.Printf(EscapeHTML(block.Title))
 		c.Printf(`</a>`)
 	}
 	c.Printf(`</figure>`)
@@ -574,7 +574,7 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 			c.Printf(`<head>`)
 			{
 				c.Printf(`<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
-				c.Printf(`<title>%s</title>`, escapeHTML(block.Title))
+				c.Printf(`<title>%s</title>`, EscapeHTML(block.Title))
 				c.Printf("<style>%s\t\n</style>", CSS)
 			}
 			c.Printf(`</head>`)
@@ -1227,7 +1227,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 					name := ""
 					if colInfo != nil {
 						name = colInfo.Name
-						name = escapeHTML(name)
+						name = EscapeHTML(name)
 					}
 					c.Printf(`<th>%s</th>`, name)
 				}
@@ -1259,7 +1259,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 							for i := range vals {
 								// TODO: Notion prints in reverse order
 								idx := len(vals) - 1 - i
-								v := escapeHTML(vals[idx])
+								v := EscapeHTML(vals[idx])
 								if v == "" {
 									continue
 								}
@@ -1267,7 +1267,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 							}
 							colVal = s
 						}
-						colNameCls := escapeHTML(colName)
+						colNameCls := EscapeHTML(colName)
 						c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
 					}
 					c.Printf("</tr>\n")
