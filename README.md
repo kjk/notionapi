@@ -6,6 +6,8 @@ It allows you to retrieve content of a Notion page in structured format.
 
 You can then e.g. convert that format to HTML.
 
+It's used in https://onepage.nopub.io/
+
 Documentation:
 
 - [getting started tutorial](https://www.programming-books.io/essential/go/db2797b0772a42fca5820014164589a7)
