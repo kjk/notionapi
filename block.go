@@ -419,7 +419,7 @@ func parseTitle(block *Block) error {
 	case BlockPage, BlockFile, BlockBookmark:
 		block.Title, err = getInlineText(title)
 	case BlockCode:
-		block.Code, err = getFirstInlineBlock(title)
+		block.Code, err = getInlineText(title)
 	default:
 	}
 	return err
