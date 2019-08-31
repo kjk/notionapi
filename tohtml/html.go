@@ -145,41 +145,6 @@ func (c *Converter) maybeGetID(block *notionapi.Block) string {
 	return notionapi.ToNoDashID(block.ID)
 }
 
-// WriteElement is a helper class that writes HTML with
-// attributes and optional content
-func (c *Converter) WriteElement(block *notionapi.Block, tag string, attrs []string, content string, entering bool) {
-	if !entering {
-		if !isSelfClosing(tag) {
-			c.Printf("</" + tag + ">")
-			c.Newline()
-		}
-		return
-	}
-
-	s := "<" + tag
-	nAttrs := len(attrs) / 2
-	for i := 0; i < nAttrs; i++ {
-		a := attrs[i*2]
-		// TODO: quote value if necessary
-		v := attrs[i*2+1]
-		s += fmt.Sprintf(` %s="%s"`, a, v)
-	}
-	id := c.maybeGetID(block)
-	if id != "" {
-		s += ` id="` + id + `"`
-	}
-	s += ">"
-	c.Printf(s)
-	c.Newline()
-	if len(content) > 0 {
-		c.Printf(content)
-		c.Newline()
-	} else {
-		c.RenderInlines(block.InlineContent)
-	}
-	c.Newline()
-}
-
 // PrevBlock is a block preceding current block
 func (c *Converter) PrevBlock() *notionapi.Block {
 	if c.CurrBlockIdx == 0 {
@@ -221,6 +186,41 @@ func (c *Converter) FormatDate(d *notionapi.Date) string {
 	// TODO: allow over-riding date formatting
 	s := notionapi.FormatDate(d)
 	return fmt.Sprintf(`<span class="notion-date">@%s</span>`, s)
+}
+
+// WriteElement is a helper class that writes HTML with
+// attributes and optional content
+func (c *Converter) WriteElement(block *notionapi.Block, tag string, attrs []string, content string, entering bool) {
+	if !entering {
+		if !isSelfClosing(tag) {
+			c.Printf("</" + tag + ">")
+			c.Newline()
+		}
+		return
+	}
+
+	s := "<" + tag
+	nAttrs := len(attrs) / 2
+	for i := 0; i < nAttrs; i++ {
+		a := attrs[i*2]
+		// TODO: quote value if necessary
+		v := attrs[i*2+1]
+		s += fmt.Sprintf(` %s="%s"`, a, v)
+	}
+	id := c.maybeGetID(block)
+	if id != "" {
+		s += ` id="` + id + `"`
+	}
+	s += ">"
+	c.Printf(s)
+	c.Newline()
+	if len(content) > 0 {
+		c.Printf(content)
+		c.Newline()
+	} else {
+		c.RenderInlines(block.InlineContent)
+	}
+	c.Newline()
 }
 
 // RenderInline renders inline block
@@ -387,16 +387,13 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 
 // RenderHeaderLevel renders BlockHeader, SubHeader and SubSubHeader
 func (c *Converter) RenderHeaderLevel(block *notionapi.Block, level int) {
-	el := fmt.Sprintf("h%d", level)
-	cls := fmt.Sprintf("notion-header-%d", level)
-	attrs := []string{"class", cls}
-	content := c.GetInlineContent(block.InlineContent)
+	c.Printf(`<h%d class="notion-header-%d">`, level, level)
+	c.Printf(c.GetInlineContent(block.InlineContent))
 	id := c.maybeGetID(block)
 	if c.AddHeaderAnchor {
-		content += fmt.Sprintf(` <a class="notion-header-anchor" href="#%s" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M5.88.03c-.18.01-.36.03-.53.09-.27.1-.53.25-.75.47a.5.5 0 1 0 .69.69c.11-.11.24-.17.38-.22.35-.12.78-.07 1.06.22.39.39.39 1.04 0 1.44l-1.5 1.5c-.44.44-.8.48-1.06.47-.26-.01-.41-.13-.41-.13a.5.5 0 1 0-.5.88s.34.22.84.25c.5.03 1.2-.16 1.81-.78l1.5-1.5c.78-.78.78-2.04 0-2.81-.28-.28-.61-.45-.97-.53-.18-.04-.38-.04-.56-.03zm-2 2.31c-.5-.02-1.19.15-1.78.75l-1.5 1.5c-.78.78-.78 2.04 0 2.81.56.56 1.36.72 2.06.47.27-.1.53-.25.75-.47a.5.5 0 1 0-.69-.69c-.11.11-.24.17-.38.22-.35.12-.78.07-1.06-.22-.39-.39-.39-1.04 0-1.44l1.5-1.5c.4-.4.75-.45 1.03-.44.28.01.47.09.47.09a.5.5 0 1 0 .44-.88s-.34-.2-.84-.22z"></path></svg></a>`, id)
+		c.Printf(` <a class="notion-header-anchor" href="#%s" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M5.88.03c-.18.01-.36.03-.53.09-.27.1-.53.25-.75.47a.5.5 0 1 0 .69.69c.11-.11.24-.17.38-.22.35-.12.78-.07 1.06.22.39.39.39 1.04 0 1.44l-1.5 1.5c-.44.44-.8.48-1.06.47-.26-.01-.41-.13-.41-.13a.5.5 0 1 0-.5.88s.34.22.84.25c.5.03 1.2-.16 1.81-.78l1.5-1.5c.78-.78.78-2.04 0-2.81-.28-.28-.61-.45-.97-.53-.18-.04-.38-.04-.56-.03zm-2 2.31c-.5-.02-1.19.15-1.78.75l-1.5 1.5c-.78.78-.78 2.04 0 2.81.56.56 1.36.72 2.06.47.27-.1.53-.25.75-.47a.5.5 0 1 0-.69-.69c-.11.11-.24.17-.38.22-.35.12-.78.07-1.06-.22-.39-.39-.39-1.04 0-1.44l1.5-1.5c.4-.4.75-.45 1.03-.44.28.01.47.09.47.09a.5.5 0 1 0 .44-.88s-.34-.2-.84-.22z"></path></svg></a>`, id)
 	}
-	c.WriteElement(block, el, attrs, content, true)
-	c.WriteElement(block, el, attrs, "", false)
+	c.Printf("</h%d", level)
 }
 
 // RenderHeader renders BlockHeader
@@ -420,12 +417,9 @@ func (c *Converter) RenderTodo(block *notionapi.Block) {
 	if block.IsChecked {
 		cls = "notion-todo-checked"
 	}
-	attrs := []string{"class", cls}
-	c.WriteElement(block, "div", attrs, "", true)
-
+	c.Printf(`<div class="%s">`, cls)
 	c.RenderChildren(block)
-
-	c.WriteElement(block, "div", attrs, "", false)
+	c.Printf(`</div>`)
 }
 
 func (c *Converter) RenderBlockInlines(block *notionapi.Block) {
@@ -449,23 +443,16 @@ func (c *Converter) RenderToggle(block *notionapi.Block) {
 
 // RenderQuote renders BlockQuote
 func (c *Converter) RenderQuote(block *notionapi.Block) {
-	cls := "notion-quote"
-	attrs := []string{"class", cls}
-	c.WriteElement(block, "quote", attrs, "", true)
-
+	c.Printf(`<quote class="notion-quote">`)
 	c.RenderChildren(block)
-
-	c.WriteElement(block, "quote", attrs, "", false)
+	c.Printf(`</quote>`)
 }
 
 // RenderCallout renders BlockCallout
 func (c *Converter) RenderCallout(block *notionapi.Block) {
-	cls := "notion-callout"
-	attrs := []string{"class", cls}
-	c.WriteElement(block, "div", attrs, "", true)
-
+	c.Printf(`<div class="notion-callout">`)
 	c.RenderChildren(block)
-	c.WriteElement(block, "div", attrs, "", false)
+	c.Printf(`</div>`)
 }
 
 // RenderTableOfContents renders BlockTableOfContents
@@ -480,14 +467,12 @@ func (c *Converter) RenderDivider(block *notionapi.Block) {
 
 // RenderBookmark renders BlockBookmark
 func (c *Converter) RenderBookmark(block *notionapi.Block) {
-	content := fmt.Sprintf(`<a href="%s">%s</a>`, block.Link, block.Link)
-	cls := "notion-bookmark"
 	// TODO: don't render inlines (which seems to be title of the bookmarked page)
 	// TODO: support caption
 	// TODO: maybe support comments
-	attrs := []string{"class", cls}
-	c.WriteElement(block, "div", attrs, content, true)
-	c.WriteElement(block, "div", attrs, content, false)
+	c.Printf(`<div class="notion-bookmark">`)
+	c.Printf(`<a href="%s">%s</a>`, block.Link, block.Link)
+	c.Printf(`</div>`)
 }
 
 // RenderVideo renders BlockTweet
