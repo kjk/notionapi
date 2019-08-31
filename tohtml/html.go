@@ -302,11 +302,12 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 
 func (c *Converter) renderRootPage(block *notionapi.Block) {
 	title := html.EscapeString(block.Title)
-	content := fmt.Sprintf(`<div class="notion-page-content">%s</div>`, title)
-	attrs := []string{"class", "notion-page"}
-	c.WriteElement(block, "div", attrs, content, true)
-	c.RenderChildren(block)
-	c.WriteElement(block, "div", attrs, content, false)
+	c.Printf(`<div class="notion-page">`)
+	{
+		c.Printf(`<div class="notion-page-content">%s</div>`, title)
+		c.RenderChildren(block)
+	}
+	c.Printf(`</div>`)
 }
 
 // RenderPage renders BlockPage
@@ -330,18 +331,16 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 
 // RenderText renders BlockText
 func (c *Converter) RenderText(block *notionapi.Block) {
-	attrs := []string{"class", "notion-text"}
-	c.WriteElement(block, "div", attrs, "", true)
+	c.Printf(`<div class="notion-text">`)
 	c.RenderChildren(block)
-	c.WriteElement(block, "div", attrs, "", false)
+	c.Printf(`</div>`)
 }
 
 // RenderEquation renders BlockEquation
 func (c *Converter) RenderEquation(block *notionapi.Block) {
-	attrs := []string{"class", "notion-equation"}
-	c.WriteElement(block, "div", attrs, "", true)
+	c.Printf(`<div class="notion-equation">`)
 	c.RenderChildren(block)
-	c.WriteElement(block, "div", attrs, "", false)
+	c.Printf(`</div>`)
 }
 
 // RenderNumberedList renders BlockNumberedList
@@ -350,12 +349,11 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 	if !isPrevSame {
 		c.Printf(`<ol class="notion-numbered-list">`)
 	}
-	attrs := []string{"class", "notion-numbered-list"}
-	c.WriteElement(block, "li", attrs, "", true)
-
-	c.RenderChildren(block)
-
-	c.Printf(`</li>`)
+	{
+		c.Printf(`<li class="notion-numbered-list">`)
+		c.RenderChildren(block)
+		c.Printf(`</li>`)
+	}
 	isNextSame := c.IsNextBlockOfType(notionapi.BlockNumberedList)
 	if !isNextSame {
 		c.Printf(`</ol>`)
@@ -371,12 +369,13 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 		c.Printf(`<ul class="notion-bulleted-list">`)
 		c.Newline()
 	}
-	attrs := []string{"class", "notion-bulleted-list"}
-	c.WriteElement(block, "li", attrs, "", true)
 
-	c.RenderChildren(block)
+	{
+		c.Printf(`<li class="notion-bulleted-list">`)
+		c.RenderChildren(block)
+		c.Printf(`</li>`)
+	}
 
-	c.Printf(`</li>`)
 	isNextSame := c.IsNextBlockOfType(notionapi.BlockBulletedList)
 	if !isNextSame {
 		c.Newline()
@@ -555,11 +554,9 @@ func (c *Converter) RenderFile(block *notionapi.Block) {
 		title = path.Base(uri)
 	}
 	title = html.EscapeString(title)
-	content := fmt.Sprintf(`Embedded file: <a href="%s">%s</a>`, uri, title)
-	cls := "notion-embed"
-	attrs := []string{"class", cls}
-	c.WriteElement(block, "div", attrs, content, true)
-	c.WriteElement(block, "div", attrs, content, false)
+	c.Printf(`<div class="notion-embed">`)
+	c.Printf(`Embedded file: <a href="%s">%s</a>`, uri, title)
+	c.Printf(`</div>`)
 }
 
 // RenderPDF renders BlockPDF
@@ -571,19 +568,16 @@ func (c *Converter) RenderPDF(block *notionapi.Block) {
 		title = path.Base(uri)
 	}
 	title = html.EscapeString(title)
-	content := fmt.Sprintf(`Embedded PDF: <a href="%s">%s</a>`, uri, title)
-	cls := "notion-embed"
-	attrs := []string{"class", cls}
-	c.WriteElement(block, "div", attrs, content, true)
-	c.WriteElement(block, "div", attrs, content, false)
+	c.Printf(`<div class="notion-embed">`)
+	c.Printf(`Embedded PDF: <a href="%s">%s</a>`, uri, title)
+	c.Printf(`</div>`)
 }
 
 // RenderImage renders BlockImage
 func (c *Converter) RenderImage(block *notionapi.Block) {
 	link := block.ImageURL
-	attrs := []string{"class", "notion-image", "src", link}
-	c.WriteElement(block, "img", attrs, "", true)
-	c.WriteElement(block, "img", attrs, "", false)
+	// TODO: qutoe link
+	c.Printf(`<img class="notion-image" src="%s">`, link)
 }
 
 // RenderColumnList renders BlockColumnList
@@ -594,20 +588,18 @@ func (c *Converter) RenderColumnList(block *notionapi.Block) {
 		maybePanic("has no columns")
 		return
 	}
-	attrs := []string{"class", "notion-column-list"}
-	c.WriteElement(block, "div", attrs, "", true)
+	c.Printf(`<div class="notion-column-list">`)
 	c.RenderChildren(block)
-	c.WriteElement(block, "div", attrs, "", false)
+	c.Printf(`</div>`)
 }
 
 // RenderColumn renders BlockColumn
 // it's parent is BlockColumnList
 func (c *Converter) RenderColumn(block *notionapi.Block) {
 	// TODO: get column ration from col.FormatColumn.ColumnRation, which is float 0...1
-	attrs := []string{"class", "notion-column"}
-	c.WriteElement(block, "div", attrs, "", true)
+	c.Printf(`<div class="notion-column">`)
 	c.RenderChildren(block)
-	c.WriteElement(block, "div", attrs, "", false)
+	c.Printf(`</div>`)
 }
 
 func (c *Converter) RenderNotImplemented(block *notionapi.Block) {
