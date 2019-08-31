@@ -393,7 +393,7 @@ func (c *Converter) RenderHeaderLevel(block *notionapi.Block, level int) {
 	if c.AddHeaderAnchor {
 		c.Printf(` <a class="notion-header-anchor" href="#%s" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M5.88.03c-.18.01-.36.03-.53.09-.27.1-.53.25-.75.47a.5.5 0 1 0 .69.69c.11-.11.24-.17.38-.22.35-.12.78-.07 1.06.22.39.39.39 1.04 0 1.44l-1.5 1.5c-.44.44-.8.48-1.06.47-.26-.01-.41-.13-.41-.13a.5.5 0 1 0-.5.88s.34.22.84.25c.5.03 1.2-.16 1.81-.78l1.5-1.5c.78-.78.78-2.04 0-2.81-.28-.28-.61-.45-.97-.53-.18-.04-.38-.04-.56-.03zm-2 2.31c-.5-.02-1.19.15-1.78.75l-1.5 1.5c-.78.78-.78 2.04 0 2.81.56.56 1.36.72 2.06.47.27-.1.53-.25.75-.47a.5.5 0 1 0-.69-.69c-.11.11-.24.17-.38.22-.35.12-.78.07-1.06-.22-.39-.39-.39-1.04 0-1.44l1.5-1.5c.4-.4.75-.45 1.03-.44.28.01.47.09.47.09a.5.5 0 1 0 .44-.88s-.34-.2-.84-.22z"></path></svg></a>`, id)
 	}
-	c.Printf("</h%d", level)
+	c.Printf("</h%d>", level)
 }
 
 // RenderHeader renders BlockHeader
@@ -510,26 +510,22 @@ func (c *Converter) RenderVideo(block *notionapi.Block) {
 
 // RenderTweet renders BlockTweet
 func (c *Converter) RenderTweet(block *notionapi.Block) {
-	uri := block.Source
-	content := fmt.Sprintf(`Embedded tweet <a href="%s">%s</a>`, uri, uri)
-	cls := "notion-embed"
 	// TODO: don't render inlines (which seems to be title of the bookmarked page)
 	// TODO: support caption
 	// TODO: maybe support comments
-	attrs := []string{"class", cls}
-	c.WriteElement(block, "div", attrs, content, true)
-	c.WriteElement(block, "div", attrs, content, false)
+	c.Printf(`<div class="notion-embed>`)
+	uri := block.Source
+	c.Printf(`Embedded tweet <a href="%s">%s</a>`, uri, uri)
+	c.Printf(`</div>`)
 }
 
 // RenderGist renders BlockGist
 func (c *Converter) RenderGist(block *notionapi.Block) {
 	uri := block.Source + ".js"
-	cls := "notion-embed-gist"
-	attrs := []string{"src", uri, "class", cls}
 	// TODO: support caption
 	// TODO: maybe support comments
-	c.WriteElement(block, "script", attrs, "", true)
-	c.WriteElement(block, "script", attrs, "", false)
+	// TODO: quote uri
+	c.Printf(`<script src="%s", class="notion-embed-gist"></script>`, uri)
 }
 
 // RenderEmbed renders BlockEmbed
@@ -545,11 +541,9 @@ func (c *Converter) RenderEmbed(block *notionapi.Block) {
 		title = path.Base(uri)
 	}
 	title = html.EscapeString(title)
-	content := fmt.Sprintf(`Oembed: <a href="%s">%s</a>`, uri, title)
-	cls := "notion-embed"
-	attrs := []string{"class", cls}
-	c.WriteElement(block, "div", attrs, content, true)
-	c.WriteElement(block, "div", attrs, content, false)
+	c.Printf(`<div class="notion-embed">`)
+	c.Printf(`Oembed: <a href="%s">%s</a>`, uri, title)
+	c.Printf(`</div>`)
 }
 
 // RenderFile renders BlockFile
