@@ -141,11 +141,6 @@ func (c *Converter) Printf(format string, args ...interface{}) {
 	c.Buf.WriteString(s)
 }
 
-// WriteString writes a string to the buffer
-func (c *Converter) WriteString(s string) {
-	c.Buf.WriteString(s)
-}
-
 func (c *Converter) maybeGetID(block *notionapi.Block) string {
 	return notionapi.ToNoDashID(block.ID)
 }
@@ -155,7 +150,7 @@ func (c *Converter) maybeGetID(block *notionapi.Block) string {
 func (c *Converter) WriteElement(block *notionapi.Block, tag string, attrs []string, content string, entering bool) {
 	if !entering {
 		if !isSelfClosing(tag) {
-			c.WriteString("</" + tag + ">")
+			c.Printf("</" + tag + ">")
 			c.Newline()
 		}
 		return
@@ -174,10 +169,10 @@ func (c *Converter) WriteElement(block *notionapi.Block, tag string, attrs []str
 		s += ` id="` + id + `"`
 	}
 	s += ">"
-	c.WriteString(s)
+	c.Printf(s)
 	c.Newline()
 	if len(content) > 0 {
-		c.WriteString(content)
+		c.Printf(content)
 		c.Newline()
 	} else {
 		c.RenderInlines(block.InlineContent)
@@ -267,7 +262,7 @@ func (c *Converter) RenderInline(ts *notionapi.TextSpan) {
 		}
 	}
 	start += html.EscapeString(text)
-	c.WriteString(start + close)
+	c.Printf(start + close)
 }
 
 // RenderInlines renders inline blocks
@@ -299,9 +294,9 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	}
 	code := html.EscapeString(block.Code)
 	s := fmt.Sprintf(`<pre class="%s"><code>%s`, cls, code)
-	c.WriteString(s)
+	c.Printf(s)
 
-	c.WriteString("</code></pre>")
+	c.Printf("</code></pre>")
 	c.Newline()
 }
 
@@ -329,7 +324,7 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 	uri := "https://notion.so/" + id
 	title := html.EscapeString(block.Title)
 	s := fmt.Sprintf(`<div class="%s"><a href="%s">%s</a></div>`, cls, uri, title)
-	c.WriteString(s)
+	c.Printf(s)
 	c.Newline()
 }
 
@@ -353,17 +348,17 @@ func (c *Converter) RenderEquation(block *notionapi.Block) {
 func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 	isPrevSame := c.IsPrevBlockOfType(notionapi.BlockNumberedList)
 	if !isPrevSame {
-		c.WriteString(`<ol class="notion-numbered-list">`)
+		c.Printf(`<ol class="notion-numbered-list">`)
 	}
 	attrs := []string{"class", "notion-numbered-list"}
 	c.WriteElement(block, "li", attrs, "", true)
 
 	c.RenderChildren(block)
 
-	c.WriteString(`</li>`)
+	c.Printf(`</li>`)
 	isNextSame := c.IsNextBlockOfType(notionapi.BlockNumberedList)
 	if !isNextSame {
-		c.WriteString(`</ol>`)
+		c.Printf(`</ol>`)
 	}
 	c.Newline()
 }
@@ -373,7 +368,7 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 
 	isPrevSame := c.IsPrevBlockOfType(notionapi.BlockBulletedList)
 	if !isPrevSame {
-		c.WriteString(`<ul class="notion-bulleted-list">`)
+		c.Printf(`<ul class="notion-bulleted-list">`)
 		c.Newline()
 	}
 	attrs := []string{"class", "notion-bulleted-list"}
@@ -381,11 +376,11 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 
 	c.RenderChildren(block)
 
-	c.WriteString(`</li>`)
+	c.Printf(`</li>`)
 	isNextSame := c.IsNextBlockOfType(notionapi.BlockBulletedList)
 	if !isNextSame {
 		c.Newline()
-		c.WriteString(`</ul>`)
+		c.Printf(`</ul>`)
 	}
 	c.Newline()
 }
@@ -480,7 +475,7 @@ func (c *Converter) RenderTableOfContents(block *notionapi.Block) {
 
 // RenderDivider renders BlockDivider
 func (c *Converter) RenderDivider(block *notionapi.Block) {
-	c.WriteString(`<hr class="notion-divider">` + "\n")
+	c.Printf(`<hr class="notion-divider">` + "\n")
 }
 
 // RenderBookmark renders BlockBookmark
@@ -655,28 +650,28 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	columns := view.Format.TableProperties
 
 	c.Newline()
-	c.WriteString("\n" + `<table class="notion-collection-view">` + "\n")
+	c.Printf("\n" + `<table class="notion-collection-view">` + "\n")
 
 	// generate header row
-	c.WriteString("<thead>\n")
+	c.Printf("<thead>\n")
 
-	c.WriteString("<tr>\n")
+	c.Printf("<tr>\n")
 
 	for _, col := range columns {
 		colName := col.Property
 		colInfo := viewInfo.Collection.CollectionSchema[colName]
 		if colInfo != nil {
 			name := colInfo.Name
-			c.WriteString(`<th>` + html.EscapeString(name) + "</th>\n")
+			c.Printf(`<th>` + html.EscapeString(name) + "</th>\n")
 		} else {
-			c.WriteString(`<th>&nbsp;` + "</th>\n")
+			c.Printf(`<th>&nbsp;` + "</th>\n")
 		}
 	}
-	c.WriteString("</tr>\n")
+	c.Printf("</tr>\n")
 
-	c.WriteString("</thead>\n\n")
+	c.Printf("</thead>\n\n")
 
-	c.WriteString("<tbody>\n")
+	c.Printf("<tbody>\n")
 
 	for _, row := range viewInfo.CollectionRows {
 		c.Printf("<tr>\n")
