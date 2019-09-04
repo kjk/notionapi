@@ -10,7 +10,7 @@ It's used in https://onepage.nopub.io/
 
 Documentation:
 
-- [getting started tutorial](https://www.programming-books.io/essential/go/db2797b0772a42fca5820014164589a7)
+- [getting started tutorial](https://onepage.nopub.io/p/Using-Notion-API-Go-client-2567fcfa8f7a4ed4bdf6f6ec9298d34a)
 - [API docs](https://godoc.org/github.com/kjk/notionapi)
 
 You can learn how [I reverse-engineered the Notion API](https://blog.kowalczyk.info/article/88aee8f43620471aa9dbcad28368174c/how-i-reverse-engineered-notion-api.html) in order to write this library.
