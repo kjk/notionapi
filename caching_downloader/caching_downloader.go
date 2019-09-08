@@ -83,7 +83,7 @@ type Downloader struct {
 
 	EventObserver func(interface{})
 
-	// says if last readPageFromDisk made http requests
+	// says if last ReadPageFromCache made http requests
 	// (can happen if we tweak the logic)
 	didMakeHTTPRequests bool
 }
@@ -107,10 +107,14 @@ func (d *Downloader) useReadCache() bool {
 	return !d.NoReadCache
 }
 
-func (d *Downloader) nameForPageID(pageID string) string {
+// NameForPageID returns name of the file used for storing
+// HTTP cache for a given page
+func (d *Downloader) NameForPageID(pageID string) string {
+	pageID = notionapi.ToNoDashID(pageID)
 	return pageID + ".txt"
 }
 
+// GetClientCopy returns a copy of client
 func (d *Downloader) GetClientCopy() *notionapi.Client {
 	var c = *d.Client
 	return &c
@@ -196,8 +200,9 @@ func (d *Downloader) checkVersionsOfCachedPages() error {
 	return nil
 }
 
-func (d *Downloader) readPageFromDisk(pageID string) (*notionapi.Page, error) {
-	name := d.nameForPageID(pageID)
+// ReadPageFromCache returns a page read from the cache
+func (d *Downloader) ReadPageFromCache(pageID string) (*notionapi.Page, error) {
+	name := d.NameForPageID(pageID)
 
 	data, err := d.Cache.ReadFile(name)
 	if err != nil {
@@ -222,11 +227,13 @@ func (d *Downloader) readPageFromDisk(pageID string) (*notionapi.Page, error) {
 	if d.didMakeHTTPRequests {
 		d.Cache.Remove(name)
 		nNew := httpCache.RequestsNotFromCache - nPrevRequestsFromCache
-		d.emitError("Downloader.readPageFromDisk() unexpectedly made %d server connections for page %s", nNew, pageID)
+		d.emitError("Downloader.ReadPageFromCache() unexpectedly made %d server connections for page %s", nNew, pageID)
 	}
 	return page, nil
 }
 
+// see if this page from in-mmemory cache could be a result based on
+// RedownloadNewerVersions
 func (d *Downloader) canReturnCachedPage(p *notionapi.Page) bool {
 	if p == nil {
 		return false
@@ -236,7 +243,7 @@ func (d *Downloader) canReturnCachedPage(p *notionapi.Page) bool {
 	}
 	pageID := notionapi.ToNoDashID(p.ID)
 	if _, ok := d.IdToPageLatestVersion[pageID]; !ok {
-		// we don't know waht the latest version is, so download it
+		// we don't know what the latest version is, so download it
 		err := d.updateVersionsForPages([]string{pageID})
 		if err != nil {
 			return false
@@ -256,7 +263,7 @@ func (d *Downloader) getPageFromCache(pageID string) *notionapi.Page {
 	if d.canReturnCachedPage(p) {
 		return p
 	}
-	p, err := d.readPageFromDisk(pageID)
+	p, err := d.ReadPageFromCache(pageID)
 	if err != nil {
 		return nil
 	}
@@ -322,7 +329,7 @@ func (d *Downloader) downloadAndCachePage(pageID string) (*notionapi.Page, error
 	if err != nil {
 		return nil, err
 	}
-	name := d.nameForPageID(pageID)
+	name := d.NameForPageID(pageID)
 	err = d.Cache.WriteFile(name, data)
 	if err != nil {
 		d.emitError("Downloader.downloadAndCachePage(): d.Cache.WriteFile('%s') failed with '%s'\n", name, err)

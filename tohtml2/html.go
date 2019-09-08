@@ -485,7 +485,7 @@ func isURL(uri string) bool {
 	return false
 }
 
-func (c *Converter) renderHeader(block *notionapi.Block) {
+func (c *Converter) renderPageHeader(block *notionapi.Block) {
 	c.Printf(`<header>`)
 	{
 		formatPage := block.FormatPage()
@@ -590,7 +590,7 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 		}
 	}
 	c.Printf(`<article id="%s" class="page %s">`, block.ID, clsFont)
-	c.renderHeader(block)
+	c.renderPageHeader(block)
 	{
 		c.Printf(`<div class="page-body">`)
 		c.RenderChildren(block)
