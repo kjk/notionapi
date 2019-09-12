@@ -1,4 +1,4 @@
-package tohtml2
+package tohtml
 
 // CSS we use. If Converter.FullHTML is true, it's included
 // as part of generated HTML. Otherwise you have to provide
