@@ -10,7 +10,7 @@ import (
 
 	"github.com/kjk/fmthtml"
 	"github.com/kjk/notionapi"
-	"github.com/kjk/notionapi/tohtml2"
+	"github.com/kjk/notionapi/tohtml"
 )
 
 // detect location of https://winmerge.org/
@@ -51,16 +51,16 @@ func shouldFormat() bool {
 }
 
 func toHTML2(page *notionapi.Page) (string, []byte) {
-	name := tohtml2.HTMLFileNameForPage(page)
-	c := tohtml2.NewConverter(page)
+	name := tohtml.HTMLFileNameForPage(page)
+	c := tohtml.NewConverter(page)
 	c.FullHTML = true
 	d, _ := c.ToHTML()
 	return name, d
 }
 
 func toHTML2NotionCompat(page *notionapi.Page) (string, []byte) {
-	name := tohtml2.HTMLFileNameForPage(page)
-	c := tohtml2.NewConverter(page)
+	name := tohtml.HTMLFileNameForPage(page)
+	c := tohtml.NewConverter(page)
 	c.FullHTML = true
 	c.NotionCompat = true
 	d, err := c.ToHTML()
