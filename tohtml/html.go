@@ -1247,6 +1247,10 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 						maybePanicIfErr(err, "ParseTextSpans of '%v' failed with %s\n", v, err)
 						colVal := c.GetInlineContent(inlineContent)
 						colInfo := viewInfo.Collection.CollectionSchema[colName]
+						if colInfo == nil {
+							// happens in fd56bfc6a3f0471a9f0cc3110ff19a79
+							continue
+						}
 						if colInfo.Type == "title" {
 							uri := getTitleColDownloadedURL(row, block, viewInfo.Collection)
 							if colVal == "" {
