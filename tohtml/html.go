@@ -1299,7 +1299,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		name := collection.Name()
 		c.Printf(`<h4 class="collection-title">%s</h4>`, name)
 		if isList {
-			c.Printf(`<table class="collection-content" style="width: 100%">`)
+			c.Printf("%s", `<table class="collection-content" style="width: 100%">`)
 		} else {
 			c.Printf(`<table class="collection-content">`)
 		}
