@@ -27,6 +27,7 @@ func toHTML(pageID string) {
 	notionapi.PanicOnFailures = true
 
 	c := tohtml.NewConverter(page)
+	c.FullHTML = true
 	html, _ := c.ToHTML()
 	path := htmlPath(pageID, 2)
 	err = ioutil.WriteFile(path, html, 0644)
