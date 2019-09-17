@@ -24,7 +24,7 @@ type Page struct {
 	idToBlock          map[string]*Block
 	idToUser           map[string]*User
 	idToCollection     map[string]*Collection
-	idToCollectionView map[string]*CollectionView
+	idToCollectionView map[string]*Block
 	blocksToSkip       map[string]struct{} // not alive or when server doesn't return "value" for this block id
 
 	client *Client
@@ -46,7 +46,7 @@ func (p *Page) CollectionByID(id string) *Collection {
 }
 
 // CollectionViewByID returns a collection view by its id
-func (p *Page) CollectionViewByID(id string) *CollectionView {
+func (p *Page) CollectionViewByID(id string) *Block {
 	return p.idToCollectionView[ToDashID(id)]
 }
 
@@ -57,8 +57,8 @@ func (p *Page) Root() *Block {
 
 // Table represents a table (i.e. CollectionView)
 type Table struct {
-	CollectionView *CollectionView `json:"collection_view"`
-	Collection     *Collection     `json:"collection"`
+	CollectionView *Block      `json:"collection_view"`
+	Collection     *Collection `json:"collection"`
 	Data           []*Block
 }
 

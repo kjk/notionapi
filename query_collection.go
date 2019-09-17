@@ -33,9 +33,17 @@ type CollectionQuery struct {
 	GroupBy    interface{}       `json:"group_by"`
 	CalendarBy interface{}       `json:"calendar_by"`
 	// "and"
-	FilterOperator string        `json:"filter_operator"`
-	Filter         []interface{} `json:"filter"`
-	Sort           []interface{} `json:"sort"`
+	FilterOperator string                 `json:"filter_operator"`
+	Filter         []interface{}          `json:"filter"`
+	Sort           []*CollectionQuerySort `json:"sort"`
+}
+
+type CollectionQuerySort struct {
+	// "ascending"
+	Direction string `json:"direction"`
+	ID        string `json:"id"`
+	Property  string `json:"property"`
+	Type      string `json:"type"`
 }
 
 // QueryCollectionResponse is json response for /api/v3/queryCollection

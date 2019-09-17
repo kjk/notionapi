@@ -9,12 +9,11 @@ const (
 
 // for CollectionColumnInfo.Type
 const (
-	// ColumnMultiSelect is multi-select column
-	ColumnMultiSelect = "multi_select"
-	ColumnTypeNumber  = "number"
-	ColumnTypeTitle   = "title"
+	ColumnTypeTitle       = "title"
+	ColumnTypeNumber      = "number"
+	ColumnTypeMultiSelect = "multi_select"
 	// TODO: text, select, date, person, Files&Media, checkbox, URL, Email, phone
-	// formula, relaion, created time, created by, last edited time, last edited by
+	// formula, relation, created time, created by, last edited time, last edited by
 )
 
 const (

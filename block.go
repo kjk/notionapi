@@ -45,6 +45,8 @@ const (
 	BlockColumn = "column"
 	// BlockTable is a table block
 	BlockTable = "table"
+	// BlockList is a lists block
+	BlockList = "list"
 	// BlockCollectionView is a collection view block
 	BlockCollectionView = "collection_view"
 	// BlockCollectionViewPage is a page that is a collection
@@ -112,6 +114,9 @@ type FormatPage struct {
 	PageSmallText bool   `json:"page_small_text"`
 	BlockColor    string `json:"block_color"`
 
+	BlockLocked   bool   `json:"block_locked"`
+	BlockLockedBy string `json:"block_locked_by"`
+
 	// calculated by us
 	PageCoverURL string `json:"page_cover_url,omitempty"`
 }
@@ -161,8 +166,15 @@ type FormatHeader struct {
 
 // FormatTable describes format for BlockTable
 type FormatTable struct {
+	PageSort        []string         `json:"page_sort"`
 	TableWrap       bool             `json:"table_wrap"`
 	TableProperties []*TableProperty `json:"table_properties"`
+}
+
+// FormatList describes format for BlockList
+type FormatList struct {
+	ListProperties []*TableProperty `json:"list_properties"`
+	PageSort       []string         `json:"page_sort"`
 }
 
 // FormatColumn describes format for BlockColumn
@@ -186,11 +198,33 @@ type TableProperty struct {
 	Property string `json:"property"`
 }
 
-// Permission describes user permissions
+/*
+TODO: maybe different than  TableProperty
+type ListProperty struct {
+	Visible  bool   `json:"visible"`
+	Property string `json:"property"`
+}
+*/
+
+const (
+	// value of Permission.Type
+	PermissionUser   = "user_permission"
+	PermissionPublic = "public_permission"
+)
+
+// Permission describes user permissions o
 type Permission struct {
-	Role   string  `json:"role"`
-	Type   string  `json:"type"`
+	Type string `json:"type"`
+
+	// common to some permission types
+	Role string `json:"role"`
+
+	// if Type == "user_permission"
 	UserID *string `json:"user_id,omitempty"`
+
+	// if Type == "public_permission"
+	AllowDuplicate            bool `json:"allow_duplicate"`
+	AllowSearchEngineIndexing bool `json:"allow_search_engine_indexing"`
 }
 
 // Block describes a block
@@ -250,6 +284,10 @@ type Block struct {
 	Description string `json:"-"`
 	Link        string `json:"-"`
 
+	Name     string   `json:"name"`
+	PageSort []string `json:"page_sort"`
+	Query    *Query   `json:"query"`
+
 	// for BlockBookmark it's the url of the page
 	// for BlockGist it's the url for the gist
 	// fot BlockImage it's url of the image, but use ImageURL instead
@@ -284,7 +322,7 @@ type Block struct {
 // TODO: same as table?
 type CollectionViewInfo struct {
 	OriginatingBlock *Block
-	CollectionView   *CollectionView
+	CollectionView   *Block
 	Collection       *Collection
 	CollectionRows   []*Block
 	// for serialization of state to JSON
@@ -530,6 +568,14 @@ func (b *Block) FormatTable() *FormatTable {
 	return &format
 }
 
+func (b *Block) FormatList() *FormatList {
+	var format FormatList
+	if ok := b.unmarshalFormat(BlockList, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
 func (b *Block) FormatText() *FormatText {
 	var format FormatText
 	if ok := b.unmarshalFormat(BlockText, &format); !ok {
@@ -598,7 +644,7 @@ func (b *Block) CollectionByID(id string) *Collection {
 	return b.Page.CollectionByID(id)
 }
 
-func (b *Block) CollectionViewByID(id string) *CollectionView {
+func (b *Block) CollectionViewByID(id string) *Block {
 	return b.Page.CollectionViewByID(id)
 }
 

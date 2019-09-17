@@ -110,7 +110,7 @@ func getTitleColDownloadedURL(row *notionapi.Block, block *notionapi.Block, col 
 	title := ""
 	titleSpans := row.GetTitle()
 	if len(titleSpans) == 0 {
-		log("title is empty)")
+		logf("title is empty)")
 	} else {
 		title = titleSpans[0].Text
 	}
@@ -191,8 +191,9 @@ func htmlFileName(title string) string {
 func HTMLFileNameForPage(page *notionapi.Page) string {
 	return htmlFileName(page.Root().Title)
 }
-func log(format string, args ...interface{}) {
-	notionapi.Log(format, args...)
+
+func logf(format string, args ...interface{}) {
+	notionapi.Logf(format, args...)
 }
 
 // BlockRenderFunc is a function for rendering a particular block
@@ -366,7 +367,7 @@ func (c *Converter) FormatDate(d *notionapi.Date) string {
 
 // RenderInline renders inline block
 func (c *Converter) RenderInline(b *notionapi.TextSpan) {
-	var start, close string
+	var start, end string
 	text := b.Text
 	for i := range b.Attrs {
 		attr := b.Attrs[len(b.Attrs)-i-1]
@@ -375,19 +376,19 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 			// TODO: possibly needs to change b.Highlight
 			hl := notionapi.AttrGetHighlight(attr)
 			start += fmt.Sprintf(`<mark class="highlight-%s">`, hl)
-			close = `</mark>` + close
+			end = `</mark>` + end
 		case notionapi.AttrBold:
 			start += `<strong>`
-			close = `</strong>` + close
+			end = `</strong>` + end
 		case notionapi.AttrItalic:
 			start += `<em>`
-			close = `</em>` + close
+			end = `</em>` + end
 		case notionapi.AttrStrikeThrought:
 			start += `<del>`
-			close = `</del>` + close
+			end = `</del>` + end
 		case notionapi.AttrCode:
 			start += `<code>`
-			close = `</code>` + close
+			end = `</code>` + end
 		case notionapi.AttrPage:
 			pageID := notionapi.AttrGetPageID(attr)
 			pageTitle := ""
@@ -419,7 +420,7 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 				uri = EscapeHTML(uri)
 				start += fmt.Sprintf(`<a href="%s">`, uri)
 			}
-			close = `</a>` + close
+			end = `</a>` + end
 		case notionapi.AttrUser:
 			userID := notionapi.AttrGetUserID(attr)
 			userName := notionapi.ResolveUser(c.Page, userID)
@@ -431,7 +432,7 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 			text = ""
 		}
 	}
-	c.Printf(start + EscapeHTML(text) + close)
+	c.Printf(start + EscapeHTML(text) + end)
 }
 
 // RenderInlines renders inline blocks
@@ -653,7 +654,7 @@ func equationToHTML(katexPath string, equation string) (string, error) {
 	}
 	_, err = stdin.Write([]byte(equation))
 	if err != nil {
-		cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 		return "", err
 	}
 	err = stdin.Close()
@@ -677,7 +678,7 @@ func (c *Converter) RenderEquation(block *notionapi.Block) {
 	}
 	ts := block.InlineContent
 	s := notionapi.TextSpansToString(ts)
-	html, err := equationToHTML(c.KatexPath, s)
+	htmlStr, err := equationToHTML(c.KatexPath, s)
 	if err != nil {
 		c.Printf(`<figure id="%s" class="equation">`, block.ID)
 		c.RenderInlines(block.InlineContent)
@@ -693,7 +694,7 @@ func (c *Converter) RenderEquation(block *notionapi.Block) {
 		}
 		c.Printf(`<div class="equation-container">`)
 		{
-			c.Printf(html)
+			c.Printf(htmlStr)
 		}
 		c.Printf(`</div>`)
 
@@ -1200,18 +1201,29 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	}
 
 	if len(block.CollectionViews) == 0 {
-		log("missing block.CollectionViews for block %s %s in page %s\n", block.ID, block.Type, pageID)
+		logf("missing block.CollectionViews for block %s %s in page %s\n", block.ID, block.Type, pageID)
 		return
 	}
 	viewInfo := block.CollectionViews[0]
 	view := viewInfo.CollectionView
 	collection := viewInfo.Collection
-	if view.Format == nil {
-		log("missing view.Format for block %s %s in page %s\n", block.ID, block.Type, pageID)
+	var columns []*notionapi.TableProperty
+	if view.Type == notionapi.BlockTable {
+		format := view.FormatTable()
+		columns = format.TableProperties
+	} else if view.Type == notionapi.BlockList {
+		format := view.FormatList()
+		columns = format.ListProperties
+	} else {
+		logf("unexpected block type '%s' in block '%s', wanted 'list' or 'table'\n", view.ID, view.Type)
 		return
 	}
 
-	columns := view.Format.TableProperties
+	if len(columns) == 0 {
+		logf("didn't find columns inof in block '%s'\n", view.ID)
+		return
+	}
+
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
 	{
 		name := collection.Name()
@@ -1420,20 +1432,20 @@ func (c *Converter) RenderBlock(block *notionapi.Block) {
 }
 
 func (c *Converter) detectKatex() error {
-	path := c.KatexPath
-	if path != "" {
+	katexPath := c.KatexPath
+	if katexPath != "" {
 		if _, err := os.Stat(c.KatexPath); err == nil {
 			return nil
 		}
 	}
-	path, err := exec.LookPath("katex")
+	katexPath, err := exec.LookPath("katex")
 	if err != nil {
 		if c.KatexPath != "" {
 			return fmt.Errorf("UseKatexToRenderEquation is set but KatexPath ('%s') doesn't exist", c.KatexPath)
 		}
 		return fmt.Errorf("UseKatexToRenderEquation is set but couldn't locate katex binary (see https://katex.org/). You can install Katex with `npm install -g katex`. You can provide the path to katex binary via KatexPath. ")
 	}
-	c.KatexPath = path
+	c.KatexPath = katexPath
 	return nil
 }
 

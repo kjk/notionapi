@@ -29,11 +29,11 @@ type LoadPageChunkResponse struct {
 
 // RecordMap contains a collections of blocks, a space, users, and collections.
 type RecordMap struct {
-	Blocks          map[string]*BlockWithRole          `json:"block"`
-	Space           map[string]*SpaceWithRole          `json:"space"`
-	Users           map[string]*UserWithRole           `json:"notion_user"`
-	Collections     map[string]*CollectionWithRole     `json:"collection"`
-	CollectionViews map[string]*CollectionViewWithRole `json:"collection_view"`
+	Blocks          map[string]*BlockWithRole      `json:"block"`
+	Space           map[string]*SpaceWithRole      `json:"space"`
+	Users           map[string]*UserWithRole       `json:"notion_user"`
+	Collections     map[string]*CollectionWithRole `json:"collection"`
+	CollectionViews map[string]*BlockWithRole      `json:"collection_view"`
 	// TDOO: there might be more records types
 }
 
@@ -55,46 +55,24 @@ type Space struct {
 	RawJSON map[string]interface{} `json:"-"`
 }
 
-// CollectionViewWithRole describes a role and a collection view
-type CollectionViewWithRole struct {
-	Role  string          `json:"role"`
-	Value *CollectionView `json:"value"`
-}
+// TODO: ListFormat or TableFormat
+// type CollectionViewFormat struct {
 
-// CollectionView describes a collection
-type CollectionView struct {
-	ID          string                `json:"id"`
-	Alive       bool                  `json:"alive"`
-	Format      *CollectionViewFormat `json:"format"`
-	Name        string                `json:"name"`
-	PageSort    []string              `json:"page_sort"`
-	ParentID    string                `json:"parent_id"`
-	ParentTable string                `json:"parent_table"`
-	Query       *CollectionViewQuery  `json:"query"`
-	Type        string                `json:"type"`
-	Version     int                   `json:"version"`
-
-	RawJSON map[string]interface{} `json:"-"`
-}
-
-// CollectionViewFormat describes a fomrat of a collection view
-type CollectionViewFormat struct {
-	TableProperties []*TableProperty `json:"table_properties"`
-	TableWrap       bool             `json:"table_wrap"`
-}
-
-// CollectionViewQuery describes a query
-type CollectionViewQuery struct {
+// Query describes a query
+type Query struct {
 	Aggregate []*AggregateQuery `json:"aggregate"`
 }
 
 // AggregateQuery describes an aggregate query
 type AggregateQuery struct {
+	// e.g. "count"
 	AggregationType string `json:"aggregation_type"`
 	ID              string `json:"id"`
 	Property        string `json:"property"`
-	Type            string `json:"type"`
-	ViewType        string `json:"view_type"`
+	// "title" is the special field that references a page
+	Type string `json:"type"`
+	// "table", "list"
+	ViewType string `json:"view_type"`
 }
 
 // CollectionWithRole describes a collection
@@ -104,6 +82,7 @@ type CollectionWithRole struct {
 }
 
 // Collection describes a collection
+// TODO: why doesn't it have "type" like a Block?
 type Collection struct {
 	// form json
 	Alive            bool                             `json:"alive"`
@@ -112,9 +91,11 @@ type Collection struct {
 	Format           *CollectionFormat                `json:"format"`
 	Icon             string                           `json:"icon"`
 	ID               string                           `json:"id"`
+	NameVal          interface{}                      `json:"name"` // TODO: because created Name() first
 	ParentID         string                           `json:"parent_id"`
 	ParentTable      string                           `json:"parent_table"`
 	CollectionSchema map[string]*CollectionColumnInfo `json:"schema"`
+	TemplatePages    []string                         `json:"template_pages"`
 	Version          int                              `json:"version"`
 
 	// calculated by us
@@ -124,10 +105,10 @@ type Collection struct {
 
 func (c *Collection) Name() string {
 	if len(c.name) == 0 {
-		name := jsonGetArray(c.RawJSON, "name")
-		if name != nil {
-			c.name, _ = ParseTextSpans(name)
+		if c.NameVal == nil {
+			return ""
 		}
+		c.name, _ = ParseTextSpans(c.NameVal)
 	}
 	return TextSpansToString(c.name)
 }
@@ -147,12 +128,14 @@ type CollectionPageProperty struct {
 type CollectionColumnInfo struct {
 	Name    string                    `json:"name"`
 	Options []*CollectionColumnOption `json:"options"`
-	Type    string                    `json:"type"`
+	// ColumnTypeTitle etc.
+	Type string `json:"type"`
 
 	RawJSON map[string]interface{} `json:"-"`
 }
 
-// CollectionColumnOption describes options for a collection column
+// CollectionColumnOption describes options for ColumnTypeMultiSelect
+// collection column
 type CollectionColumnOption struct {
 	Color string `json:"color"`
 	ID    string `json:"id"`

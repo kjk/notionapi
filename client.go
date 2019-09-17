@@ -188,8 +188,8 @@ func IsValidNoDashID(id string) bool {
 // If not in expected format, we leave it untouched
 func ToNoDashID(id string) string {
 	s := strings.Replace(id, "-", "", -1)
-	if len(s) != 32 {
-		return id
+	if !IsValidNoDashID(id) {
+		return ""
 	}
 	return s
 }
@@ -339,7 +339,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		client:             c,
 		idToBlock:          map[string]*Block{},
 		idToCollection:     map[string]*Collection{},
-		idToCollectionView: map[string]*CollectionView{},
+		idToCollectionView: map[string]*Block{},
 		idToUser:           map[string]*User{},
 		blocksToSkip:       map[string]struct{}{},
 	}

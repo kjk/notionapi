@@ -89,12 +89,26 @@ func topDir() string {
 
 // we are executed for do/ directory so top dir is parent dir
 func cdToTopDir() {
-	err := os.Chdir("..")
+	startDir, err := os.Getwd()
 	must(err)
+	startDir, err = filepath.Abs(startDir)
+	must(err)
+	dir := startDir
+	for {
+		// we're already in top directory
+		if filepath.Base(dir) == "notionapi" {
+			err = os.Chdir(dir)
+			must(err)
+			return
+		}
+		parentDir := filepath.Dir(dir)
+		panicIf(dir == parentDir, "invalid startDir: '%s', dir: '%s'", startDir, dir)
+	}
 }
 
 func removeFilesInDir(dir string) {
-	os.MkdirAll(dir, 0755)
+	err := os.MkdirAll(dir, 0755)
+	must(err)
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return
@@ -104,7 +118,8 @@ func removeFilesInDir(dir string) {
 			continue
 		}
 		path := filepath.Join(dir, fi.Name())
-		os.Remove(path)
+		err = os.Remove(path)
+		must(err)
 	}
 }
 
