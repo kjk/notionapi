@@ -12,8 +12,9 @@ const (
 	ColumnTypeTitle       = "title"
 	ColumnTypeNumber      = "number"
 	ColumnTypeMultiSelect = "multi_select"
+	ColumnTypeCreatedTime = "created_time"
 	// TODO: text, select, date, person, Files&Media, checkbox, URL, Email, phone
-	// formula, relation, created time, created by, last edited time, last edited by
+	// formula, relation, created by, last edited time, last edited by
 )
 
 const (

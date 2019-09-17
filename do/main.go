@@ -103,6 +103,7 @@ func cdToTopDir() {
 		}
 		parentDir := filepath.Dir(dir)
 		panicIf(dir == parentDir, "invalid startDir: '%s', dir: '%s'", startDir, dir)
+		dir = parentDir
 	}
 }
 
