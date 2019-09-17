@@ -278,6 +278,7 @@ func (d *Downloader) getPageFromCache(pageID string) *notionapi.Page {
 func (d *Downloader) downloadPageRetry(pageID string) (*notionapi.Page, *caching_http_client.Cache, error) {
 	var res *notionapi.Page
 	var err error
+	timeout := time.Second
 	for i := 0; i < 3; i++ {
 		c := d.GetClientCopy()
 		httpCache := caching_http_client.NewCache()
@@ -289,7 +290,6 @@ func (d *Downloader) downloadPageRetry(pageID string) (*notionapi.Page, *caching
 		// only report errors on the first failure
 		if i == 0 {
 			d.emitError("Download %s failed with '%s'\n", pageID, err)
-			time.Sleep(5 * time.Second) // not sure if it matters
 		}
 		// don't retry if it can't succeed
 		// TODO: probably should change to check for temporary
@@ -297,6 +297,8 @@ func (d *Downloader) downloadPageRetry(pageID string) (*notionapi.Page, *caching
 		if notionapi.IsErrPageNotFound(err) {
 			return nil, nil, err
 		}
+		time.Sleep(timeout)
+		timeout *= 2
 	}
 	return nil, nil, err
 }
