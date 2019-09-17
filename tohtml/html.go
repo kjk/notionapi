@@ -1193,6 +1193,85 @@ func (c *Converter) RenderNYI(block *notionapi.Block) {
 	c.Printf("<div>TODO: '%s' NYI!</div>", block.Type)
 }
 
+func getColumns(view *notionapi.Block) []*notionapi.TableProperty {
+	if view.Type == notionapi.BlockTable {
+		format := view.FormatTable()
+		return format.TableProperties
+	} else if view.Type == notionapi.BlockList {
+		format := view.FormatList()
+		return format.ListProperties
+	} else {
+		logf("unexpected block type '%s' in block '%s', wanted 'list' or 'table'\n", view.ID, view.Type)
+		return nil
+	}
+}
+
+func (c *Converter) renderCollectionViewHeader(block *notionapi.Block, schema map[string]*notionapi.CollectionColumnInfo, colName string) {
+	colInfo := schema[colName]
+	name := ""
+	if colInfo != nil {
+		name = colInfo.Name
+		name = EscapeHTML(name)
+	}
+	c.Printf(`<th>%s</th>`, name)
+}
+
+func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notionapi.Block, viewInfo *notionapi.CollectionViewInfo, colName string) {
+	collection := viewInfo.Collection
+	schema := collection.CollectionSchema
+
+	props := row.Properties
+	v := props[colName]
+	inlineContent, err := notionapi.ParseTextSpans(v)
+	maybePanicIfErr(err, "ParseTextSpans of '%v' failed with %s\n", v, err)
+	colVal := c.GetInlineContent(inlineContent)
+	colInfo := schema[colName]
+	if colInfo == nil {
+		fmt.Printf("colInfo nil\n")
+		// happens in fd56bfc6a3f0471a9f0cc3110ff19a79
+		return
+	}
+	if colInfo.Type == notionapi.ColumnTypeTitle {
+		// TODO: this should be an url
+		uri := getTitleColDownloadedURL(row, block, collection)
+		if colVal == "" {
+			colVal = "Untitled"
+		}
+		colVal = fmt.Sprintf(`<a href="%s">%s</a>`, uri, colVal)
+	} else if colInfo.Type == notionapi.ColumnTypeMultiSelect {
+		vals := strings.Split(colVal, ",")
+		s := ""
+		for i := range vals {
+			// TODO: Notion prints in reverse order
+			idx := len(vals) - 1 - i
+			v := EscapeHTML(vals[idx])
+			if v == "" {
+				continue
+			}
+			s += fmt.Sprintf(`<span class="selected-value">%s</span>`, v)
+		}
+		colVal = s
+	} else if colInfo.Type == notionapi.ColumnTypeCreatedTime {
+		// TODO: better formatting. Notion seems to be using
+		// relative formatting like "Today 3:03pm"
+		colVal = row.CreatedOn().Format("2006-01-02")
+	}
+	colNameCls := EscapeHTML(colName)
+	c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
+}
+
+func (c *Converter) renderCollectionViewRow(block *notionapi.Block, row *notionapi.Block, viewInfo *notionapi.CollectionViewInfo) {
+	columns := getColumns(viewInfo.CollectionView)
+
+	c.Printf(`<tr id="%s">`, row.ID)
+	c.renderCollectionVewRowCol(block, row, viewInfo, "title")
+	for _, col := range columns {
+		colName := col.Property
+		c.renderCollectionVewRowCol(block, row, viewInfo, colName)
+	}
+	c.Printf("</tr>\n")
+}
+
 // RenderCollectionView renders BlockCollectionView
 func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	pageID := ""
@@ -1205,92 +1284,49 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		return
 	}
 	viewInfo := block.CollectionViews[0]
-	view := viewInfo.CollectionView
 	collection := viewInfo.Collection
-	var columns []*notionapi.TableProperty
-	if view.Type == notionapi.BlockTable {
-		format := view.FormatTable()
-		columns = format.TableProperties
-	} else if view.Type == notionapi.BlockList {
-		format := view.FormatList()
-		columns = format.ListProperties
-	} else {
-		logf("unexpected block type '%s' in block '%s', wanted 'list' or 'table'\n", view.ID, view.Type)
-		return
-	}
+	schema := collection.CollectionSchema
 
+	columns := getColumns(viewInfo.CollectionView)
 	if len(columns) == 0 {
-		logf("didn't find columns inof in block '%s'\n", view.ID)
+		logf("didn't find columns inof in block '%s'\n", viewInfo.CollectionView.ID)
 		return
 	}
+	isList := (viewInfo.CollectionView.Type == notionapi.BlockList)
 
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
 	{
 		name := collection.Name()
 		c.Printf(`<h4 class="collection-title">%s</h4>`, name)
-		c.Printf(`<table class="collection-content">`)
-		{
+		if isList {
+			c.Printf(`<table class="collection-content" style="width: 100%">`)
+		} else {
+			c.Printf(`<table class="collection-content">`)
+		}
+
+		// for lists we don't show header
+		if !isList {
 			c.Printf(`<thead>`)
 			{
 				c.Printf(`<tr>`)
+				// TODO: not sure what condition means we need to add 'title'
+				c.renderCollectionViewHeader(block, schema, "title")
 				for _, col := range columns {
-					colName := col.Property
-					colInfo := viewInfo.Collection.CollectionSchema[colName]
-					name := ""
-					if colInfo != nil {
-						name = colInfo.Name
-						name = EscapeHTML(name)
-					}
-					c.Printf(`<th>%s</th>`, name)
+					c.renderCollectionViewHeader(block, schema, col.Property)
 				}
 				c.Printf(`</tr>`)
 			}
 			c.Printf(`</thead>`)
-
-			c.Printf(`<tbody>`)
-			{
-				for _, row := range viewInfo.CollectionRows {
-					c.Printf(`<tr id="%s">`, row.ID)
-					props := row.Properties
-					for _, col := range columns {
-						colName := col.Property
-						v := props[colName]
-						inlineContent, err := notionapi.ParseTextSpans(v)
-						maybePanicIfErr(err, "ParseTextSpans of '%v' failed with %s\n", v, err)
-						colVal := c.GetInlineContent(inlineContent)
-						colInfo := viewInfo.Collection.CollectionSchema[colName]
-						if colInfo == nil {
-							// happens in fd56bfc6a3f0471a9f0cc3110ff19a79
-							continue
-						}
-						if colInfo.Type == "title" {
-							uri := getTitleColDownloadedURL(row, block, viewInfo.Collection)
-							if colVal == "" {
-								colVal = "Untitled"
-							}
-							colVal = fmt.Sprintf(`<a href="%s">%s</a>`, uri, colVal)
-						} else if colInfo.Type == "multi_select" {
-							vals := strings.Split(colVal, ",")
-							s := ""
-							for i := range vals {
-								// TODO: Notion prints in reverse order
-								idx := len(vals) - 1 - i
-								v := EscapeHTML(vals[idx])
-								if v == "" {
-									continue
-								}
-								s += fmt.Sprintf(`<span class="selected-value">%s</span>`, v)
-							}
-							colVal = s
-						}
-						colNameCls := EscapeHTML(colName)
-						c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
-					}
-					c.Printf("</tr>\n")
-				}
-			}
-			c.Printf(`</tbody>`)
 		}
+
+		c.Printf(`<tbody>`)
+		{
+			for _, row := range viewInfo.CollectionRows {
+				c.renderCollectionViewRow(block, row, viewInfo)
+			}
+		}
+		c.Printf(`</tbody>`)
+
 		c.Printf(`</table>`)
 	}
 	c.Printf(`</div>`)

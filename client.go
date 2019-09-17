@@ -65,6 +65,10 @@ func IsErrPageNotFound(err error) bool {
 	return ok
 }
 
+func closeNoError(c io.Closer) {
+	_ = c.Close()
+}
+
 func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
 	var js []byte
 	var err error
@@ -100,7 +104,8 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 		log(c, "http.DefaultClient.Do() failed with %s\n", err)
 		return nil, err
 	}
-	defer rsp.Body.Close()
+	defer closeNoError(rsp.Body)
+
 	if rsp.StatusCode != 200 {
 		d, _ := ioutil.ReadAll(rsp.Body)
 		log(c, "Error: status code %s\nBody:\n%s\n", rsp.Status, ppJSON(d))
@@ -452,7 +457,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		p.Users = append(p.Users, v)
 	}
 
-	p.resolveBlocks()
+	_ = p.resolveBlocks()
 
 	blockIDs := getBlockIDsSorted(p.idToBlock)
 	for _, id := range blockIDs {
@@ -508,7 +513,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	}
 
 	for _, b := range p.idToBlock {
-		parseProperties(b)
+		_ = parseProperties(b)
 		b.Page = p
 	}
 
