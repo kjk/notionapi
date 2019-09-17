@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/kjk/notionapi/caching_downloader"
 
@@ -16,7 +15,7 @@ func makeNotionClient() *notionapi.Client {
 		DebugLog:  flgVerbose,
 		AuthToken: getToken(),
 	}
-	notionToken := strings.TrimSpace(os.Getenv("NOTION_TOKNE"))
+	notionToken := getToken()
 	if notionToken == "" {
 		logf("NOTION_TOKEN env variable not set. Can only access public pages\n")
 	} else {

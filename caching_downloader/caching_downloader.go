@@ -289,12 +289,16 @@ func (d *Downloader) downloadPageRetry(pageID string) (*notionapi.Page, *caching
 		}
 		// only report errors on the first failure
 		if i == 0 {
-			d.emitError("Download %s failed with '%s'\n", pageID, err)
+			d.emitError("Download %s failed with %s'\n", pageID, err)
 		}
 		// don't retry if it can't succeed
 		// TODO: probably should change to check for temporary
 		// network failures
 		if notionapi.IsErrPageNotFound(err) {
+			return nil, nil, err
+		}
+		// hacky: response with 401 code means we don't have access
+		if strings.Contains(err.Error(), "status code of 401") {
 			return nil, nil, err
 		}
 		time.Sleep(timeout)
