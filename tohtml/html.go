@@ -60,7 +60,7 @@ func fileNameFromPageCoverURL(uri string) string {
 	return parts[lastIdx]
 }
 
-func filePathFromPageCoverURL(uri string, block *notionapi.Block) string {
+func FilePathFromPageCoverURL(uri string, block *notionapi.Block) string {
 	// TODO: not sure about this heuristic. Maybe turn it into a whitelist:
 	// if starts with notion.so or aws, then download and convert to local
 	// otherwise leave alone
@@ -77,7 +77,7 @@ func filePathFromPageCoverURL(uri string, block *notionapi.Block) string {
 		return "https://www.notion.so" + uri
 	}
 	fileName := fileNameFromPageCoverURL(uri)
-	// TODO: probably need to build mulitple dirs
+	// TODO: probably need to build multiple dirs
 	dir := safeName(block.Title)
 	return path.Join(dir, fileName)
 }
@@ -502,7 +502,7 @@ func (c *Converter) renderPageHeader(block *notionapi.Block) {
 		pageCover, _ := block.PropAsString("format.page_cover")
 		if pageCover != "" {
 			position := (1 - formatPage.PageCoverPosition) * 100
-			coverURL := filePathFromPageCoverURL(pageCover, block)
+			coverURL := FilePathFromPageCoverURL(pageCover, block)
 			// TODO: Notion incorrectly escapes them
 			coverURL = EscapeHTML(coverURL)
 			c.Printf(`<img class="page-cover-image" src="%s" style="object-position:center %v%%"/>`, coverURL, position)
