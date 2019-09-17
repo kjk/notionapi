@@ -188,10 +188,10 @@ func IsValidNoDashID(id string) bool {
 // If not in expected format, we leave it untouched
 func ToNoDashID(id string) string {
 	s := strings.Replace(id, "-", "", -1)
-	if !IsValidNoDashID(id) {
-		return ""
+	if IsValidNoDashID(s) {
+		return s
 	}
-	return s
+	return ""
 }
 
 // ToDashID convert id in format bb760e2dd6794b64b2a903005b21870a
@@ -248,7 +248,7 @@ func SafeName(s string) string {
 // returns "" if didn't detect valid notion id in the url
 func ExtractNoDashIDFromNotionURL(uri string) string {
 	maybeID := ToNoDashID(uri)
-	if IsValidNoDashID(maybeID) {
+	if maybeID != "" {
 		return maybeID
 	}
 	id := uri
@@ -261,11 +261,7 @@ func ExtractNoDashIDFromNotionURL(uri string) string {
 	// remove url fragment
 	parts = strings.Split(id, "#")
 	id = parts[0]
-	id = ToNoDashID(id)
-	if IsValidNoDashID(id) {
-		return id
-	}
-	return ""
+	return ToNoDashID(id)
 }
 
 func (p *Page) findInlinePageReferences(block *Block) []string {
