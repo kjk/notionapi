@@ -106,9 +106,13 @@ func filePathForCollection(page *notionapi.Page, col *notionapi.Collection) stri
 	return name
 }
 
-func getTitleColDownloadedURL(row *notionapi.Block, block *notionapi.Block, col *notionapi.Collection) string {
+func (c *Converter) tableCellURL(cell *notionapi.Block, block *notionapi.Block, col *notionapi.Collection) string {
+	if c.TableCellURLOverwrite != nil {
+		return c.TableCellURLOverwrite(cell, block, col)
+	}
+
 	title := ""
-	titleSpans := row.GetTitle()
+	titleSpans := cell.GetTitle()
 	if len(titleSpans) == 0 {
 		logf("title is empty)")
 	} else {
@@ -236,6 +240,11 @@ type Converter struct {
 	// RewriteURL allows re-writing URLs e.g. to convert inter-notion URLs
 	// to destination URLs
 	RewriteURL func(url string) string
+
+	// Returns URL for a table cell that links to another table
+	// cell is Block being linked (always a BlockPage?) and
+	// block is block for collection
+	TableCellURLOverwrite func(cell *notionapi.Block, block *notionapi.Block, col *notionapi.Collection) string
 
 	// if true, generates stand-alone HTML with inline CSS
 	// otherwise it's just the inner part going inside the body
@@ -1233,7 +1242,7 @@ func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notio
 	}
 	if colInfo.Type == notionapi.ColumnTypeTitle {
 		// TODO: this should be an url
-		uri := getTitleColDownloadedURL(row, block, collection)
+		uri := c.tableCellURL(row, block, collection)
 		if colVal == "" {
 			colVal = "Untitled"
 		}
