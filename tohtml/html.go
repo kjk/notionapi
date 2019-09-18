@@ -1201,6 +1201,15 @@ func (c *Converter) RenderNYI(block *notionapi.Block) {
 	c.Printf("<div>TODO: '%s' NYI!</div>", block.Type)
 }
 
+func hasTitleColumn(columns []*notionapi.TableProperty) bool {
+	for _, col := range columns {
+		if col.Property == "title" {
+			return true
+		}
+	}
+	return false
+}
+
 func getColumns(view *notionapi.Block) []*notionapi.TableProperty {
 	if view.Type == notionapi.BlockTable {
 		format := view.FormatTable()
@@ -1270,9 +1279,12 @@ func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notio
 
 func (c *Converter) renderCollectionViewRow(block *notionapi.Block, row *notionapi.Block, viewInfo *notionapi.CollectionViewInfo) {
 	columns := getColumns(viewInfo.CollectionView)
+	hasTitle := hasTitleColumn(columns)
 
 	c.Printf(`<tr id="%s">`, row.ID)
-	c.renderCollectionVewRowCol(block, row, viewInfo, "title")
+	if !hasTitle {
+		c.renderCollectionVewRowCol(block, row, viewInfo, "title")
+	}
 	for _, col := range columns {
 		colName := col.Property
 		c.renderCollectionVewRowCol(block, row, viewInfo, colName)
@@ -1301,6 +1313,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		return
 	}
 	isList := (viewInfo.CollectionView.Type == notionapi.BlockList)
+	hasTitle := hasTitleColumn(columns)
 
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
 	{
@@ -1317,8 +1330,9 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 			c.Printf(`<thead>`)
 			{
 				c.Printf(`<tr>`)
-				// TODO: not sure what condition means we need to add 'title'
-				c.renderCollectionViewHeader(block, schema, "title")
+				if !hasTitle {
+					c.renderCollectionViewHeader(block, schema, "title")
+				}
 				for _, col := range columns {
 					c.renderCollectionViewHeader(block, schema, col.Property)
 				}
