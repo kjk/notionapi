@@ -63,8 +63,8 @@ type QueryCollectionResult struct {
 
 // AggregationResult represents result of aggregation
 type AggregationResult struct {
-	ID    string `json:"id"`
-	Value int64  `json:"value"`
+	ID    string  `json:"id"`
+	Value float64 `json:"value"`
 }
 
 // QueryCollection executes a raw API call /api/v3/queryCollection
