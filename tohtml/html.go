@@ -202,7 +202,7 @@ func logf(format string, args ...interface{}) {
 // BlockRenderFunc is a function for rendering a particular block
 type BlockRenderFunc func(block *notionapi.Block) bool
 
-// HTMLRenderer converts a Page to HTML
+// Converter converts a Page to HTML
 type Converter struct {
 	// Buf is where HTML is being written to
 	Buf  *bytes.Buffer
@@ -555,8 +555,8 @@ func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 
 func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 	uri := filePathForPage(block)
-	cls := getBlockColorClass(block) + " link-to-page"
-	cls = cleanAttr(cls)
+	cls := GetBlockColorClass(block) + " link-to-page"
+	cls = CleanAttributeValue(cls)
 	c.Printf(`<figure id="%s" class="%s">`, block.ID, cls)
 	{
 		c.Printf(`<a href="%s">`, uri)
@@ -631,7 +631,9 @@ func (c *Converter) RenderPage(block *notionapi.Block) {
 	}
 }
 
-func getBlockColorClass(block *notionapi.Block) string {
+// GetBlockColorClass returns "block-color-" + format.block_color
+// which is name of css class for different colors
+func GetBlockColorClass(block *notionapi.Block) string {
 	col, _ := block.PropAsString("format.block_color")
 	if col == "" {
 		return ""
@@ -641,7 +643,7 @@ func getBlockColorClass(block *notionapi.Block) string {
 
 // RenderText renders BlockText
 func (c *Converter) RenderText(block *notionapi.Block) {
-	cls := getBlockColorClass(block)
+	cls := GetBlockColorClass(block)
 	c.Printf(`<p id="%s" class="%s">`, block.ID, cls)
 	c.RenderInlines(block.InlineContent)
 	c.RenderChildren(block)
@@ -719,8 +721,8 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 		c.ListNo = 1
 	}
 
-	cls := getBlockColorClass(block) + " numbered-list"
-	cls = cleanAttr(cls)
+	cls := GetBlockColorClass(block) + " numbered-list"
+	cls = CleanAttributeValue(cls)
 	c.Printf(`<ol id="%s" class="%s" start="%d">`, block.ID, cls, c.ListNo)
 	{
 		c.Printf(`<li>`)
@@ -735,8 +737,8 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 
 // RenderBulletedList renders BlockBulletedList
 func (c *Converter) RenderBulletedList(block *notionapi.Block) {
-	cls := getBlockColorClass(block) + " bulleted-list"
-	cls = cleanAttr(cls)
+	cls := GetBlockColorClass(block) + " bulleted-list"
+	cls = CleanAttributeValue(cls)
 	c.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
 	{
 		c.Printf(`<li>`)
@@ -751,7 +753,7 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 
 // RenderHeaderLevel renders BlockHeader, SubHeader and SubSubHeader
 func (c *Converter) RenderHeaderLevel(block *notionapi.Block, level int) {
-	cls := getBlockColorClass(block)
+	cls := GetBlockColorClass(block)
 	c.Printf(`<h%d id="%s" class="%s">`, level, block.ID, cls)
 	id := block.ID
 	if c.AddHeaderAnchor {
@@ -805,8 +807,8 @@ func (c *Converter) RenderTodo(block *notionapi.Block) {
 
 // RenderToggle renders BlockToggle
 func (c *Converter) RenderToggle(block *notionapi.Block) {
-	cls := getBlockColorClass(block) + " toggle"
-	cls = cleanAttr(cls)
+	cls := GetBlockColorClass(block) + " toggle"
+	cls = CleanAttributeValue(cls)
 	c.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
 	{
 		c.Printf(`<li>`)
@@ -836,8 +838,8 @@ func (c *Converter) RenderQuote(block *notionapi.Block) {
 	c.Printf(`</blockquote>`)
 }
 
-// cleanup value that goes into an attribute
-func cleanAttr(v string) string {
+// CleanAttributeValue cleans value of an attribute
+func CleanAttributeValue(v string) string {
 	v = strings.TrimSpace(v)
 	for {
 		s := strings.Replace(v, "  ", " ", -1)
@@ -850,8 +852,8 @@ func cleanAttr(v string) string {
 
 // RenderCallout renders BlockCallout
 func (c *Converter) RenderCallout(block *notionapi.Block) {
-	cls := getBlockColorClass(block) + " callout"
-	cls = cleanAttr(cls)
+	cls := GetBlockColorClass(block) + " callout"
+	cls = CleanAttributeValue(cls)
 	c.Printf(`<figure class="%s" style="white-space:pre-wrap;display:flex" id="%s">`, cls, block.ID)
 	{
 		c.Printf(`<div style="font-size:1.5em">`)
@@ -925,8 +927,8 @@ func adjustIndent(blocks []*notionapi.Block, i int) int {
 
 // RenderTableOfContents renders BlockTableOfContents
 func (c *Converter) RenderTableOfContents(block *notionapi.Block) {
-	cls := getBlockColorClass(block) + " table_of_contents"
-	cls = cleanAttr(cls)
+	cls := GetBlockColorClass(block) + " table_of_contents"
+	cls = CleanAttributeValue(cls)
 	c.Printf(`<nav id="%s" class="%s">`, block.ID, cls)
 	blocks := getHeaderBlocks(c.Page.Root().Content)
 	indent := 0
@@ -961,8 +963,8 @@ func (c *Converter) RenderCaption(block *notionapi.Block) {
 func (c *Converter) RenderBookmark(block *notionapi.Block) {
 	c.Printf(`<figure id="%s">`, block.ID)
 	{
-		cls := getBlockColorClass(block) + " bookmark source"
-		cls = cleanAttr(cls)
+		cls := GetBlockColorClass(block) + " bookmark source"
+		cls = CleanAttributeValue(cls)
 		c.Printf(`<div class="%s">`, cls)
 		{
 			uri := block.Link
