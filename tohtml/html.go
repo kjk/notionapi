@@ -1218,7 +1218,7 @@ func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
 	pages := []*notionapi.Page{}
 	curr := c.Page
 	for {
-		parent := c.PageByID(curr.ID)
+		parent := c.PageByID(curr.Root().ParentID)
 		if parent == nil {
 			break
 		}
