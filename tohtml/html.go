@@ -1255,7 +1255,7 @@ func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
 		uri = c.RewriteURL(uri)
 		uri = EscapeHTML(uri)
 		c.Printf(`<div><a href="%s">%s</a></div>`, uri, title)
-		c.Printf(" / ")
+		c.Printf("<div>/</div>")
 	}
 	title := c.Page.Root().Title
 	c.Printf(`<div>%s</div>`, title)
