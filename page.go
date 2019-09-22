@@ -164,6 +164,7 @@ func (p *Page) IsRoot(block *Block) bool {
 }
 
 // GetSubPages return list of ids for direct sub-pages of this page
+// TDOO: add pages that are title properties of collection_view
 func (p *Page) GetSubPages() []string {
 	root := p.Root()
 	panicIf(root.Type != BlockPage)

@@ -389,6 +389,15 @@ func (c *Converter) FormatDate(d *notionapi.Date) string {
 	return fmt.Sprintf(`<time>@%s</time>`, s)
 }
 
+// RewrittenURL optionally transforms the url via the
+// function provided by the user
+func (c *Converter) RewrittenURL(uri string) string {
+	if c.RewriteURL != nil {
+		return c.RewriteURL(uri)
+	}
+	return uri
+}
+
 // RenderInline renders inline block
 func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 	var start, end string
@@ -426,17 +435,11 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 				urlName = strings.Replace(urlName, " ", "-", -1)
 				relURL = urlName + "-" + relURL
 			}
-			uri := "https://www.notion.so/" + relURL
-			if c.RewriteURL != nil {
-				uri = c.RewriteURL(uri)
-			}
+			uri := c.RewrittenURL("https://www.notion.so/" + relURL)
 			start += fmt.Sprintf(`<a href="%s">%s</a>`, uri, EscapeHTML(pageTitle))
 			text = ""
 		case notionapi.AttrLink:
-			uri := notionapi.AttrGetLink(attr)
-			if c.RewriteURL != nil {
-				uri = c.RewriteURL(uri)
-			}
+			uri := c.RewrittenURL(notionapi.AttrGetLink(attr))
 			if uri == "" {
 				start += `<a>`
 			} else {
@@ -1211,12 +1214,34 @@ func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
 		// Notion doesn't render breadcrumbs
 		return
 	}
-	// TODO: implement me
-	c.RenderNYI(block)
-}
-
-func (c *Converter) RenderNYI(block *notionapi.Block) {
-	c.Printf("<div>TODO: '%s' NYI!</div>", block.Type)
+	c.Printf(`<div class="breadcrumbs">`)
+	pages := []*notionapi.Page{}
+	curr := c.Page
+	for {
+		parent := c.PageByID(curr.ID)
+		if parent == nil {
+			break
+		}
+		pages = append(pages, parent)
+		curr = parent
+	}
+	// TODO: add icon
+	// we traverse from the end because they were put
+	// in reverse order
+	idx := len(pages) - 1
+	for i := idx; i >= 0; i-- {
+		page := pages[i]
+		title := page.Root().Title
+		pageID := notionapi.ToNoDashID(page.Root().ID)
+		uri := "https://www.notion.so/" + pageID
+		uri = c.RewriteURL(uri)
+		uri = EscapeHTML(uri)
+		c.Printf(`<div><a href="%s">%s</a></div>`, uri, title)
+		c.Printf(" / ")
+	}
+	title := c.Page.Root().Title
+	c.Printf(`<div>%s</div>`, title)
+	c.Printf(`</div>`)
 }
 
 func hasTitleColumn(columns []*notionapi.TableProperty) bool {
