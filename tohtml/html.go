@@ -199,6 +199,34 @@ func logf(format string, args ...interface{}) {
 	notionapi.Logf(format, args...)
 }
 
+type PageByIDProvider interface {
+	PageByID(id string) *notionapi.Page
+}
+
+var _ PageByIDProvider = &PageByIDFromPages{}
+
+type PageByIDFromPages struct {
+	pages    []*notionapi.Page
+	idToPage map[string]*notionapi.Page
+}
+
+func NewPageByIDFromPages(pages []*notionapi.Page) *PageByIDFromPages {
+	res := &PageByIDFromPages{
+		pages: pages,
+	}
+	res.idToPage = map[string]*notionapi.Page{}
+	for _, page := range pages {
+		id := notionapi.ToDashID(page.ID)
+		res.idToPage[id] = page
+	}
+	return res
+}
+
+func (p *PageByIDFromPages) PageByID(pageID string) *notionapi.Page {
+	pageID = notionapi.ToDashID(pageID)
+	return p.idToPage[pageID]
+}
+
 // BlockRenderFunc is a function for rendering a particular block
 type BlockRenderFunc func(block *notionapi.Block) bool
 
@@ -253,10 +281,7 @@ type Converter struct {
 	CurrBlocks   []*notionapi.Block
 	CurrBlockIdx int
 
-	// related pages if this page is rendered as part of
-	// collection of pages (like a website)
-	Pages    []*notionapi.Page
-	idToPage map[string]*notionapi.Page
+	PageByIDProvider PageByIDProvider
 
 	// data provided by they caller, useful when providing
 	// RenderBlockOverride
@@ -275,19 +300,10 @@ func NewConverter(page *notionapi.Page) *Converter {
 
 // PageByID returns Page given its ID
 func (c *Converter) PageByID(pageID string) *notionapi.Page {
-	if len(c.Pages) == 0 {
-		return nil
+	if c.PageByIDProvider != nil {
+		return c.PageByIDProvider.PageByID(pageID)
 	}
-	// build a map to speed up future lookups
-	if len(c.idToPage) == 0 {
-		c.idToPage = map[string]*notionapi.Page{}
-		for _, page := range c.Pages {
-			id := notionapi.ToDashID(page.ID)
-			c.idToPage[id] = page
-		}
-	}
-	pageID = notionapi.ToDashID(pageID)
-	return c.idToPage[pageID]
+	return nil
 }
 
 // PushNewBuffer creates a new buffer and sets Buf to it
