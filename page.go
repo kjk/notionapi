@@ -18,11 +18,11 @@ var (
 type Page struct {
 	ID string
 	// Users allows to find users that Page refers to by their ID
-	Users  []*User
+	Users  []*UserWithRole
 	Tables []*Table
 
 	idToBlock          map[string]*Block
-	idToUser           map[string]*User
+	idToUser           map[string]*UserWithRole
 	idToCollection     map[string]*Collection
 	idToCollectionView map[string]*Block
 	blocksToSkip       map[string]struct{} // not alive or when server doesn't return "value" for this block id
@@ -37,7 +37,11 @@ func (p *Page) BlockByID(id string) *Block {
 
 // UserByID returns a user by its id
 func (p *Page) UserByID(id string) *User {
-	return p.idToUser[ToDashID(id)]
+	res := p.idToUser[ToDashID(id)]
+	if res != nil {
+		return res.Value
+	}
+	return nil
 }
 
 // CollectionByID returns a collection by its id
@@ -209,8 +213,9 @@ func ResolveUser(page *Page, userID string) string {
 	// TODO: either scan for user ids when initially downloading a page
 	// or do a query if not found
 	for _, u := range page.Users {
-		if u.ID == userID {
-			return makeUserName(u)
+		user := u.Value
+		if user.ID == userID {
+			return makeUserName(user)
 		}
 	}
 	return userID

@@ -341,7 +341,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		idToBlock:          map[string]*Block{},
 		idToCollection:     map[string]*Collection{},
 		idToCollectionView: map[string]*Block{},
-		idToUser:           map[string]*User{},
+		idToUser:           map[string]*UserWithRole{},
 		blocksToSkip:       map[string]struct{}{},
 	}
 
@@ -390,7 +390,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			// TODO: what to do for not alive?
 		}
 		for id, v := range rsp.RecordMap.Users {
-			p.idToUser[id] = v.Value
+			p.idToUser[id] = v
 		}
 
 		cursor := rsp.Cursor
@@ -475,7 +475,11 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 
 		collectionID := block.CollectionID
 		for _, collectionViewID := range block.ViewIDs {
-			user := p.Users[0]
+			var user *User
+			userWithRole := p.Users[0]
+			if userWithRole != nil {
+				user = userWithRole.Value
+			}
 			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {
 				return nil, fmt.Errorf("didn't find collection_view with id '%s'", collectionViewID)
