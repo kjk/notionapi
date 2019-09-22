@@ -1208,6 +1208,22 @@ func (c *Converter) RenderColumn(block *notionapi.Block) {
 	c.Printf("</div>")
 }
 
+func (c *Converter) findParentPageID(page *notionapi.Page, id string) string {
+	// we traverse blocks upwards until we find a block of type Page
+	currID := id
+	for {
+		block := page.BlockByID(currID)
+		// assume it's a Page block that's not in Page's block
+		if block == nil {
+			return currID
+		}
+		if block.Type == notionapi.BlockPage {
+			return currID
+		}
+		currID = block.ParentID
+	}
+}
+
 // RenderBreadcrumb renders BlockBreadcrumb
 func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
 	if c.NotionCompat {
@@ -1218,7 +1234,9 @@ func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
 	pages := []*notionapi.Page{}
 	curr := c.Page
 	for {
-		parent := c.PageByID(curr.Root().ParentID)
+		id := curr.Root().ParentID
+		id = c.findParentPageID(curr, id)
+		parent := c.PageByID(id)
 		if parent == nil {
 			break
 		}
