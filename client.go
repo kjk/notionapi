@@ -462,7 +462,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	blockIDs := getBlockIDsSorted(p.idToBlock)
 	for _, id := range blockIDs {
 		block := p.idToBlock[id]
-		if block.Type != BlockCollectionView {
+		if block.Type != BlockCollectionView && block.Type != BlockCollectionViewPage {
 			continue
 		}
 		if len(block.ViewIDs) == 0 {
