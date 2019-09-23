@@ -135,6 +135,7 @@ type FormatImage struct {
 	BlockPageWidth     bool    `json:"block_page_width"`
 	BlockPreserveScale bool    `json:"block_preserve_scale"`
 	BlockWidth         float64 `json:"block_width"`
+	BlockHeight        float64 `json:"block_height"`
 	DisplaySource      string  `json:"display_source,omitempty"`
 
 	// calculated by us
