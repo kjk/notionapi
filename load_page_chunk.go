@@ -79,7 +79,10 @@ type SpacePermissionGroups struct {
 
 // Query describes a query
 type Query struct {
-	Aggregate []*AggregateQuery `json:"aggregate"`
+	Aggregate      []*AggregateQuery `json:"aggregate"`
+	Filter         []*FilterQuery    `json:"filter"`
+	FilterOperator string            `json:"filter_operator"`
+	Sort           []*SortQuery      `json:"sort"`
 }
 
 // AggregateQuery describes an aggregate query
@@ -92,6 +95,23 @@ type AggregateQuery struct {
 	Type string `json:"type"`
 	// "table", "list"
 	ViewType string `json:"view_type"`
+}
+
+// FilterQuery describes the filtering of a query
+type FilterQuery struct {
+	Comparator string `json:"comparator"`
+	ID         string `json:"id"`
+	Property   string `json:"property"`
+	Type       string `json:"type"`
+	Value      string `json:"value"`
+}
+
+// SortQuery describes the sorting of a query
+type SortQuery struct {
+	Direction string `json:"direction"`
+	ID        string `json:"id"`
+	Property  string `json:"property"`
+	Type      string `json:"type"`
 }
 
 // CollectionWithRole describes a collection
