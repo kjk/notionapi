@@ -45,14 +45,33 @@ type SpaceWithRole struct {
 
 // Space is a notion.so workspace.
 type Space struct {
-	ID          string        `json:"id"`
-	Version     float64       `json:"version"`
-	Name        string        `json:"name"`
-	BetaEnabled bool          `json:"beta_enabled"`
-	Permissions *[]Permission `json:"permissions,omitempty"`
-	Pages       []string      `json:"pages,omitempty"`
+	ID               string                  `json:"id"`
+	Version          float64                 `json:"version"`
+	Name             string                  `json:"name"`
+	Domain           string                  `json:"domain"`
+	Permissions      []*SpacePermissions     `json:"permissions,omitempty"`
+	PermissionGroups []SpacePermissionGroups `json:"permission_groups"`
+	EmailDomains     []string                `json:"email_domains"`
+	BetaEnabled      bool                    `json:"beta_enabled"`
+	Pages            []string                `json:"pages,omitempty"`
+	CreatedBy        string                  `json:"created_by"`
+	CreatedTime      int64                   `json:"created_time"`
+	LastEditedBy     string                  `json:"last_edited_by"`
+	LastEditedTime   int64                   `json:"last_edited_time"`
 
 	RawJSON map[string]interface{} `json:"-"`
+}
+
+type SpacePermissions struct {
+	Role   string `json:"role"`
+	Type   string `json:"type"`
+	UserID string `json:"user_id"`
+}
+
+type SpacePermissionGroups struct {
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	UserIds []string `json:"user_ids,omitempty"`
 }
 
 // TODO: ListFormat or TableFormat
