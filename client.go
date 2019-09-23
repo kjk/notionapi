@@ -433,7 +433,22 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				// Server returns { "role": "none" },
 				expectedID := toGet[n]
 				if block != nil {
-					p.idToBlock[block.ID] = block
+					// Happens when block is from a relation column thus it's view might be in a different page
+					viewInsideOfPage := len(block.ViewIDs) == 0 // Don't consider blocks without a view
+					for _, collectionViewID := range block.ViewIDs {
+						_, ok := p.idToCollectionView[collectionViewID]
+						if ok {
+							viewInsideOfPage = true
+						} else {
+							dbg(c, "collection view id = %s block id = %s is outside of page.\n", collectionViewID, block.ID)
+						}
+					}
+					if viewInsideOfPage {
+						p.idToBlock[block.ID] = block
+					} else {
+						p.blocksToSkip[expectedID] = struct{}{}
+					}
+
 					continue
 				}
 				p.blocksToSkip[expectedID] = struct{}{}
