@@ -63,7 +63,8 @@ type QueryCollectionResult struct {
 
 // AggregationResult represents result of aggregation
 type AggregationResult struct {
-	ID    string  `json:"id"`
+	ID string `json:"id"`
+	// TODO: maybe json.Number? Shouldn't float64 cover both?
 	Value float64 `json:"value"`
 }
 

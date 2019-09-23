@@ -457,7 +457,10 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		p.Users = append(p.Users, v)
 	}
 
-	_ = p.resolveBlocks()
+	err := p.resolveBlocks()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve blocks on page '%s': %s", p.ID, err)
+	}
 
 	blockIDs := getBlockIDsSorted(p.idToBlock)
 	for _, id := range blockIDs {
