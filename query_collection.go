@@ -1,5 +1,7 @@
 package notionapi
 
+import "fmt"
+
 // /api/v3/queryCollection request
 type queryCollectionRequest struct {
 	CollectionID     string           `json:"collectionId"`
@@ -70,6 +72,8 @@ type AggregationResult struct {
 
 // QueryCollection executes a raw API call /api/v3/queryCollection
 func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregateQuery []*AggregateQuery, user *User) (*QueryCollectionResponse, error) {
+	const startLimit = 70
+
 	req := &queryCollectionRequest{
 		CollectionID:     collectionID,
 		CollectionViewID: collectionViewID,
@@ -82,7 +86,7 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregat
 	}
 	req.Loader = &Loader{
 		Type:         "table",
-		Limit:        70,
+		Limit:        startLimit,
 		UserLocale:   user.Locale,
 		UserTimeZone: user.TimeZone,
 	}
@@ -94,5 +98,19 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregat
 	if err != nil {
 		return nil, err
 	}
+
+	actualTotal := rsp.Result.Total
+
+	// Fetch again, now with everything
+	// TODO: there's probably a way to fetch the next chunk
+	if actualTotal > startLimit {
+		rsp = QueryCollectionResponse{}
+		req.Loader.Limit = actualTotal
+		rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp)
+		if err != nil {
+			return nil, fmt.Errorf("Client.QueryCollection() 2nd fetch failed: %s", err)
+		}
+	}
+
 	return &rsp, nil
 }
