@@ -90,15 +90,15 @@ func openCodeDiff(path1, path2 string) {
 	must(err)
 }
 
-func loadFileData(path string) []byte {
+func readFile(path string) []byte {
 	d, err := ioutil.ReadFile(path)
 	must(err)
 	return d
 }
 
 func areFilesEuqal(path1, path2 string) bool {
-	d1 := loadFileData(path1)
-	d2 := loadFileData(path2)
+	d1 := readFile(path1)
+	d2 := readFile(path2)
 	return bytes.Equal(d1, d2)
 }
 

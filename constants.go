@@ -22,6 +22,8 @@ const (
 	TableSpace = "space"
 	// TableBlock represents a Notion block
 	TableBlock = "block"
+	// TableUser represents a Notion user
+	TableUser = "notion_user"
 )
 
 const (
