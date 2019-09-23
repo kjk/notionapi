@@ -9,17 +9,17 @@ const (
 
 // for CollectionColumnInfo.Type
 const (
-	// ColumnMultiSelect is multi-select column
-	ColumnMultiSelect  = "multi_select"
-	ColumnTypeNumber   = "number"
-	ColumnTypeTitle    = "title"
-	ColumnTypeURL      = "url"
-	ColumnTypeSelect   = "select"
-	ColumnTypeCheckbox = "checkbox"
-	ColumnTypeRelation = "relation"
-	ColumnTypeRollup   = "rollup"
+	ColumnTypeMultiSelect = "multi_select"
+	ColumnTypeCreatedTime = "created_time"
+	ColumnTypeNumber      = "number"
+	ColumnTypeTitle       = "title"
+	ColumnTypeURL         = "url"
+	ColumnTypeSelect      = "select"
+	ColumnTypeCheckbox    = "checkbox"
+	ColumnTypeRelation    = "relation"
+	ColumnTypeRollup      = "rollup"
 	// TODO: text, date, person, Files&Media, Email, phone
-	// formula, created time, created by, last edited time, last edited by
+	// formula, time, created by, last edited time, last edited by
 )
 
 const (
