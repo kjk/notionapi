@@ -150,6 +150,11 @@ type CollectionColumnInfo struct {
 	// ColumnTypeTitle etc.
 	Type string `json:"type"`
 
+	// For rollup column types
+	TargetProperty     string `json:"target_property"`
+	RelationProperty   string `json:"relation_property"`
+	TargetPropertyType string `json:"target_property_type"`
+
 	RawJSON map[string]interface{} `json:"-"`
 }
 
