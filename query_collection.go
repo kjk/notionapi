@@ -29,23 +29,17 @@ type Loader struct {
 }
 
 // CollectionQuery describes a collection query
+// TODO: merge with Query
 type CollectionQuery struct {
 	// copy from CollectionView.Query
 	Aggregate  []*AggregateQuery `json:"aggregate"`
 	GroupBy    interface{}       `json:"group_by"`
 	CalendarBy interface{}       `json:"calendar_by"`
-	// "and"
-	FilterOperator string                 `json:"filter_operator"`
-	Filter         []interface{}          `json:"filter"`
-	Sort           []*CollectionQuerySort `json:"sort"`
-}
 
-type CollectionQuerySort struct {
-	// "ascending"
-	Direction string `json:"direction"`
-	ID        string `json:"id"`
-	Property  string `json:"property"`
-	Type      string `json:"type"`
+	// "and"
+	FilterOperator string         `json:"filter_operator"`
+	Filter         []*FilterQuery `json:"filter"`
+	Sort           []*SortQuery   `json:"sort"`
 }
 
 // QueryCollectionResponse is json response for /api/v3/queryCollection

@@ -78,11 +78,13 @@ type SpacePermissionGroups struct {
 // type CollectionViewFormat struct {
 
 // Query describes a query
+// TODO: merge with CollectionQuery
 type Query struct {
-	Aggregate      []*AggregateQuery `json:"aggregate"`
-	Filter         []*FilterQuery    `json:"filter"`
-	FilterOperator string            `json:"filter_operator"`
-	Sort           []*SortQuery      `json:"sort"`
+	Aggregate []*AggregateQuery `json:"aggregate"`
+
+	FilterOperator string         `json:"filter_operator"`
+	Filter         []*FilterQuery `json:"filter"`
+	Sort           []*SortQuery   `json:"sort"`
 }
 
 // AggregateQuery describes an aggregate query
@@ -98,6 +100,7 @@ type AggregateQuery struct {
 }
 
 // FilterQuery describes the filtering of a query
+// TODO: rename QueryFilter
 type FilterQuery struct {
 	Comparator string `json:"comparator"`
 	ID         string `json:"id"`
@@ -107,6 +110,7 @@ type FilterQuery struct {
 }
 
 // SortQuery describes the sorting of a query
+// TODO: rename QuerySort
 type SortQuery struct {
 	Direction string `json:"direction"`
 	ID        string `json:"id"`
