@@ -405,6 +405,16 @@ func (b *Block) IsCode() bool {
 	return b.Type == BlockCode
 }
 
+// IsEmbeddedType returns true if block represents an embedded type
+func (b *Block) IsEmbeddedType() bool {
+	switch b.Type {
+	case BlockImage, BlockEmbed, BlockAudio,
+		BlockFile, BlockVideo:
+		return true
+	}
+	return false
+}
+
 func getProp(block *Block, name string, toSet *string) bool {
 	v, ok := block.Properties[name]
 	if !ok {

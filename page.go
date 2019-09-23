@@ -68,7 +68,7 @@ type Table struct {
 
 // SetTitle changes page title
 func (p *Page) SetTitle(s string) error {
-	op := buildSetTitleOp(p.ID, s)
+	op := p.Root().SetTitleOp(s)
 	ops := []*Operation{op}
 	return p.client.SubmitTransaction(ops)
 }
@@ -84,7 +84,7 @@ func (p *Page) SetFormat(args map[string]interface{}) error {
 			return fmt.Errorf("'%s' is not a valid page format property", k)
 		}
 	}
-	op := buildSetPageFormat(p.ID, args)
+	op := p.Root().UpdateFormatOp(args)
 	ops := []*Operation{op}
 	return p.client.SubmitTransaction(ops)
 }
