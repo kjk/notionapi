@@ -155,6 +155,10 @@ func smokeTest() {
 	smokeSeen = map[string]bool{}
 	flgNoOpen = true
 
+	// https://www.notion.so/49d988a60c4a4592bce09938918e8e5b?v=ade5945063da49a3bc79128b06a0683e
+	// collection_view_page
+	loadAndRenderPageRecur("49d988a60c4a4592bce09938918e8e5b")
+
 	// https://www.notion.so/Relations-rollups-fd56bfc6a3f0471a9f0cc3110ff19a79
 	// complicated table, used to crash
 	loadAndRenderPageRecur("fd56bfc6a3f0471a9f0cc3110ff19a79")

@@ -627,10 +627,19 @@ func (b *Block) FormatBookmark() *FormatBookmark {
 }
 
 // FormatPage returns decoded format property for BlockPage
+// TODO: maybe separate FormatCollectionViewPage
 func (b *Block) FormatPage() *FormatPage {
 	var format FormatPage
-	if ok := b.unmarshalFormat(BlockPage, &format); !ok {
-		return nil
+	if b.Type == BlockPage {
+		if ok := b.unmarshalFormat(BlockPage, &format); !ok {
+			return nil
+		}
+	} else if b.Type == BlockCollectionViewPage {
+		if ok := b.unmarshalFormat(BlockCollectionViewPage, &format); !ok {
+			return nil
+		}
+	} else {
+		b.panicIfNotOfType(BlockPage)
 	}
 	return &format
 }

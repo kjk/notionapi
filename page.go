@@ -171,11 +171,19 @@ func (p *Page) IsRoot(block *Block) bool {
 	return block.ID == p.ID
 }
 
+func isPageBlock(block *Block) bool {
+	switch block.Type {
+	case BlockPage, BlockCollectionViewPage:
+		return true
+	}
+	return false
+}
+
 // GetSubPages return list of ids for direct sub-pages of this page
 // TDOO: add pages that are title properties of collection_view
 func (p *Page) GetSubPages() []string {
 	root := p.Root()
-	panicIf(root.Type != BlockPage)
+	panicIf(!isPageBlock(root))
 	subPages := map[string]struct{}{}
 	seenBlocks := map[string]struct{}{}
 	blocksToVisit := append([]string{}, root.ContentIDs...)
