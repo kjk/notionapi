@@ -1,19 +1,20 @@
 /*
 This program helps reverse-engineering notionapi.
+
 You give it the id of the Notion page and it'll download it
-while recording all requests and responses to stdout.
-You can then inspect the API calls to write a wrapper around
-them.
+while recording requests and responses.
 
-You need node.js.
+Summary of all requests is printed to stdout.
 
-To run manually:
+Api calls (/api/v3/) are logged to notion_api_trace.txt file
+(pretty-printed body of POST data and pretty-printed JSON responses).
+
+You need node.js. One time setup:
 - cd tracenotion
 - yarn (or: npm install)
-- node trace_notion_apis.js <NOTION_PAGE_URL>
 
-You probably want to save output to a file with:
-node trace_notion_apis.js <NOTION_PAGE_URL> >trace.txt
+To run manually:
+- node ./tracenotion/trace_notion_apis.js <NOTION_PAGE_URL>
 
 Or you can do:
 - ./do/do.sh -trace <NOTION_PAGE_URL>
@@ -23,13 +24,14 @@ of token_v2 cookie on www.notion.so domain.
 */
 
 /*
-Actually implement:
-- get url from cmd-line
+TODO:
 - do.sh support
-- option -only-api which only shows /api/v3/* requests
 */
 
+const fs = require("fs");
 const puppeteer = require("puppeteer");
+
+const traceFilePath = "notion_api_trace.txt";
 
 function trimStr(s, n) {
   if (s.length > n) {
@@ -39,12 +41,41 @@ function trimStr(s, n) {
 }
 
 function isApiRequest(url) {
-  return url.Contains("/api/v3/");
+  return url.includes("/api/v3/");
 }
 
 function ppjson(s) {
-  // TODO: pretty-print json
-  return s;
+  try {
+    js = JSON.parse(s);
+    s = JSON.stringify(js, null, 2);
+    return s;
+  } catch {
+    return s;
+  }
+}
+
+let apiLog = [];
+
+function logApiRR(method, url, status, reqBody, rspBody) {
+  if (!isApiRequest(url)) {
+    return;
+  }
+  if (method === "GET") {
+    method = "GET ";
+  }
+  let s = `${method} ${status} ${url}`;
+  apiLog.push(s);
+  s = ppjson(reqBody);
+  apiLog.push(s);
+  s = ppjson(rspBody);
+  apiLog.push(s);
+  apiLog.push("-------------------------------");
+}
+
+function saveApiLog() {
+  const s = apiLog.join("\n");
+  fs.writeFileSync(traceFilePath, s);
+  console.log(`Wrote api trace to ${traceFilePath}`);
 }
 
 let waitTime = 5 * 1000;
@@ -87,6 +118,7 @@ async function traceNotion(url) {
       "fullstory.com/",
       "intercom.io/",
       "segment.io/",
+      "segment.com/",
       "loggly.com/"
     ];
     for (let s of blacklisted) {
@@ -121,7 +153,7 @@ async function traceNotion(url) {
     if (isSilenced(url)) {
       return;
     }
-    const method = request.method();
+    let method = request.method();
     const postData = request.postData();
 
     // some urls are data urls and very long
@@ -131,13 +163,15 @@ async function traceNotion(url) {
       .text()
       .then(d => {
         const dataLen = d.length;
-        console.log(`${method} ${url} ${status} size: ${dataLen}`);
-        if (postData) {
-          console.log(postData);
+        if (method === "GET") {
+          // make the length same as POST
+          method = "GET ";
         }
+        console.log(`${method} ${url} ${status} size: ${dataLen}`);
+        logApiRR(method, url, status, postData, d);
       })
       .catch(reason => {
-        console.log(`Failed to get response: ${method} ${url} ${status}`);
+        console.log(`${method} ${url} ${status} reson: ${reason} FAIL !!!`);
       });
   });
 
@@ -147,8 +181,24 @@ async function traceNotion(url) {
   await browser.close();
 }
 
-const url =
-  "https://www.notion.so/Log-short-term-todo-e4d392caeef64b9286070c2ee712f725";
-// const url = "https://www.notion.so/Test-page-all-c969c9455d7c4dd79c7f860f3ace6429";
+// a sample private url: https://www.notion.so/Things-15c47fa60c274ca2820629fb32c2be97
+// a sample public url: https://www.notion.so/Test-text-4c6a54c68b3e4ea2af9cfaabcc88d58d
 
-traceNotion(url);
+// first arg is "node"
+// second arg is name of this script
+// third is the first user argument
+if (process.argv.length != 3) {
+  console.log("Cell me as:");
+  console.log("node ./trace_notion_apis.js <PAGE_URL>");
+  console.log("e.g.:");
+  console.log(
+    "node ./trace_notion_apis.js https://www.notion.so/Test-text-4c6a54c68b3e4ea2af9cfaabcc88d58d"
+  );
+} else {
+  async function doit() {
+    const url = process.argv[2];
+    await traceNotion(url);
+    saveApiLog();
+  }
+  doit();
+}
