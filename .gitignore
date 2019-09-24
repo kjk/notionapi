@@ -5,3 +5,5 @@ got.*
 *.exe
 .DS_Store
 do/__debug_bin
+node_modules/
+yarn.lock
