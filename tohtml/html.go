@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/kjk/notionapi"
@@ -1322,20 +1323,57 @@ func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notio
 		for i := range vals {
 			// TODO: Notion prints in reverse order
 			idx := len(vals) - 1 - i
-			v := EscapeHTML(vals[idx])
-			if v == "" {
+			val := vals[idx]
+			if val == "" {
 				continue
 			}
-			s += fmt.Sprintf(`<span class="selected-value">%s</span>`, v)
+			v := EscapeHTML(val)
+			col := getMultiSelectoColor(colInfo.Options, val)
+			if col == "" {
+				s += fmt.Sprintf(`<span class="selected-value">%s</span>`, v)
+			} else {
+				s += fmt.Sprintf(`<span class="selected-value block-color-%s_background">%s</span>`, col, v)
+			}
 		}
 		colVal = s
 	} else if colInfo.Type == notionapi.ColumnTypeCreatedTime {
 		// TODO: better formatting. Notion seems to be using
 		// relative formatting like "Today 3:03pm"
 		colVal = row.CreatedOn().Format("2006-01-02")
+	} else if colInfo.Type == notionapi.ColumnTypeLastEditedTime {
+		// TODO: better formatting. Notion seems to be using
+		// relative formatting like "Today 3:03pm"
+		colVal = row.LastEditedOn().Format("2006-01-02")
+	} else if colInfo.Type == notionapi.ColumnTypeNumber {
+		// TODO: format number
+		colVal = fmtNumber(colVal, colInfo.NumberFormat)
+	} else if colInfo.Type == notionapi.ColumnTypeRelation {
+		// TODO: not sure how to format relations
+		//colVal = c.GetInlineContent(inlineContent)
+		colVal = ""
 	}
 	colNameCls := EscapeHTML(colName)
 	c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
+}
+
+func fmtNumber(v string, numFmt string) string {
+	if numFmt == "dollar" {
+		f, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return "$" + v
+		}
+		return fmt.Sprintf("$%.2f", f)
+	}
+	// TODO: mmore formats
+	return v
+}
+func getMultiSelectoColor(opts []*notionapi.CollectionColumnOption, val string) string {
+	for _, opt := range opts {
+		if opt.Value == val {
+			return opt.Color
+		}
+	}
+	return ""
 }
 
 func (c *Converter) renderCollectionViewRow(block *notionapi.Block, row *notionapi.Block, viewInfo *notionapi.CollectionViewInfo) {

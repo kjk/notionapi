@@ -447,8 +447,8 @@ func (b *Block) CreatedOn() time.Time {
 	return time.Unix(b.CreatedTime/1000, 0)
 }
 
-// UpdatedOn returns the time the page was last updated
-func (b *Block) UpdatedOn() time.Time {
+// LastEditedOn returns the time the page was last updated
+func (b *Block) LastEditedOn() time.Time {
 	return time.Unix(b.LastEditedTime/1000, 0)
 }
 
