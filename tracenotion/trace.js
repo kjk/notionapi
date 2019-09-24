@@ -14,18 +14,13 @@ You need node.js. One time setup:
 - yarn (or: npm install)
 
 To run manually:
-- node ./tracenotion/trace_notion_apis.js <NOTION_PAGE_URL>
+- node ./tracenotion/trace.js <NOTION_PAGE_URL>
 
 Or you can do:
 - ./do/do.sh -trace <NOTION_PAGE_URL>
 
 To access your private pages, set NOTION_TOKEN to the value
 of token_v2 cookie on www.notion.so domain.
-*/
-
-/*
-TODO:
-- do.sh support
 */
 
 const fs = require("fs");
@@ -189,10 +184,10 @@ async function traceNotion(url) {
 // third is the first user argument
 if (process.argv.length != 3) {
   console.log("Cell me as:");
-  console.log("node ./trace_notion_apis.js <PAGE_URL>");
+  console.log("node ./tracenotion/trace.js <PAGE_URL>");
   console.log("e.g.:");
   console.log(
-    "node ./trace_notion_apis.js https://www.notion.so/Test-text-4c6a54c68b3e4ea2af9cfaabcc88d58d"
+    "node ./tracenotion/trace.js https://www.notion.so/Test-text-4c6a54c68b3e4ea2af9cfaabcc88d58d"
   );
 } else {
   async function doit() {

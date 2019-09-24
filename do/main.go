@@ -38,6 +38,7 @@ var (
 	flgExportType string
 	flgRecursive  bool
 	flgVerbose    bool
+	flgTrace      bool
 
 	// if true, remove cache directories (data/log, data/cache)
 	flgCleanCache bool
@@ -63,6 +64,7 @@ func parseFlags() {
 	flag.BoolVar(&flgRecursive, "recursive", false, "if true, recursive export")
 	flag.BoolVar(&flgVerbose, "verbose", false, "if true, verbose logging")
 	flag.StringVar(&flgExportPage, "export-page", "", "id of the page to export")
+	flag.BoolVar(&flgTrace, "trace", false, "run node tracenotion/trace.js")
 	flag.StringVar(&flgExportType, "export-type", "", "html or markdown")
 	flag.StringVar(&flgTestToMd, "test-to-md", "", "test markdown generation")
 	flag.StringVar(&flgTestToHTML, "test-to-html", "", "id of start page")
@@ -194,6 +196,23 @@ func testSubPages() {
 	panicIf(len(subPages) != nExp, "expected %d sub-pages of '%s', got %d", nExp, uri, len(subPages))
 }
 
+func traceNotionAPI() {
+	nodeModulesDir := filepath.Join("tracenotion", "node_modules")
+	if !dirExists(nodeModulesDir) {
+		cmd := exec.Command("yarn")
+		cmd.Dir = "tracenotion"
+		err := cmd.Run()
+		must(err)
+	}
+	scriptPath := filepath.Join("tracenotion", "trace.js")
+	cmd := exec.Command("node", scriptPath)
+	cmd.Args = append(cmd.Args, flag.Args()...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	must(err)
+}
+
 func main() {
 	cdToTopDir()
 	logf("topDir: '%s'\n", topDir())
@@ -212,6 +231,11 @@ func main() {
 
 	if flgSmokeTest {
 		smokeTest()
+		return
+	}
+
+	if flgTrace {
+		traceNotionAPI()
 		return
 	}
 

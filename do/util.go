@@ -93,6 +93,22 @@ func readZipFile(path string) map[string][]byte {
 	return res
 }
 
+func fileExists(path string) bool {
+	st, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return st.Mode().IsRegular()
+}
+
+func dirExists(path string) bool {
+	st, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return st.Mode().IsDir()
+}
+
 func recreateDir(dir string) {
 	os.RemoveAll(dir)
 	err := os.MkdirAll(dir, 0755)
