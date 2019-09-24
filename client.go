@@ -535,8 +535,29 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	}
 
 	for _, b := range p.idToBlock {
-		_ = parseProperties(b)
+		err := parseProperties(b)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse properties of block '%s', err: '%s'", b.ID, err)
+		}
 		b.Page = p
+
+		switch b.ParentTable {
+		case TableSpace:
+			// TODO: Support parent table space
+			continue
+		case TableCollection:
+			// TODO: Support parent table collection
+			continue
+		case TableBlock:
+			b.Parent = p.BlockByID(b.ParentID)
+			// TODO: this is from https://github.com/shedokan/notionapi/commit/cc7f5b7d3ea324138e568af4da455f8290499a03
+			// but it fails on 'do -smoke'. figure out what is expected
+			if false && b.Parent == nil {
+				return nil, fmt.Errorf("could not find parent '%s' of id '%s' of block '%s'", b.ParentTable, b.ParentID, b.ID)
+			}
+		default:
+			dbg(c, "unsupported parent table type %s of block %s", b.ParentTable, b.ID)
+		}
 	}
 
 	return p, nil

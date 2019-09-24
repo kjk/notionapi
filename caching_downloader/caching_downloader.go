@@ -289,7 +289,7 @@ func (d *Downloader) downloadPageRetry(pageID string) (*notionapi.Page, *caching
 		}
 		// only report errors on the first failure
 		if i == 0 {
-			d.emitError("Download %s failed with %s'\n", pageID, err)
+			d.emitError("Download %s failed with: '%s'\n", pageID, err)
 		}
 		// don't retry if it can't succeed
 		// TODO: probably should change to check for temporary
