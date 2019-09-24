@@ -8,6 +8,9 @@ import (
 )
 
 const (
+	// TODO: put in alphabetica order
+	// BlockAudio is audio embed (e.g. an mp3 file)
+	BlockAudio = "audio"
 	// BlockPage is a notion Page
 	BlockPage = "page"
 	// BlockText is a text block
@@ -53,8 +56,6 @@ const (
 	BlockCollectionViewPage = "collection_view_page"
 	// BlockVideo is youtube video embed
 	BlockVideo = "video"
-	// BlockAudio is audio embed (e.g. an mp3 file)
-	BlockAudio = "audio"
 	// BlockFile is an embedded file
 	BlockFile = "file"
 	// BlockPDF is an embedded pdf file
@@ -85,18 +86,124 @@ const (
 	BlockFigma = "figma"
 )
 
-// FormatToggle describes format for BlockToggle
-type FormatToggle struct {
+// FormatBookmark describes format for BlockBookmark
+type FormatBookmark struct {
+	// TODO: rename BlockColor to Color everywhere
 	BlockColor string `json:"block_color"`
-}
-
-// FormatNumberedList describes format for BlockNumberedList
-type FormatNumberedList struct {
-	BlockColor string `json:"block_color"`
+	Cover      string `json:"bookmark_cover"`
+	Icon       string `json:"bookmark_icon"`
 }
 
 // FormatBulletedList describes format for BlockBulletedList
 type FormatBulletedList struct {
+	BlockColor string `json:"block_color"`
+}
+
+// FormatCallout describes format for BlockCallout
+type FormatCallout struct {
+	BlockColor string `json:"block_color"`
+	Icon       string `json:"bookmark_icon"`
+}
+
+// FormatCode describes format for BlockCode
+type FormatCode struct {
+	CodeWrap bool `json:"code_wrap"`
+}
+
+type FormatCodepen struct {
+	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockHeight        float64 `json:"block_height"`
+	BlockPageWidth     bool    `json:"block_page_width"`
+	BlockPreserveScale bool    `json:"block_preserve_scale"`
+	BlockWidth         float64 `json:"block_width"`
+	DisplaySource      string  `json:"display_source,omitempty"`
+}
+
+type FormatCollectionView struct {
+	BlockFullWidth bool    `json:"block_full_width"`
+	BlockHeight    float64 `json:"block_height"`
+	BlockPageWidth bool    `json:"block_page_width"`
+	BlockWidth     float64 `json:"block_width"`
+}
+
+// FormatColumn describes format for BlockColumn
+type FormatColumn struct {
+	// e.g. 0.5 for half-sized column
+	ColumnRatio float64 `json:"column_ratio"`
+}
+
+type DriveProperties struct {
+	FileID       string `json:"file_id"`
+	Icon         string `json:"icon"`
+	ModifiedTime int64  `json:"modified_time"`
+	Thumbnail    string `json:"thumbnail"` // url
+	Title        string `json:"title"`
+	Trashed      bool   `json:"trashed"`
+	URL          string `json:"url"`
+	UserName     string `json:"user_name"`
+	Version      int    `json:"version"`
+}
+
+type DriveStatus struct {
+	Authed      bool  `json:"authed"`
+	LastFetched int64 `json:"last_fetched"`
+}
+
+type FormatDrive struct {
+	DriveProperties *DriveProperties `json:"drive_properties"`
+	DriveStatus     *DriveStatus     `json:"drive_status"`
+}
+
+// FormatEmbed describes format for BlockEmbed
+type FormatEmbed struct {
+	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockHeight        float64 `json:"block_height"`
+	BlockPageWidth     bool    `json:"block_page_width"`
+	BlockPreserveScale bool    `json:"block_preserve_scale"`
+	BlockWidth         float64 `json:"block_width"`
+	DisplaySource      string  `json:"display_source"`
+}
+
+type FormatFigma struct {
+	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockHeight        float64 `json:"block_height"`
+	BlockPageWidth     bool    `json:"block_page_width"`
+	BlockPreserveScale bool    `json:"block_preserve_scale"`
+	BlockWidth         float64 `json:"block_width"`
+	DisplaySource      string  `json:"display_source"`
+}
+
+// FormatHeader describes format for BlockHeader, BlockSubHeader, BlockSubSubHeader
+type FormatHeader struct {
+	BlockColor string `json:"block_color,omitempty"`
+}
+
+// FormatImage describes format for BlockImage
+type FormatImage struct {
+	// comes from notion API
+	BlockAspectRatio   float64 `json:"block_aspect_ratio"`
+	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockHeight        float64 `json:"block_height"`
+	BlockPageWidth     bool    `json:"block_page_width"`
+	BlockPreserveScale bool    `json:"block_preserve_scale"`
+	BlockWidth         float64 `json:"block_width"`
+	DisplaySource      string  `json:"display_source,omitempty"`
+
+	// calculated by us
+	ImageURL string `json:"image_url,omitempty"`
+}
+
+type FormatMaps struct {
+	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockHeight        float64 `json:"block_height"`
+	BlockPageWidth     bool    `json:"block_page_width"`
+	BlockPreserveScale bool    `json:"block_preserve_scale"`
+	BlockWidth         float64 `json:"block_width"`
+	DisplaySource      string  `json:"display_source,omitempty"`
+}
+
+// FormatNumberedList describes format for BlockNumberedList
+type FormatNumberedList struct {
 	BlockColor string `json:"block_color"`
 }
 
@@ -121,48 +228,37 @@ type FormatPage struct {
 	PageCoverURL string `json:"page_cover_url,omitempty"`
 }
 
-// FormatBookmark describes format for BlockBookmark
-type FormatBookmark struct {
-	Icon  string `json:"bookmark_icon"`
-	Cover string `json:"bookmark_cover"`
-}
-
-// FormatImage describes format for BlockImage
-type FormatImage struct {
-	// comes from notion API
-	BlockAspectRatio   float64 `json:"block_aspect_ratio"`
+type FormatPDF struct {
 	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockHeight        float64 `json:"block_height"`
 	BlockPageWidth     bool    `json:"block_page_width"`
 	BlockPreserveScale bool    `json:"block_preserve_scale"`
 	BlockWidth         float64 `json:"block_width"`
-	BlockHeight        float64 `json:"block_height"`
-	DisplaySource      string  `json:"display_source,omitempty"`
-
-	// calculated by us
-	ImageURL string `json:"image_url,omitempty"`
 }
 
-// FormatVideo describes fromat form BlockVideo
-type FormatVideo struct {
-	BlockWidth         int64   `json:"block_width"`
-	BlockHeight        int64   `json:"block_height"`
-	DisplaySource      string  `json:"display_source"`
-	BlockFullWidth     bool    `json:"block_full_width"`
-	BlockPageWidth     bool    `json:"block_page_width"`
-	BlockAspectRatio   float64 `json:"block_aspect_ratio"`
-	BlockPreserveScale bool    `json:"block_preserve_scale"`
+type FormatTableOfContents struct {
+	BlockColor string `json:"block_color,omitempty"`
 }
 
 // FormatText describes format for BlockText
-// TODO: possibly more?
 type FormatText struct {
 	BlockColor string `json:"block_color,omitempty"`
 }
 
-// FormatHeader describes format for BlockHeader, BlockSubHeader, BlockSubSubHeader
-// TODO: possibly more?
-type FormatHeader struct {
-	BlockColor string `json:"block_color,omitempty"`
+// FormatToggle describes format for BlockToggle
+type FormatToggle struct {
+	BlockColor string `json:"block_color"`
+}
+
+// FormatVideo describes fromat form BlockVideo
+type FormatVideo struct {
+	BlockAspectRatio   float64 `json:"block_aspect_ratio"`
+	BlockFullWidth     bool    `json:"block_full_width"`
+	BlockHeight        int64   `json:"block_height"`
+	BlockPageWidth     bool    `json:"block_page_width"`
+	BlockPreserveScale bool    `json:"block_preserve_scale"`
+	BlockWidth         int64   `json:"block_width"`
+	DisplaySource      string  `json:"display_source"`
 }
 
 // FormatTable describes format for BlockTable
@@ -176,20 +272,6 @@ type FormatTable struct {
 type FormatList struct {
 	ListProperties []*TableProperty `json:"list_properties"`
 	PageSort       []string         `json:"page_sort"`
-}
-
-// FormatColumn describes format for BlockColumn
-type FormatColumn struct {
-	ColumnRatio float64 `json:"column_ratio"` // e.g. 0.5 for half-sized column
-}
-
-// FormatEmbed describes format for BlockEmbed
-type FormatEmbed struct {
-	BlockFullWidth     bool    `json:"block_full_width"`
-	BlockHeight        float64 `json:"block_height"`
-	BlockPageWidth     bool    `json:"block_page_width"`
-	BlockPreserveScale bool    `json:"block_preserve_scale"`
-	DisplaySource      string  `json:"display_source"`
 }
 
 // TableProperty describes property of a table
@@ -536,18 +618,18 @@ func (b *Block) unmarshalFormat(expectedType string, v interface{}) bool {
 	return true
 }
 
-// FormatPage returns decoded format property for BlockPage
-func (b *Block) FormatPage() *FormatPage {
-	var format FormatPage
-	if ok := b.unmarshalFormat(BlockPage, &format); !ok {
+func (b *Block) FormatBookmark() *FormatBookmark {
+	var format FormatBookmark
+	if ok := b.unmarshalFormat(BlockBookmark, &format); !ok {
 		return nil
 	}
 	return &format
 }
 
-func (b *Block) FormatBookmark() *FormatBookmark {
-	var format FormatBookmark
-	if ok := b.unmarshalFormat(BlockBookmark, &format); !ok {
+// FormatPage returns decoded format property for BlockPage
+func (b *Block) FormatPage() *FormatPage {
+	var format FormatPage
+	if ok := b.unmarshalFormat(BlockPage, &format); !ok {
 		return nil
 	}
 	return &format

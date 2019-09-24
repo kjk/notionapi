@@ -16,10 +16,60 @@ var (
 
 var (
 	collectionSchemaTypes = map[string]bool{}
+	collectionSchemeProps = map[string]bool{}
+	formatPropsPerBlock   = map[string]map[string]bool{}
 )
+
+// TODO: doesn't seem to get format for all blocks
+// Is ForEachBlock not traversing every block?
+func recordFormatProps(block *notionapi.Block) {
+	format := block.RawJSON["format"]
+	if format == nil {
+		return
+	}
+	fm, ok := format.(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	typ := block.Type
+	m := formatPropsPerBlock[typ]
+	if m == nil {
+		m = map[string]bool{}
+		formatPropsPerBlock[typ] = m
+	}
+	for k := range fm {
+		m[k] = true
+	}
+}
+
+func printFormatPropsPerBlock() {
+	var blocks []string
+	for k := range formatPropsPerBlock {
+		blocks = append(blocks, k)
+	}
+	sort.Strings(blocks)
+	for _, typ := range blocks {
+		m := formatPropsPerBlock[typ]
+		s := fmt.Sprintf("format fields for block: '%s'", typ)
+		printMapKeys(m, s)
+	}
+}
+
+// make sure we can decode the format
+func validateFormat(block *notionapi.Block) {
+	switch block.Type {
+	case notionapi.BlockBookmark:
+		block.FormatBookmark()
+	}
+}
 
 func collectCollectionsInfo(page *notionapi.Page) {
 	fn := func(block *notionapi.Block) {
+		validateFormat(block)
+
+		recordFormatProps(block)
+
 		if block.Type == notionapi.BlockCollectionView {
 			viewInfo := block.CollectionViews[0]
 			collection := viewInfo.Collection
@@ -27,6 +77,11 @@ func collectCollectionsInfo(page *notionapi.Page) {
 			for _, colInfo := range schema {
 				typ := colInfo.Type
 				collectionSchemaTypes[typ] = true
+				/*
+					for k := range colInfo.RawJSON {
+						collectionSchemeProps[k] = true
+					}
+				*/
 			}
 		}
 	}
@@ -43,13 +98,13 @@ func collectCollectionsInfo(page *notionapi.Page) {
 	*/
 }
 
-func printCollectionTypes() {
+func printMapKeys(m map[string]bool, s string) {
 	var types []string
-	for k := range collectionSchemaTypes {
+	for k := range m {
 		types = append(types, k)
 	}
 	sort.Strings(types)
-	fmt.Printf("%d column types:\n", len(types))
+	fmt.Printf("%d %s:\n", len(types), s)
 	for _, typ := range types {
 		fmt.Printf("  %s\n", typ)
 	}
@@ -107,7 +162,8 @@ func smokeTest() {
 	// root page of my test pages
 	loadAndRenderPageRecur("0367c2db381a4f8b9ce360f388a6b2e3")
 
-	if false {
-		printCollectionTypes()
-	}
+	// ad-hoc code to gather stats on blocks and print them
+	//printMapKeys(collectionSchemaTypes, "column types")
+	//printMapKeys(collectionSchemeProps, "column props")
+	//printFormatPropsPerBlock()
 }
