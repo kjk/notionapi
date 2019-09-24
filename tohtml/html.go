@@ -1295,6 +1295,13 @@ func (c *Converter) renderCollectionViewHeader(block *notionapi.Block, schema ma
 	c.Printf(`<th>%s</th>`, name)
 }
 
+func isEmptyBlock(block *notionapi.Block) bool {
+	if block == nil {
+		return true
+	}
+	return len(block.ContentIDs) == 0
+}
+
 func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notionapi.Block, viewInfo *notionapi.CollectionViewInfo, colName string) {
 	collection := viewInfo.Collection
 	schema := collection.CollectionSchema
@@ -1311,12 +1318,19 @@ func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notio
 		return
 	}
 	if colInfo.Type == notionapi.ColumnTypeTitle {
-		// TODO: this should be an url
-		uri := c.tableCellURL(row, block, collection)
-		if colVal == "" {
-			colVal = "Untitled"
+		if isEmptyBlock(row) {
+			// row here is a page. For cosmetics we don't want to link
+			// to empty pages.
+			if colVal == "" {
+				colVal = "Untitled"
+			}
+		} else {
+			uri := c.tableCellURL(row, block, collection)
+			if colVal == "" {
+				colVal = "Untitled"
+			}
+			colVal = fmt.Sprintf(`<a href="%s">%s</a>`, uri, colVal)
 		}
-		colVal = fmt.Sprintf(`<a href="%s">%s</a>`, uri, colVal)
 	} else if colInfo.Type == notionapi.ColumnTypeMultiSelect {
 		vals := strings.Split(colVal, ",")
 		s := ""
