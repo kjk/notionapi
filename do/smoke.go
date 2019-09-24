@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/kjk/notionapi"
 )
@@ -13,6 +14,47 @@ var (
 	smokeSeen map[string]bool
 )
 
+var (
+	collectionSchemaTypes = map[string]bool{}
+)
+
+func collectCollectionsInfo(page *notionapi.Page) {
+	fn := func(block *notionapi.Block) {
+		if block.Type == notionapi.BlockCollectionView {
+			viewInfo := block.CollectionViews[0]
+			collection := viewInfo.Collection
+			schema := collection.CollectionSchema
+			for _, colInfo := range schema {
+				typ := colInfo.Type
+				collectionSchemaTypes[typ] = true
+			}
+		}
+	}
+	page.ForEachBlock(fn)
+
+	/*
+		for _, table := range page.Tables {
+			coll := table.Collection
+			for _, schema := range coll.CollectionSchema {
+				typ := schema.Type
+				collectionSchemaTypes[typ] = true
+			}
+		}
+	*/
+}
+
+func printCollectionTypes() {
+	var types []string
+	for k := range collectionSchemaTypes {
+		types = append(types, k)
+	}
+	sort.Strings(types)
+	fmt.Printf("%d column types:\n", len(types))
+	for _, typ := range types {
+		fmt.Printf("  %s\n", typ)
+	}
+}
+
 // load the page, render to md and html. repeat for all sub-children
 func loadAndRenderPageRecur(pageID string) {
 	id := notionapi.ToNoDashID(pageID)
@@ -21,6 +63,7 @@ func loadAndRenderPageRecur(pageID string) {
 	}
 	smokeSeen[id] = true
 	page := toHTML(pageID)
+	collectCollectionsInfo(page)
 	_, md := toMarkdown(page)
 	mdName := fmt.Sprintf("%s.page.md", id)
 	mdPath := filepath.Join(cacheDir, mdName)
@@ -63,4 +106,8 @@ func smokeTest() {
 	// https://www.notion.so/Test-pages-for-notionapi-0367c2db381a4f8b9ce360f388a6b2e3
 	// root page of my test pages
 	loadAndRenderPageRecur("0367c2db381a4f8b9ce360f388a6b2e3")
+
+	if false {
+		printCollectionTypes()
+	}
 }

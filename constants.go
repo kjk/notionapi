@@ -9,17 +9,25 @@ const (
 
 // for CollectionColumnInfo.Type
 const (
-	ColumnTypeMultiSelect = "multi_select"
-	ColumnTypeCreatedTime = "created_time"
-	ColumnTypeNumber      = "number"
-	ColumnTypeTitle       = "title"
-	ColumnTypeURL         = "url"
-	ColumnTypeSelect      = "select"
-	ColumnTypeCheckbox    = "checkbox"
-	ColumnTypeRelation    = "relation"
-	ColumnTypeRollup      = "rollup"
-	// TODO: text, date, person, Files&Media, Email, phone
-	// formula, time, created by, last edited time, last edited by
+	ColumnTypeCheckbox       = "checkbox"
+	ColumnTypeCreatedBy      = "created_by"
+	ColumnTypeCreatedTime    = "created_time"
+	ColumnTypeDate           = "date"
+	ColumnTypeEmail          = "email"
+	ColumnTypeFile           = "file"
+	ColumnTypeForumula       = "formula"
+	ColumnTypeLastEditedBy   = "last_edited_by"
+	ColumnTypeLastEditedTime = "last_edited_time"
+	ColumnTypeMultiSelect    = "multi_select"
+	ColumnTypeNumber         = "number"
+	ColumnTypePerson         = "person"
+	ColumnTypePhoneNumber    = "phone_number"
+	ColumnTypeRelation       = "relation"
+	ColumnTypeRollup         = "rollup"
+	ColumnTypeSelect         = "select"
+	ColumnTypeText           = "text"
+	ColumnTypeTitle          = "title"
+	ColumnTypeURL            = "url"
 )
 
 const (

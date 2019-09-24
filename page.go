@@ -18,8 +18,10 @@ var (
 type Page struct {
 	ID string
 	// Users allows to find users that Page refers to by their ID
-	Users  []*UserWithRole
-	Tables []*Table
+	Users []*UserWithRole
+
+	// TODO: implement me
+	// Tables []*Table
 
 	idToBlock          map[string]*Block
 	idToUser           map[string]*UserWithRole
@@ -59,12 +61,14 @@ func (p *Page) Root() *Block {
 	return p.BlockByID(p.ID)
 }
 
+/*
 // Table represents a table (i.e. CollectionView)
 type Table struct {
 	CollectionView *Block      `json:"collection_view"`
 	Collection     *Collection `json:"collection"`
 	Data           []*Block
 }
+*/
 
 // SetTitle changes page title
 func (p *Page) SetTitle(s string) error {
