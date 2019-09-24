@@ -17,7 +17,7 @@ jobs:
         run: go test -v ./...
 
       - name: Smoke test
-        run: ./do/do.sh -smoke-test
+        run: ./do/do.sh -smoke
 
       - name: Staticcheck
         run: |
