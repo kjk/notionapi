@@ -10,18 +10,23 @@ import (
 	"github.com/kjk/notionapi"
 )
 
+var (
+	didPrintTokenStatus bool
+)
+
 func makeNotionClient() *notionapi.Client {
 	client := &notionapi.Client{
 		DebugLog:  flgVerbose,
 		AuthToken: getToken(),
 	}
-	notionToken := getToken()
-	if notionToken == "" {
-		logf("NOTION_TOKEN env variable not set. Can only access public pages\n")
-	} else {
-		logf("NOTION_TOKEN env variable set, can access private pages\n")
-		// TODO: validate that the token looks legit
-		client.AuthToken = notionToken
+	if !didPrintTokenStatus {
+		didPrintTokenStatus = true
+		if client.AuthToken == "" {
+			logf("NOTION_TOKEN env variable not set. Can only access public pages\n")
+		} else {
+			// TODO: validate that the token looks legit
+			logf("NOTION_TOKEN env variable set, can access private pages\n")
+		}
 	}
 	return client
 }

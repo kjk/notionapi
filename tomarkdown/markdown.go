@@ -539,6 +539,13 @@ func getEmbeddedFileNameAndURL(block *notionapi.Block) (string, string) {
 	return uri, uri
 }
 
+// RenderAudio renders BlockAudio
+func (c *Converter) RenderAudio(block *notionapi.Block) {
+	name, uri := getEmbeddedFileNameAndURL(block)
+	c.Printf("[%s](%s)\n", name, uri)
+	c.renderCaption(block)
+}
+
 // RenderVideo renders BlockTweet
 func (c *Converter) RenderVideo(block *notionapi.Block) {
 	name, uri := getEmbeddedFileNameAndURL(block)
@@ -555,6 +562,14 @@ func (c *Converter) RenderFile(block *notionapi.Block) {
 	c.renderCaption(block)
 }
 
+// RenderDrive renders BlockDrive
+func (c *Converter) RenderDrive(block *notionapi.Block) {
+	docURL, _ := block.PropAsString("format.drive_properties.url")
+	title, _ := block.PropAsString("format.drive_properties.title")
+	c.Printf("[%s](%s)\n", title, docURL)
+	c.renderCaption(block)
+}
+
 // RenderPDF renders BlockPDF
 func (c *Converter) RenderPDF(block *notionapi.Block) {
 	name, uri := getEmbeddedFileNameAndURL(block)
@@ -567,6 +582,11 @@ func (c *Converter) RenderEmbed(block *notionapi.Block) {
 	uri := block.Source
 	c.Printf("[%s](%s)\n", uri, uri)
 	c.renderCaption(block)
+}
+
+// RenderFigma renders BlockFigma
+func (c *Converter) RenderFigma(block *notionapi.Block) {
+	c.RenderEmbed(block)
 }
 
 // RenderImage renders BlockImage
@@ -623,6 +643,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderPage
 	case notionapi.BlockText:
 		return c.RenderText
+	case notionapi.BlockEquation:
+		// TODO: NYI
 	case notionapi.BlockNumberedList:
 		return c.RenderNumberedList
 	case notionapi.BlockBulletedList:
@@ -653,24 +675,38 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderColumn
 	case notionapi.BlockCollectionView:
 		return c.RenderCollectionView
+	case notionapi.BlockCollectionViewPage:
+		// TODO: NYI
 	case notionapi.BlockEmbed:
-		return c.RenderEmbed
-	case notionapi.BlockMaps:
-		return c.RenderEmbed
-	case notionapi.BlockTweet:
-		return c.RenderEmbed
-	case notionapi.BlockCodepen:
 		return c.RenderEmbed
 	case notionapi.BlockGist:
 		return c.RenderGist
+	case notionapi.BlockMaps:
+		return c.RenderEmbed
+	case notionapi.BlockCodepen:
+		return c.RenderEmbed
+	case notionapi.BlockTweet:
+		return c.RenderEmbed
 	case notionapi.BlockVideo:
 		return c.RenderVideo
+	case notionapi.BlockAudio:
+		return c.RenderAudio
 	case notionapi.BlockFile:
 		return c.RenderFile
+	case notionapi.BlockDrive:
+		return c.RenderDrive
+	case notionapi.BlockFigma:
+		return c.RenderFigma
 	case notionapi.BlockPDF:
 		return c.RenderPDF
 	case notionapi.BlockCallout:
 		return c.RenderCallout
+	case notionapi.BlockTableOfContents:
+		// TODO: NYI
+	case notionapi.BlockBreadcrumb:
+		// TODO: NYI
+	case notionapi.BlockFactory:
+		return nil
 	default:
 		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, c.Page.NotionURL())
 	}

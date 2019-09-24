@@ -100,7 +100,7 @@ func recreateDir(dir string) {
 }
 
 func writeFile(path string, data []byte) {
-	err := ioutil.WriteFile(path, data, 0666)
+	err := ioutil.WriteFile(path, data, 0644)
 	must(err)
 }
 
