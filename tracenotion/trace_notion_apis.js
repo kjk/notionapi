@@ -147,7 +147,7 @@ async function traceNotion(url) {
     console.log("request failed url:", url);
   });
 
-  page.on("response", response => {
+  async function onResponse(response) {
     const request = response.request();
     let url = request.url();
     if (isSilenced(url)) {
@@ -159,21 +159,21 @@ async function traceNotion(url) {
     // some urls are data urls and very long
     url = trimStr(url, 72);
     const status = response.status();
-    response
-      .text()
-      .then(d => {
-        const dataLen = d.length;
-        if (method === "GET") {
-          // make the length same as POST
-          method = "GET ";
-        }
-        console.log(`${method} ${url} ${status} size: ${dataLen}`);
-        logApiRR(method, url, status, postData, d);
-      })
-      .catch(reason => {
-        console.log(`${method} ${url} ${status} reson: ${reason} FAIL !!!`);
-      });
-  });
+    try {
+      const d = await response.text();
+      const dataLen = d.length;
+      if (method === "GET") {
+        // make the length same as POST
+        method = "GET ";
+      }
+      console.log(`${method} ${url} ${status} size: ${dataLen}`);
+      logApiRR(method, url, status, postData, d);
+    } catch (ex) {
+      console.log(`${method} ${url} ${status} ex: ${ex} FAIL !!!`);
+    }
+  }
+
+  page.on("response", onResponse);
 
   await page.goto(url, { waitUntil: "networkidle2" });
   await page.waitFor(waitTime);
