@@ -25,7 +25,6 @@ of token_v2 cookie on www.notion.so domain.
 /*
 Actually implement:
 - get url from cmd-line
-- NOTION_TOKEN support
 - do.sh support
 - option -only-api which only shows /api/v3/* requests
 */
@@ -39,10 +38,31 @@ function trimStr(s, n) {
   return s;
 }
 
+function isApiRequest(url) {
+  return url.Contains("/api/v3/");
+}
+
+function ppjson(s) {
+  // TODO: pretty-print json
+  return s;
+}
+
 let waitTime = 5 * 1000;
 async function traceNotion(url) {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
+  const token = process.env.NOTION_TOKEN || "";
+  if (token !== "") {
+    console.log("NOTION_TOKEN set, can access private pages");
+    const c = {
+      domain: "www.notion.so",
+      name: "token_v2",
+      value: token
+    };
+    await page.setCookie(c);
+  } else {
+    console.log("only public pages, NOTION_TOKEN env var not set");
+  }
   await page.setRequestInterception(true);
 
   // those we don't want to log because they are not important
@@ -127,6 +147,8 @@ async function traceNotion(url) {
   await browser.close();
 }
 
-traceNotion(
-  "https://www.notion.so/Test-page-all-c969c9455d7c4dd79c7f860f3ace6429"
-);
+const url =
+  "https://www.notion.so/Log-short-term-todo-e4d392caeef64b9286070c2ee712f725";
+// const url = "https://www.notion.so/Test-page-all-c969c9455d7c4dd79c7f860f3ace6429";
+
+traceNotion(url);
