@@ -4,11 +4,16 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+)
+
+var (
+	logFile io.Writer
 )
 
 func must(err error) {
@@ -26,13 +31,33 @@ func assert(ok bool, format string, args ...interface{}) {
 	panic(s)
 }
 
+func panicIf(cond bool, args ...interface{}) {
+	if !cond {
+		return
+	}
+	if len(args) == 0 {
+		panic("condition failed")
+	}
+	format := args[0].(string)
+	if len(args) == 1 {
+		panic(format)
+	}
+	panic(fmt.Sprintf(format, args[1:]...))
+}
+
 // a centralized place allows us to tweak logging, if need be
 func logf(format string, args ...interface{}) {
 	if len(args) == 0 {
 		fmt.Print(format)
+		if logFile != nil {
+			fmt.Fprint(logFile, format)
+		}
 		return
 	}
 	fmt.Printf(format, args...)
+	if logFile != nil {
+		fmt.Fprintf(logFile, format, args...)
+	}
 }
 
 // openBrowsers open web browser with a given url
@@ -85,7 +110,7 @@ func openCodeDiff(path1, path2 string) {
 		path2 = strings.Replace(path2, ".\\", "./", -1)
 	}
 	cmd := exec.Command("code", "--new-window", "--diff", path1, path2)
-	//fmt.Printf("cmd: %s\n", strings.Join(cmd.Args, " "))
+	logf("running: %s\n", strings.Join(cmd.Args, " "))
 	err := cmd.Start()
 	must(err)
 }

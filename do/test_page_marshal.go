@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/kjk/caching_http_client"
 	"github.com/kjk/notionapi"
@@ -10,7 +9,7 @@ import (
 	"github.com/kjk/notionapi/tomarkdown"
 )
 
-func pageToHTML2(page *notionapi.Page) []byte {
+func pageToHTML(page *notionapi.Page) []byte {
 	converter := tohtml.NewConverter(page)
 	d, _ := converter.ToHTML()
 	return d
@@ -22,13 +21,13 @@ func pageToMarkdown(page *notionapi.Page) []byte {
 	return d
 }
 
-func testPageJSONMarshal(pageID string) {
-	// Test that we marshal Page object correctly:
-	// - download page
-	// - format as html
-	// - marshal and unmarshal from json
-	// - format as html
-	// - compare html is identical
+func testCachingDownloads(pageID string) {
+	// Test that caching downloader works:
+	// - download page using empty cache
+	// - format as html and md
+	// - download again using cache from previous download
+	// - format as html and md
+	// - compare they are identical
 	cache := caching_http_client.NewCache()
 	cachingClient := caching_http_client.New(cache)
 	client := &notionapi.Client{
@@ -41,7 +40,7 @@ func testPageJSONMarshal(pageID string) {
 	pageID = notionapi.ToNoDashID(pageID)
 	page1, err := client.DownloadPage(pageID)
 	must(err)
-	html := pageToHTML2(page1)
+	html := pageToHTML(page1)
 	md := pageToMarkdown(page1)
 
 	nRequests := cache.RequestsFromCache
@@ -55,18 +54,18 @@ func testPageJSONMarshal(pageID string) {
 	// verify we made the same amount of requests
 	panicIf(nRequests != cache.RequestsNotFromCache, "nRequests: %d, cache.RequestsNotFromCache: %d", nRequests, cache.RequestsNotFromCache)
 
-	html2 := pageToHTML2(page2)
+	html2 := pageToHTML(page2)
 	md_2 := pageToMarkdown(page2)
 
 	if !bytes.Equal(html, html2) {
-		fmt.Printf("html != html2!\n")
+		logf("html != html2!\n")
 		return
 	}
 
 	if !bytes.Equal(md, md_2) {
-		fmt.Printf("md != md_2!\n")
+		logf("md != md_2!\n")
 		return
 	}
 
-	//fmt.Printf("json:\n%s\n", string(d))
+	//logf("json:\n%s\n", string(d))
 }

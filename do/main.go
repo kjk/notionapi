@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -44,11 +43,12 @@ var (
 	flgCleanCache bool
 	flgReExport   bool
 
-	flgSanityTest          bool
-	flgTestToMd            string
-	flgTestToHTML          string
-	flgTestPageJSONMarshal string
-	flgNoFormat            bool
+	flgSanityTest        bool
+	flgSmokeTest         bool
+	flgTestToMd          string
+	flgTestToHTML        string
+	flgTestDownloadCache string
+	flgNoFormat          bool
 )
 
 var (
@@ -66,8 +66,9 @@ func parseFlags() {
 	flag.StringVar(&flgExportType, "export-type", "", "html or markdown")
 	flag.StringVar(&flgTestToMd, "test-to-md", "", "test markdown generation")
 	flag.StringVar(&flgTestToHTML, "test-to-html", "", "id of start page")
-	flag.BoolVar(&flgSanityTest, "sanity", false, "if true, runs a sanity tests")
-	flag.StringVar(&flgTestPageJSONMarshal, "test-json-marshal", "", "test marshalling of a given page to/from JSON")
+	flag.BoolVar(&flgSanityTest, "sanity", false, "runs a quick sanity tests (fast and basic)")
+	flag.BoolVar(&flgSmokeTest, "smoke", false, "run a smoke test (not fast, run after non-trivial changes)")
+	flag.StringVar(&flgTestDownloadCache, "test-download-cache", "", "page id to use to test download cache")
 	flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
 	flag.StringVar(&flgToHTML, "to-html", "", "id of notion page to download and convert to html")
 	flag.BoolVar(&flgReExport, "re-export", false, "if true, will re-export from notion")
@@ -143,31 +144,13 @@ func exportPageToFile(id string, exportType string, recursive bool, path string)
 	}
 	d, err := client.ExportPages(id, exportType, recursive)
 	if err != nil {
-		fmt.Printf("client.ExportPages() failed with '%s'\n", err)
+		logf("client.ExportPages() failed with '%s'\n", err)
 		return err
 	}
 
-	err = ioutil.WriteFile(path, d, 0755)
-	if err != nil {
-		fmt.Printf("ioutil.WriteFile() failed with '%s'\n", err)
-		return err
-	}
-	fmt.Printf("Downloaded exported page of id %s as %s\n", id, path)
+	writeFile(path, d)
+	logf("Downloaded exported page of id %s as %s\n", id, path)
 	return nil
-}
-
-func panicIf(cond bool, args ...interface{}) {
-	if !cond {
-		return
-	}
-	if len(args) == 0 {
-		panic("condition failed")
-	}
-	format := args[0].(string)
-	if len(args) == 1 {
-		panic(format)
-	}
-	panic(fmt.Sprintf(format, args[1:]...))
 }
 
 func exportPage(id string, exportType string, recursive bool) {
@@ -182,20 +165,17 @@ func exportPage(id string, exportType string, recursive bool) {
 	}
 	d, err := client.ExportPages(id, exportType, recursive)
 	if err != nil {
-		fmt.Printf("client.ExportPages() failed with '%s'\n", err)
+		logf("client.ExportPages() failed with '%s'\n", err)
 		return
 	}
 	name := notionapi.ToNoDashID(id) + "-" + exportType + ".zip"
-	err = ioutil.WriteFile(name, d, 0755)
-	if err != nil {
-		fmt.Printf("ioutil.WriteFile() failed with '%s'\n", err)
-	}
-	fmt.Printf("Downloaded exported page of id %s as %s\n", id, name)
+	writeFile(name, d)
+	logf("Downloaded exported page of id %s as %s\n", id, name)
 }
 
 func runGoTests() {
 	cmd := exec.Command("go", "test", "./...")
-	fmt.Printf("Running: %s\n", strings.Join(cmd.Args, " "))
+	logf("Running: %s\n", strings.Join(cmd.Args, " "))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	must(cmd.Run())
@@ -214,22 +194,9 @@ func testSubPages() {
 	panicIf(len(subPages) != nExp, "expected %d sub-pages of '%s', got %d", nExp, uri, len(subPages))
 }
 
-// sanity tests are basic tests to validate changes
-// meant to not take too long
-func sanityTests() {
-	fmt.Printf("Running sanity tests\n")
-	runGoTests()
-	testSubPages()
-	fmt.Printf("ok\ttestSubPages()\n")
-	pageID := "dd5c0a813dfe4487a6cd432f82c0c2fc"
-	testPageJSONMarshal(pageID)
-	fmt.Printf("ok\ttestPageJSONMarshal() of %s ok!\n", pageID)
-	// TODO: more tests?
-}
-
 func main() {
 	cdToTopDir()
-	fmt.Printf("topDir: '%s'\n", topDir())
+	logf("topDir: '%s'\n", topDir())
 
 	parseFlags()
 	must(os.MkdirAll(cacheDir, 0755))
@@ -243,8 +210,9 @@ func main() {
 		return
 	}
 
-	if false {
-		flgTestToMd = "0367c2db381a4f8b9ce360f388a6b2e3"
+	if flgSmokeTest {
+		smokeTest()
+		return
 	}
 
 	if flgTestToMd != "" {
@@ -257,8 +225,8 @@ func main() {
 		return
 	}
 
-	if flgTestPageJSONMarshal != "" {
-		testPageJSONMarshal(flgTestPageJSONMarshal)
+	if flgTestDownloadCache != "" {
+		testCachingDownloads(flgTestDownloadCache)
 		return
 	}
 

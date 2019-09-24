@@ -7,6 +7,8 @@ github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1/go.mod h1:xTS7Pm1p
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
+github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/kjk/caching_http_client v0.0.0-20190810075619-06ff809674f7 h1:QpTfahFJ/tetY9TR6GeV3ubuzU5qJnmfTk35cJF8/WQ=
 github.com/kjk/caching_http_client v0.0.0-20190810075619-06ff809674f7/go.mod h1:uZMXWOA3unK8KYdy6aBIel64MMqZwsRFRKIvgSadLAU=
 github.com/kjk/fmthtml v0.0.0-20190816041536-39f5e479d32d h1:XPQyRFr5tgB3me4Y3H7IETjcSnLPiORh6O41ETe6o4c=

@@ -1305,7 +1305,7 @@ func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notio
 	colVal := c.GetInlineContent(inlineContent)
 	colInfo := schema[colName]
 	if colInfo == nil {
-		fmt.Printf("colInfo nil\n")
+		logf("colInfo nil\n")
 		// happens in fd56bfc6a3f0471a9f0cc3110ff19a79
 		return
 	}

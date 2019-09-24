@@ -20,11 +20,11 @@ func toHTML(pageID string) {
 	client := makeNotionClient()
 	page, err := downloadPage(client, pageID)
 	if err != nil {
-		fmt.Printf("toHTML: downloadPage() failed with '%s'\n", err)
+		logf("toHTML: downloadPage() failed with '%s'\n", err)
 		return
 	}
 	if page == nil {
-		fmt.Printf("toHTML: page is nil\n")
+		logf("toHTML: page is nil\n")
 		return
 	}
 
