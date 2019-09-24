@@ -16,10 +16,8 @@ jobs:
       - name: Test
         run: go test -v ./...
 
-      - name: Test tohtml
-        run: |
-          # this used to crash
-          ./do/do.sh -no-open -to-html fd56bfc6a3f0471a9f0cc3110ff19a79
+      - name: Smoke test
+        run: ./do/do.sh -smoke-test
 
       - name: Staticcheck
         run: |

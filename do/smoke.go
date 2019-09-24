@@ -54,9 +54,13 @@ func smokeTest() {
 	defer f.Close()
 	logFile = f
 
-	// https://www.notion.so/Test-pages-for-notionapi-0367c2db381a4f8b9ce360f388a6b2e3
-	// root page of my test pages
 	smokeSeen = map[string]bool{}
 	flgNoOpen = true
+
+	// https://www.notion.so/Relations-rollups-fd56bfc6a3f0471a9f0cc3110ff19a79
+	// complicated table, used to crash
+	loadAndRenderPageRecur("fd56bfc6a3f0471a9f0cc3110ff19a79")
+	// https://www.notion.so/Test-pages-for-notionapi-0367c2db381a4f8b9ce360f388a6b2e3
+	// root page of my test pages
 	loadAndRenderPageRecur("0367c2db381a4f8b9ce360f388a6b2e3")
 }
