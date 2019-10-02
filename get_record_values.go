@@ -7,11 +7,11 @@ import (
 
 // /api/v3/getRecordValues request
 type getRecordValuesRequest struct {
-	Requests []RecordValueRequest `json:"requests"`
+	Requests []RecordRequest `json:"requests"`
 }
 
-// RecordValueRequest represents argument to
-type RecordValueRequest struct {
+// RecordRequest represents argument to GetRecordValues
+type RecordRequest struct {
 	Table string `json:"table"`
 	ID    string `json:"id"`
 }
@@ -107,45 +107,25 @@ func parseRecord(table string, r *Record) error {
 	return nil
 }
 
-// GetRecordValues executes a raw API call /api/v3/getRecordValues
-// TODO: rename to GetBlockValues
-func (c *Client) GetRecordValues(ids []string) (*GetRecordValuesResponse, error) {
-	requests := make([]RecordValueRequest, len(ids))
+// GetBlockRecords executes a raw API call /api/v3/getRecordValues
+// to get records for blocks with given ids
+func (c *Client) GetBlockRecords(ids []string) (*GetRecordValuesResponse, error) {
+	records := make([]RecordRequest, len(ids))
 	for pos, id := range ids {
 		dashID := ToDashID(id)
 		if !IsValidDashID(dashID) {
 			return nil, fmt.Errorf("'%s' is not a valid notion id", id)
 		}
-		requests[pos].Table = TableBlock
-		requests[pos].ID = dashID
+		records[pos].Table = TableBlock
+		records[pos].ID = dashID
 	}
-
-	req := &getRecordValuesRequest{
-		Requests: requests,
-	}
-
-	apiURL := "/api/v3/getRecordValues"
-	var rsp GetRecordValuesResponse
-	var err error
-	rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp)
-	if err != nil {
-		return nil, err
-	}
-
-	for idx, r := range rsp.Results {
-		table := requests[idx].Table
-		err = parseRecord(table, r)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &rsp, nil
+	return c.GetRecordValues(records)
 }
 
-// TODO: rename GetRecordValues
-func (c *Client) GetRecordValues2(requests []RecordValueRequest) (*GetRecordValuesResponse, error) {
+// GetRecordValues executes a raw API call /api/v3/getRecordValues
+func (c *Client) GetRecordValues(records []RecordRequest) (*GetRecordValuesResponse, error) {
 	req := &getRecordValuesRequest{
-		Requests: requests,
+		Requests: records,
 	}
 
 	apiURL := "/api/v3/getRecordValues"
@@ -156,7 +136,7 @@ func (c *Client) GetRecordValues2(requests []RecordValueRequest) (*GetRecordValu
 	}
 
 	for idx, r := range rsp.Results {
-		table := requests[idx].Table
+		table := records[idx].Table
 		err = parseRecord(table, r)
 		if err != nil {
 			return nil, err

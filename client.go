@@ -349,7 +349,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	var root *Block
 	// get page's root block and then recursively download referenced blocks
 	{
-		recVals, err := c.GetRecordValues([]string{pageID})
+		recVals, err := c.GetBlockRecords([]string{pageID})
 		if err != nil {
 			return nil, err
 		}
@@ -431,7 +431,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				missing = nil
 			}
 
-			recVals, err := c.GetRecordValues(toGet)
+			recVals, err := c.GetBlockRecords(toGet)
 			if err != nil {
 				return nil, err
 			}

@@ -125,7 +125,7 @@ func (d *Downloader) getVersionsForPages(ids []string) ([]int64, error) {
 	// using new client because we don't want caching of http requests here
 	normalizeIDS(ids)
 	c := d.GetClientCopy()
-	recVals, err := c.GetRecordValues(ids)
+	recVals, err := c.GetBlockRecords(ids)
 	if err != nil {
 		return nil, err
 	}
