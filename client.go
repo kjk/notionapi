@@ -56,7 +56,8 @@ func newErrPageNotFound(pageID string) *ErrPageNotFound {
 
 // Error return error string
 func (e *ErrPageNotFound) Error() string {
-	return fmt.Sprintf("couldn't retrieve page '%s'", e.PageID)
+	pageID := ToNoDashID(e.PageID)
+	return fmt.Sprintf("couldn't retrieve page '%s'", pageID)
 }
 
 // IsErrPageNotFound returns true if err is an instance of ErrPageNotFound
@@ -340,8 +341,8 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		client:             c,
 		idToBlock:          map[string]*Block{},
 		idToCollection:     map[string]*Collection{},
-		idToCollectionView: map[string]*Block{},
-		idToUser:           map[string]*UserWithRole{},
+		idToCollectionView: map[string]*CollectionView{},
+		idToUser:           map[string]*User{},
 		blocksToSkip:       map[string]struct{}{},
 	}
 
@@ -354,7 +355,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		}
 		res := recVals.Results[0]
 		// this might happen e.g. when a page is not publicly visible
-		root = res.Value
+		root = res.Block
 		if root == nil {
 			return nil, newErrPageNotFound(pageID)
 		}
@@ -370,27 +371,34 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		if err != nil {
 			return nil, err
 		}
-		for id, v := range rsp.RecordMap.Blocks {
-			if v.Value.Alive {
-				p.idToBlock[id] = v.Value
+		recordMap := rsp.RecordMap
+		for id, v := range recordMap.Blocks {
+			b := v.Block
+			if b.Alive {
+				p.idToBlock[id] = b
 			} else {
 				p.blocksToSkip[id] = struct{}{}
 			}
 		}
-		for id, v := range rsp.RecordMap.Collections {
-			if v.Value.Alive {
-				p.idToCollection[id] = v.Value
-			}
-			// TODO: what to do for not alive?
+		for id, r := range recordMap.Collections {
+			p.CollectionRecords = append(p.CollectionRecords, r)
+			p.idToCollection[id] = r.Collection
 		}
-		for id, v := range rsp.RecordMap.CollectionViews {
-			if v.Value.Alive {
-				p.idToCollectionView[id] = v.Value
-			}
-			// TODO: what to do for not alive?
+		for id, r := range recordMap.CollectionViews {
+			p.CollectionViewRecords = append(p.CollectionViewRecords, r)
+			p.idToCollectionView[id] = r.CollectionView
 		}
-		for id, v := range rsp.RecordMap.Users {
-			p.idToUser[id] = v
+		for id, r := range recordMap.Users {
+			p.UserRecords = append(p.UserRecords, r)
+			p.idToUser[id] = r.User
+		}
+		for id, r := range recordMap.Discussions {
+			p.DiscussionRecords = append(p.DiscussionRecords, r)
+			p.idToDiscussion[id] = r.Discussion
+		}
+		for id, r := range recordMap.Comments {
+			p.CommentRecords = append(p.CommentRecords, r)
+			p.idToComment[id] = r.Comment
 		}
 
 		cursor := rsp.Cursor
@@ -427,8 +435,8 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			if err != nil {
 				return nil, err
 			}
-			for n, blockWithRole := range recVals.Results {
-				block := blockWithRole.Value
+			for n, recordValue := range recVals.Results {
+				block := recordValue.Block
 				// This can happen e.g. in 157765353f2c4705bd45474e5ba8b46c
 				// Server returns { "role": "none" },
 				expectedID := toGet[n]
@@ -453,12 +461,12 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				}
 				p.blocksToSkip[expectedID] = struct{}{}
 				if n > 0 {
-					prevBlock := recVals.Results[n-1]
-					if prevBlock == nil || prevBlock.Value == nil {
+					prevRecord := recVals.Results[n-1]
+					if prevRecord == nil || prevRecord.Block == nil {
 						// this can happen if we don't have access to this page
 						dbg(c, "prevBlock.Value is nil at position n = %d with expected id %s.\n", n, expectedID)
 					} else {
-						prevBlockID := prevBlock.Value.ID
+						prevBlockID := prevRecord.Block.ID
 						dbg(c, "block is nil at position n = %d with expected id %s. Prev block id: %s\n", n, expectedID, prevBlockID)
 					}
 				} else {
@@ -466,10 +474,6 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				}
 			}
 		}
-	}
-
-	for _, v := range p.idToUser {
-		p.Users = append(p.Users, v)
 	}
 
 	err := p.resolveBlocks()
@@ -487,16 +491,16 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			return nil, fmt.Errorf("collection_view has no ViewIDs")
 		}
 		// TODO: should fish out the user based on block.CreatedBy
-		if len(p.Users) == 0 {
+		if len(p.UserRecords) == 0 {
 			return nil, fmt.Errorf("no users when trying to resolve collection_view")
 		}
 
 		collectionID := block.CollectionID
 		for _, collectionViewID := range block.ViewIDs {
 			var user *User
-			userWithRole := p.Users[0]
-			if userWithRole != nil {
-				user = userWithRole.Value
+			r := p.UserRecords[0]
+			if r != nil {
+				user = r.User
 			}
 			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {
@@ -528,7 +532,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				if !ok {
 					return nil, fmt.Errorf("didn't find block with id '%s' for collection view with id '%s'", id, collectionViewID)
 				}
-				collInfo.CollectionRows = append(collInfo.CollectionRows, rowBlock.Value)
+				collInfo.CollectionRows = append(collInfo.CollectionRows, rowBlock.Block)
 			}
 			block.CollectionViews = append(block.CollectionViews, collInfo)
 		}

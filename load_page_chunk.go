@@ -29,42 +29,44 @@ type LoadPageChunkResponse struct {
 
 // RecordMap contains a collections of blocks, a space, users, and collections.
 type RecordMap struct {
-	Blocks          map[string]*BlockWithRole      `json:"block"`
-	Space           map[string]*SpaceWithRole      `json:"space"`
-	Users           map[string]*UserWithRole       `json:"notion_user"`
-	Collections     map[string]*CollectionWithRole `json:"collection"`
-	CollectionViews map[string]*BlockWithRole      `json:"collection_view"`
-	// TDOO: there might be more records types
+	Blocks          map[string]*Record `json:"block"`
+	Spaces          map[string]*Record `json:"space"`
+	Users           map[string]*Record `json:"notion_user"`
+	Collections     map[string]*Record `json:"collection"`
+	CollectionViews map[string]*Record `json:"collection_view"`
+	// TDOO: parses those types as well
+	Comments    map[string]*Record `josn:"comment"`
+	Discussions map[string]*Record `jsoon:"discussion"`
 }
 
-// SpaceWithRole holds a user's role associated with a space and a space.
-type SpaceWithRole struct {
-	Role  string `json:"role,omitempty"`
-	Value *Space `json:"value,omitempty"`
-}
-
-// Space is a notion.so workspace.
+// Space describes Notion workspace.
 type Space struct {
-	ID               string                  `json:"id"`
-	Version          float64                 `json:"version"`
-	Name             string                  `json:"name"`
-	Domain           string                  `json:"domain"`
-	Permissions      []*SpacePermissions     `json:"permissions,omitempty"`
-	PermissionGroups []SpacePermissionGroups `json:"permission_groups"`
-	EmailDomains     []string                `json:"email_domains"`
-	BetaEnabled      bool                    `json:"beta_enabled"`
-	Pages            []string                `json:"pages,omitempty"`
-	CreatedBy        string                  `json:"created_by"`
-	CreatedTime      int64                   `json:"created_time"`
-	LastEditedBy     string                  `json:"last_edited_by"`
-	LastEditedTime   int64                   `json:"last_edited_time"`
+	ID                  string                  `json:"id"`
+	Version             float64                 `json:"version"`
+	Name                string                  `json:"name"`
+	Domain              string                  `json:"domain"`
+	Permissions         []*SpacePermissions     `json:"permissions,omitempty"`
+	PermissionGroups    []SpacePermissionGroups `json:"permission_groups"`
+	Icon                string                  `json:"icon"`
+	EmailDomains        []string                `json:"email_domains"`
+	BetaEnabled         bool                    `json:"beta_enabled"`
+	Pages               []string                `json:"pages,omitempty"`
+	DisablePublicAccess bool                    `json:"disable_public_access"`
+	DisableGuests       bool                    `json:"disable_guests"`
+	DisableMoveToSpace  bool                    `json:"disable_move_to_space"`
+	DisableExport       bool                    `json:"disable_export"`
+
+	CreatedBy      string `json:"created_by"`
+	CreatedTime    int64  `json:"created_time"`
+	LastEditedBy   string `json:"last_edited_by"`
+	LastEditedTime int64  `json:"last_edited_time"`
 
 	RawJSON map[string]interface{} `json:"-"`
 }
 
 type SpacePermissions struct {
 	Role   string `json:"role"`
-	Type   string `json:"type"`
+	Type   string `json:"type"` // e.g. "user_permission"
 	UserID string `json:"user_id"`
 }
 
@@ -72,19 +74,6 @@ type SpacePermissionGroups struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	UserIds []string `json:"user_ids,omitempty"`
-}
-
-// TODO: ListFormat or TableFormat
-// type CollectionViewFormat struct {
-
-// Query describes a query
-// TODO: merge with CollectionQuery
-type Query struct {
-	Aggregate []*AggregateQuery `json:"aggregate"`
-
-	FilterOperator string         `json:"filter_operator"`
-	Filter         []*FilterQuery `json:"filter"`
-	Sort           []*SortQuery   `json:"sort"`
 }
 
 // AggregateQuery describes an aggregate query
@@ -112,46 +101,42 @@ type FilterQuery struct {
 // SortQuery describes the sorting of a query
 // TODO: rename QuerySort
 type SortQuery struct {
-	Direction string `json:"direction"`
 	ID        string `json:"id"`
+	Direction string `json:"direction"`
 	Property  string `json:"property"`
 	Type      string `json:"type"`
 }
 
-// CollectionWithRole describes a collection
-type CollectionWithRole struct {
-	Role  string      `json:"role"`
-	Value *Collection `json:"value"`
-}
-
 // Collection describes a collection
-// TODO: why doesn't it have "type" like a Block?
 type Collection struct {
-	// form json
-	Alive            bool                             `json:"alive"`
-	CopiedFrom       string                           `json:"copied_from"`
-	FileIDs          []string                         `json:"file_ids"`
-	Format           *CollectionFormat                `json:"format"`
-	Icon             string                           `json:"icon"`
-	ID               string                           `json:"id"`
-	NameVal          interface{}                      `json:"name"` // TODO: because created Name() first
-	ParentID         string                           `json:"parent_id"`
-	ParentTable      string                           `json:"parent_table"`
-	CollectionSchema map[string]*CollectionColumnInfo `json:"schema"`
-	TemplatePages    []string                         `json:"template_pages"`
-	Version          int                              `json:"version"`
+	ID          string                           `json:"id"`
+	Version     int                              `json:"version"`
+	Name        interface{}                      `json:"name"`
+	Schema      map[string]*CollectionColumnInfo `json:"schema"`
+	Format      *CollectionFormat                `json:"format"`
+	ParentID    string                           `json:"parent_id"`
+	ParentTable string                           `json:"parent_table"`
+	Alive       bool                             `json:"alive"`
+	CopiedFrom  string                           `json:"copied_from"`
+
+	// TODO: are those ever present?
+	Type          string   `json:"type"`
+	FileIDs       []string `json:"file_ids"`
+	Icon          string   `json:"icon"`
+	TemplatePages []string `json:"template_pages"`
 
 	// calculated by us
 	name    []*TextSpan
 	RawJSON map[string]interface{} `json:"-"`
 }
 
-func (c *Collection) Name() string {
+// GetName parses Name and returns as a string
+func (c *Collection) GetName() string {
 	if len(c.name) == 0 {
-		if c.NameVal == nil {
+		if c.Name == nil {
 			return ""
 		}
-		c.name, _ = ParseTextSpans(c.NameVal)
+		c.name, _ = ParseTextSpans(c.Name)
 	}
 	return TextSpansToString(c.name)
 }
@@ -271,60 +256,57 @@ func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPa
 	}
 	var rsp LoadPageChunkResponse
 	var err error
-	rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp)
-	if err != nil {
+	if rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp); err != nil {
 		return nil, err
 	}
-	setLoadPageChunkResponse(&rsp, rsp.RawJSON)
+	if err = parseRecordMap(rsp.RecordMap); err != nil {
+		return nil, err
+	}
 	return &rsp, nil
 }
 
-func setLoadPageChunkResponse(r *LoadPageChunkResponse, json map[string]interface{}) {
-	recordMapJSON := jsonGetMap(json, "recordMap")
-	{
-		blockByID := jsonGetMap(recordMapJSON, "block")
-		for id, br := range r.RecordMap.Blocks {
-			brJSON := jsonGetMap(blockByID, id)
-			b := br.Value
-			bJSON := jsonGetMap(brJSON, "value")
-			b.RawJSON = bJSON
+func parseRecordMap(recordMap *RecordMap) error {
+	for _, r := range recordMap.Blocks {
+		if err := parseRecord(TableBlock, r); err != nil {
+			return err
 		}
 	}
 
-	{
-		spaceByID := jsonGetMap(recordMapJSON, "space")
-		for id, sr := range r.RecordMap.Space {
-			srJSON := jsonGetMap(spaceByID, id)
-			s := sr.Value
-			sJSON := jsonGetMap(srJSON, "value")
-			s.RawJSON = sJSON
+	for _, r := range recordMap.Spaces {
+		if err := parseRecord(TableSpace, r); err != nil {
+			return err
 		}
 	}
-	{
-		userByID := jsonGetMap(recordMapJSON, "notion_user")
-		for id, ur := range r.RecordMap.Users {
-			urJSON := jsonGetMap(userByID, id)
-			u := ur.Value
-			uJSON := jsonGetMap(urJSON, "value")
-			u.RawJSON = uJSON
+
+	for _, r := range recordMap.Users {
+		if err := parseRecord(TableUser, r); err != nil {
+			return err
 		}
 	}
-	{
-		collectionByID := jsonGetMap(recordMapJSON, "collection")
-		for id, cr := range r.RecordMap.Collections {
-			crJSON := jsonGetMap(collectionByID, id)
-			c := cr.Value
-			cJSON := jsonGetMap(crJSON, "value")
-			c.RawJSON = cJSON
+
+	for _, r := range recordMap.CollectionViews {
+		if err := parseRecord(TableCollectionView, r); err != nil {
+			return err
 		}
 	}
-	{
-		collectionViewByID := jsonGetMap(recordMapJSON, "collection_view")
-		for id, cvr := range r.RecordMap.CollectionViews {
-			cvrJSON := jsonGetMap(collectionViewByID, id)
-			cv := cvr.Value
-			cvJSON := jsonGetMap(cvrJSON, "value")
-			cv.RawJSON = cvJSON
+
+	for _, r := range recordMap.Collections {
+		if err := parseRecord(TableCollection, r); err != nil {
+			return err
 		}
 	}
+
+	for _, r := range recordMap.Discussions {
+		if err := parseRecord(TableDiscussion, r); err != nil {
+			return err
+		}
+	}
+
+	for _, r := range recordMap.Comments {
+		if err := parseRecord(TableComment, r); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

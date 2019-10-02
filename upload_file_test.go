@@ -82,7 +82,7 @@ func TestUploadFile(t *testing.T) {
 	assert.NotEmpty(t, parent)
 
 	// "a485fd92-b373-47e8-a417-f298689e344b"
-	userID := page.Users[0].Value.ID
+	userID := page.Users[0].Block.ID
 
 	file, err := os.Open("test_file.svg")
 	assert.NoError(t, err)

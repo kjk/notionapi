@@ -31,14 +31,17 @@ const (
 )
 
 const (
-	// TableSpace represents a Notion workspace
+	// those are Record.Type and determine the type of Record.Value
 	TableSpace = "space"
-	// TableBlock represents a Notion block
 	TableBlock = "block"
-	// TableUser represents a Notion user
-	TableUser = "notion_user"
-	// TableCollection represents a Notion collection
-	TableCollection = "collection"
+
+	// TODO: not sure if those are values used by Notion but
+	// have to have names for those
+	TableUser           = "notion_user"
+	TableCollection     = "collection"
+	TableCollectionView = "collection_view"
+	TableComment        = "comment"
+	TableDiscussion     = "discusssion"
 )
 
 const (

@@ -10,40 +10,107 @@ type getRecordValuesRequest struct {
 	Requests []RecordValueRequest `json:"requests"`
 }
 
+// RecordValueRequest represents argument to
 type RecordValueRequest struct {
 	Table string `json:"table"`
 	ID    string `json:"id"`
 }
 
-type ValueResponse struct {
-	ID    string `json:"id"`
-	Table string `json:"table"`
-	Role  string `json:"role"`
-
+// Record represents a polymorphic record
+type Record struct {
+	// fields returned by the server
+	Role string `json:"role"`
+	// polymorphic value of the record, which we decode into Block, Space etc.
 	Value json.RawMessage `json:"value"`
 
-	Block *Block `json:"-"`
-	Space *Space `json:"-"`
-	User  *User  `json:"-"`
-}
+	// fields set from Value based on type
+	ID    string `json:"-"`
+	Table string `json:"-"`
 
-// BlockWithRole describes a block info
-type BlockWithRole struct {
-	Role  string `json:"role"`
-	Value *Block `json:"value"`
+	Block          *Block          `json:"-"`
+	Space          *Space          `json:"-"`
+	User           *User           `json:"-"`
+	Collection     *Collection     `json:"-"`
+	CollectionView *CollectionView `json:"-"`
+	Comment        *Comment        `json:"-"`
+	Discussion     *Discussion     `json:"-"`
+	// TODO: add more types
 }
 
 // GetRecordValuesResponse represents response to /api/v3/getRecordValues api
 // Note: it depends on Table type in request
 type GetRecordValuesResponse struct {
-	Results []*BlockWithRole       `json:"results"`
+	Results []*Record              `json:"results"`
 	RawJSON map[string]interface{} `json:"-"`
 }
 
+// table is not always present in Record returned by the server
+// so must be provided based on what was asked
+func parseRecord(table string, r *Record) error {
+	// it's ok if some records don't return a value
+	if len(r.Value) == 0 {
+		return nil
+	}
+	if r.Table == "" {
+		r.Table = table
+	} else {
+		// TODO: probably never happens
+		panicIf(r.Table != table)
+	}
+
+	// set Block/Space etc. based on Table type
+	var pRawJSON *map[string]interface{}
+	var obj interface{}
+	switch table {
+	case TableBlock:
+		r.Block = &Block{}
+		obj = r.Block
+		pRawJSON = &r.Block.RawJSON
+	case TableUser:
+		r.User = &User{}
+		obj = r.User
+		pRawJSON = &r.User.RawJSON
+	case TableSpace:
+		r.Space = &Space{}
+		obj = r.Space
+		pRawJSON = &r.Space.RawJSON
+	case TableCollection:
+		r.Collection = &Collection{}
+		obj = r.Collection
+		pRawJSON = &r.Collection.RawJSON
+	case TableCollectionView:
+		r.CollectionView = &CollectionView{}
+		obj = r.CollectionView
+		pRawJSON = &r.CollectionView.RawJSON
+	case TableDiscussion:
+		r.Discussion = &Discussion{}
+		obj = r.Discussion
+		pRawJSON = &r.Discussion.RawJSON
+	case TableComment:
+		r.Comment = &Comment{}
+		obj = r.Comment
+		pRawJSON = &r.Comment.RawJSON
+	}
+	if obj == nil {
+		return fmt.Errorf("unsupported table '%s'", r.Table)
+	}
+	if err := json.Unmarshal(r.Value, pRawJSON); err != nil {
+		return err
+	}
+	id := (*pRawJSON)["id"]
+	if id != nil {
+		r.ID = id.(string)
+	}
+	if err := json.Unmarshal(r.Value, &obj); err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetRecordValues executes a raw API call /api/v3/getRecordValues
+// TODO: rename to GetBlockValues
 func (c *Client) GetRecordValues(ids []string) (*GetRecordValuesResponse, error) {
 	requests := make([]RecordValueRequest, len(ids))
-
 	for pos, id := range ids {
 		dashID := ToDashID(id)
 		if !IsValidDashID(dashID) {
@@ -64,55 +131,37 @@ func (c *Client) GetRecordValues(ids []string) (*GetRecordValuesResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	resultsJSON := rsp.RawJSON["results"].([]interface{})
-	for i, br := range rsp.Results {
-		b := br.Value
-		if b == nil {
-			continue
-		}
-		brJSON := resultsJSON[i].(map[string]interface{})
-		bJSON := jsonGetMap(brJSON, "value")
-		b.RawJSON = bJSON
-	}
 
+	for idx, r := range rsp.Results {
+		table := requests[idx].Table
+		err = parseRecord(table, r)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &rsp, nil
 }
 
-func (c *Client) RequestRecordValues(requests []RecordValueRequest) ([]ValueResponse, error) {
+// TODO: rename GetRecordValues
+func (c *Client) GetRecordValues2(requests []RecordValueRequest) (*GetRecordValuesResponse, error) {
 	req := &getRecordValuesRequest{
 		Requests: requests,
 	}
 
 	apiURL := "/api/v3/getRecordValues"
-	var rsp struct {
-		Results []ValueResponse `json:"results"`
-	}
+	var rsp GetRecordValuesResponse
 	var err error
-	if _, err = doNotionAPI(c, apiURL, req, &rsp); err != nil {
+	if rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp); err != nil {
 		return nil, err
 	}
 
-	for pos := range rsp.Results {
-		rsp.Results[pos].Table = requests[pos].Table
-		var obj interface{}
-		if requests[pos].Table == TableUser {
-			rsp.Results[pos].User = &User{}
-			obj = rsp.Results[pos].User
-		}
-		if requests[pos].Table == TableBlock {
-			rsp.Results[pos].Block = &Block{}
-			obj = rsp.Results[pos].Block
-		}
-		if requests[pos].Table == TableSpace {
-			rsp.Results[pos].Space = &Space{}
-			obj = rsp.Results[pos].Space
-		}
-		if obj != nil {
-			if err := json.Unmarshal(rsp.Results[pos].Value, &obj); err != nil {
-				return nil, err
-			}
+	for idx, r := range rsp.Results {
+		table := requests[idx].Table
+		err = parseRecord(table, r)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return rsp.Results, nil
+	return &rsp, nil
 }

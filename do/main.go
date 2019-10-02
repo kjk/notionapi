@@ -176,7 +176,7 @@ func exportPage(id string, exportType string, recursive bool) {
 }
 
 func runGoTests() {
-	cmd := exec.Command("go", "test", "./...")
+	cmd := exec.Command("go", "test", "-v", "./...")
 	logf("Running: %s\n", strings.Join(cmd.Args, " "))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

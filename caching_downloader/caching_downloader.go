@@ -134,17 +134,18 @@ func (d *Downloader) getVersionsForPages(ids []string) ([]int64, error) {
 		return nil, fmt.Errorf("getVersionsForPages(): got %d results, expected %d", len(results), len(ids))
 	}
 	var versions []int64
-	for i, res := range results {
+	for i, rec := range results {
 		// res.Value might be nil when a page is not publicly visible or was deleted
-		if res.Value == nil {
+		b := rec.Block
+		if b == nil {
 			versions = append(versions, 0)
 			continue
 		}
-		id := res.Value.ID
+		id := b.ID
 		if !isIDEqual(ids[i], id) {
 			panic(fmt.Sprintf("got result in the wrong order, ids[i]: %s, id: %s", ids[0], id))
 		}
-		versions = append(versions, res.Value.Version)
+		versions = append(versions, b.Version)
 	}
 	return versions, nil
 }

@@ -101,7 +101,7 @@ func urlBaseName(uri string) string {
 }
 
 func filePathForCollection(page *notionapi.Page, col *notionapi.Collection) string {
-	name := safeName(col.Name()) + ".html"
+	name := safeName(col.GetName()) + ".html"
 	name = safeName(page.Root().Title) + "/" + name
 	return name
 }
@@ -122,7 +122,7 @@ func (c *Converter) tableCellURL(cell *notionapi.Block, block *notionapi.Block, 
 		title = "Untitled"
 	}
 	name := safeName(title) + ".html"
-	colName := col.Name()
+	colName := col.GetName()
 	if colName == "" {
 		colName = "Untitled Database"
 	}
@@ -139,7 +139,7 @@ func (c *Converter) tableCellURL(cell *notionapi.Block, block *notionapi.Block, 
 
 func getCollectionDownloadedFileName(page *notionapi.Page, col *notionapi.Collection, uri string) string {
 	name := urlBaseName(uri)
-	name = safeName(col.Name()) + "/" + name
+	name = safeName(col.GetName()) + "/" + name
 	name = safeName(page.Root().Title) + "/" + name
 	return name
 }
@@ -211,6 +211,7 @@ type PageByIDFromPages struct {
 	idToPage map[string]*notionapi.Page
 }
 
+// NewPageByIDFromPages creates PageByIDProvider from array of pages
 func NewPageByIDFromPages(pages []*notionapi.Page) *PageByIDFromPages {
 	res := &PageByIDFromPages{
 		pages: pages,
@@ -451,7 +452,7 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 			end = `</a>` + end
 		case notionapi.AttrUser:
 			userID := notionapi.AttrGetUserID(attr)
-			userName := notionapi.ResolveUser(c.Page, userID)
+			userName := notionapi.GetUserNameByID(c.Page, userID)
 			start += fmt.Sprintf(`<span class="user">@%s</span>`, userName)
 			text = ""
 		case notionapi.AttrDate:
@@ -558,7 +559,7 @@ func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 	colID := block.CollectionID
 	col := c.Page.CollectionByID(colID)
 	icon := col.Icon
-	name := col.Name()
+	name := col.GetName()
 	c.Printf(`<figure id="%s" class="link-to-page">`, block.ID)
 	{
 		filePath := filePathForCollection(c.Page, col)
@@ -1272,17 +1273,8 @@ func hasTitleColumn(columns []*notionapi.TableProperty) bool {
 	return false
 }
 
-func getColumns(view *notionapi.Block) []*notionapi.TableProperty {
-	if view.Type == notionapi.BlockTable {
-		format := view.FormatTable()
-		return format.TableProperties
-	} else if view.Type == notionapi.BlockList {
-		format := view.FormatList()
-		return format.ListProperties
-	} else {
-		logf("unexpected block type '%s' in block '%s', wanted 'list' or 'table'\n", view.ID, view.Type)
-		return nil
-	}
+func getColumns(view *notionapi.CollectionView) []*notionapi.TableProperty {
+	return view.Format.TableProperties
 }
 
 func (c *Converter) renderCollectionViewHeader(block *notionapi.Block, schema map[string]*notionapi.CollectionColumnInfo, colName string) {
@@ -1304,7 +1296,7 @@ func isEmptyBlock(block *notionapi.Block) bool {
 
 func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notionapi.Block, viewInfo *notionapi.CollectionViewInfo, colName string) {
 	collection := viewInfo.Collection
-	schema := collection.CollectionSchema
+	schema := collection.Schema
 
 	props := row.Properties
 	v := props[colName]
@@ -1372,11 +1364,12 @@ func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notio
 
 func fmtNumber(v string, numFmt string) string {
 	if numFmt == "dollar" {
+		v = strings.TrimPrefix(v, "$")
 		f, err := strconv.ParseFloat(v, 64)
 		if err != nil {
-			return "$" + v
+			return v
 		}
-		return fmt.Sprintf("$%.2f", f)
+		return fmt.Sprintf("$%.02f", f)
 	}
 	// TODO: mmore formats
 	return v
@@ -1418,7 +1411,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	}
 	viewInfo := block.CollectionViews[0]
 	collection := viewInfo.Collection
-	schema := collection.CollectionSchema
+	schema := collection.Schema
 
 	columns := getColumns(viewInfo.CollectionView)
 	if len(columns) == 0 {
@@ -1430,7 +1423,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
 	{
-		name := collection.Name()
+		name := collection.GetName()
 		c.Printf(`<h4 class="collection-title">%s</h4>`, name)
 		if isList {
 			c.Printf("%s", `<table class="collection-content" style="width: 100%">`)

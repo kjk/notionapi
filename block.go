@@ -46,10 +46,13 @@ const (
 	BlockColumnList = "column_list"
 	// BlockColumn is a child of TypeColumnList
 	BlockColumn = "column"
+
+	// TODO: those are probably CollectionViewType
 	// BlockTable is a table block
 	BlockTable = "table"
 	// BlockList is a lists block
 	BlockList = "list"
+
 	// BlockCollectionView is a collection view block
 	BlockCollectionView = "collection_view"
 	// BlockCollectionViewPage is a page that is a collection
@@ -261,6 +264,13 @@ type FormatVideo struct {
 	DisplaySource      string  `json:"display_source"`
 }
 
+// TableProperty describes property of a table
+type TableProperty struct {
+	Width    int    `json:"width"`
+	Visible  bool   `json:"visible"`
+	Property string `json:"property"`
+}
+
 // FormatTable describes format for BlockTable
 type FormatTable struct {
 	PageSort        []string         `json:"page_sort"`
@@ -272,13 +282,6 @@ type FormatTable struct {
 type FormatList struct {
 	ListProperties []*TableProperty `json:"list_properties"`
 	PageSort       []string         `json:"page_sort"`
-}
-
-// TableProperty describes property of a table
-type TableProperty struct {
-	Width    int    `json:"width"`
-	Visible  bool   `json:"visible"`
-	Property string `json:"property"`
 }
 
 /*
@@ -308,6 +311,51 @@ type Permission struct {
 	// if Type == "public_permission"
 	AllowDuplicate            bool `json:"allow_duplicate"`
 	AllowSearchEngineIndexing bool `json:"allow_search_engine_indexing"`
+}
+
+// CollectionView represents a collection view
+type CollectionView struct {
+	ID          string       `json:"id"`
+	Version     int64        `json:"version"`
+	Type        string       `json:"type"` // "table"
+	Format      *FormatTable `json:"format"`
+	Name        string       `json:"name"`
+	ParentID    string       `json:"parent_id"`
+	ParentTable string       `json:"parent_table"`
+	Query       *Query       `json:"query"`
+	Alive       bool         `json:"alive"`
+	PageSort    []string     `json:"page_sort"`
+
+	// set by us
+	RawJSON map[string]interface{} `json:"-"`
+}
+
+// Discussion represents a discussion
+type Discussion struct {
+	ID          string   `json:"id"`
+	Version     int64    `json:"version"`
+	ParentID    string   `json:"parent_id"`
+	ParentTable string   `json:"parent_table"`
+	Resolved    bool     `json:"resolved"`
+	Comments    []string `json:"comments"`
+	// set by us
+	RawJSON map[string]interface{} `json:"-"`
+}
+
+// Comment describes a single comment in a discussion
+type Comment struct {
+	ID             string      `json:"id"`
+	Version        int64       `json:"version"`
+	Alive          bool        `json:"alive"`
+	ParentID       string      `json:"parent_id"`
+	ParentTable    string      `json:"parent_table"`
+	CreatedBy      string      `json:"created_by"`
+	CreatedTime    int64       `json:"created_time"`
+	Text           interface{} `json:"text"`
+	LastEditedTime int64       `json:"last_edited_time"`
+
+	// set by us
+	RawJSON map[string]interface{} `json:"-"`
 }
 
 // Block describes a block
@@ -346,7 +394,8 @@ type Block struct {
 	// type of the block e.g. TypeText, TypePage etc.
 	Type string `json:"type"`
 	// blocks are versioned
-	Version int64    `json:"version"`
+	Version int64 `json:"version"`
+	// for BlockCollectionView
 	ViewIDs []string `json:"view_ids,omitempty"`
 
 	// Parent of this block
@@ -366,10 +415,6 @@ type Block struct {
 	// for BlockBookmark
 	Description string `json:"-"`
 	Link        string `json:"-"`
-
-	Name     string   `json:"name"`
-	PageSort []string `json:"page_sort"`
-	Query    *Query   `json:"query"`
 
 	// for BlockBookmark it's the url of the page
 	// for BlockGist it's the url for the gist
@@ -405,7 +450,7 @@ type Block struct {
 // TODO: same as table?
 type CollectionViewInfo struct {
 	OriginatingBlock *Block
-	CollectionView   *Block
+	CollectionView   *CollectionView
 	Collection       *Collection
 	CollectionRows   []*Block
 	// for serialization of state to JSON
@@ -746,7 +791,7 @@ func (b *Block) CollectionByID(id string) *Collection {
 	return b.Page.CollectionByID(id)
 }
 
-func (b *Block) CollectionViewByID(id string) *Block {
+func (b *Block) CollectionViewByID(id string) *CollectionView {
 	return b.Page.CollectionViewByID(id)
 }
 

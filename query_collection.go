@@ -11,21 +11,24 @@ type queryCollectionRequest struct {
 }
 
 // Loader describes a loader
-/*
-  "loader": {
-    "type": "table",
-    "limit": 70,
-    "userTimeZone": "America/Los_Angeles",
-    "userLocale": "en"
-  }
-*/
 type Loader struct {
-	Type  string `json:"type"`
-	Limit int    `json:"limit"`
+	Type  string `json:"type"`  // e.g. "table"
+	Limit int    `json:"limit"` // Notion uses 70 by default
 	// from User.TimeZone
 	UserTimeZone string `json:"userTimeZone"`
 	// from User.Locale
-	UserLocale string `json:"userLocale"`
+	UserLocale       string `json:"userLocale"`
+	LoadContentCover bool   `json:"loadContentCover"`
+}
+
+// Query describes a query
+// TODO: merge with CollectionQuery
+type Query struct {
+	Aggregate []*AggregateQuery `json:"aggregate"`
+
+	FilterOperator string         `json:"filter_operator"`
+	Filter         []*FilterQuery `json:"filter"`
+	Sort           []*SortQuery   `json:"sort"`
 }
 
 // CollectionQuery describes a collection query
@@ -37,16 +40,9 @@ type CollectionQuery struct {
 	CalendarBy interface{}       `json:"calendar_by"`
 
 	// "and"
-	FilterOperator string         `json:"filter_operator"`
+	FilterOperator string         `json:"filter_operator"` // e.g. "and"
 	Filter         []*FilterQuery `json:"filter"`
 	Sort           []*SortQuery   `json:"sort"`
-}
-
-// QueryCollectionResponse is json response for /api/v3/queryCollection
-type QueryCollectionResponse struct {
-	RecordMap *RecordMap             `json:"recordMap"`
-	Result    *QueryCollectionResult `json:"result"`
-	RawJSON   map[string]interface{} `json:"-"`
 }
 
 // QueryCollectionResult is part of response for /api/v3/queryCollection
@@ -55,6 +51,13 @@ type QueryCollectionResult struct {
 	BlockIDS           []string             `json:"blockIds"`
 	AggregationResults []*AggregationResult `json:"aggregationResults"`
 	Total              int                  `json:"total"`
+}
+
+// QueryCollectionResponse is json response for /api/v3/queryCollection
+type QueryCollectionResponse struct {
+	RecordMap *RecordMap             `json:"recordMap"`
+	Result    *QueryCollectionResult `json:"result"`
+	RawJSON   map[string]interface{} `json:"-"`
 }
 
 // AggregationResult represents result of aggregation
@@ -105,6 +108,8 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregat
 			return nil, fmt.Errorf("Client.QueryCollection() 2nd fetch failed: %s", err)
 		}
 	}
-
+	if err := parseRecordMap(rsp.RecordMap); err != nil {
+		return nil, err
+	}
 	return &rsp, nil
 }

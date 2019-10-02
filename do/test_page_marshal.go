@@ -28,6 +28,7 @@ func testCachingDownloads(pageID string) {
 	// - download again using cache from previous download
 	// - format as html and md
 	// - compare they are identical
+	logf("testCachingDownloads: '%s'\n", pageID)
 	cache := caching_http_client.NewCache()
 	cachingClient := caching_http_client.New(cache)
 	client := &notionapi.Client{

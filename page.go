@@ -17,17 +17,26 @@ var (
 // Page describes a single Notion page
 type Page struct {
 	ID string
-	// Users allows to find users that Page refers to by their ID
-	Users []*UserWithRole
+
+	// expose raw records for all data associated with this page
+	BlockRecords          []*Record
+	UserRecords           []*Record
+	CollectionRecords     []*Record
+	CollectionViewRecords []*Record
+	DiscussionRecords     []*Record
+	CommentRecords        []*Record
 
 	// TODO: implement me
 	// Tables []*Table
 
 	idToBlock          map[string]*Block
-	idToUser           map[string]*UserWithRole
+	idToUser           map[string]*User
 	idToCollection     map[string]*Collection
-	idToCollectionView map[string]*Block
-	blocksToSkip       map[string]struct{} // not alive or when server doesn't return "value" for this block id
+	idToCollectionView map[string]*CollectionView
+	idToComment        map[string]*Comment
+	idToDiscussion     map[string]*Discussion
+
+	blocksToSkip map[string]struct{} // not alive or when server doesn't return "value" for this block id
 
 	client *Client
 }
@@ -39,11 +48,7 @@ func (p *Page) BlockByID(id string) *Block {
 
 // UserByID returns a user by its id
 func (p *Page) UserByID(id string) *User {
-	res := p.idToUser[ToDashID(id)]
-	if res != nil {
-		return res.Value
-	}
-	return nil
+	return p.idToUser[ToDashID(id)]
 }
 
 // CollectionByID returns a collection by its id
@@ -52,8 +57,18 @@ func (p *Page) CollectionByID(id string) *Collection {
 }
 
 // CollectionViewByID returns a collection view by its id
-func (p *Page) CollectionViewByID(id string) *Block {
+func (p *Page) CollectionViewByID(id string) *CollectionView {
 	return p.idToCollectionView[ToDashID(id)]
+}
+
+// DiscussiomnByID returns a discussion by its id
+func (p *Page) DiscussionByID(id string) *Discussion {
+	return p.idToDiscussion[ToDashID(id)]
+}
+
+// CommentByID returns a comment by its id
+func (p *Page) CommentByID(id string) *Comment {
+	return p.idToComment[ToDashID(id)]
 }
 
 // Root returns a root block representing a page
@@ -221,11 +236,11 @@ func makeUserName(user *User) string {
 	return user.ID
 }
 
-func ResolveUser(page *Page, userID string) string {
-	// TODO: either scan for user ids when initially downloading a page
-	// or do a query if not found
-	for _, u := range page.Users {
-		user := u.Value
+// GetUserNameByID returns a full user name given user id
+// it's a helper function
+func GetUserNameByID(page *Page, userID string) string {
+	for _, r := range page.UserRecords {
+		user := r.User
 		if user.ID == userID {
 			return makeUserName(user)
 		}

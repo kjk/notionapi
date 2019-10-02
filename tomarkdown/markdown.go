@@ -276,7 +276,7 @@ func (c *Converter) InlineToString(b *notionapi.TextSpan) string {
 			text = fmt.Sprintf(`%s[%s](%s)%s`, before, text, uri, after)
 		case notionapi.AttrUser:
 			userID := notionapi.AttrGetUserID(attr)
-			text = fmt.Sprintf(`@%s`, notionapi.ResolveUser(c.Page, userID))
+			text = fmt.Sprintf(`@%s`, notionapi.GetUserNameByID(c.Page, userID))
 		case notionapi.AttrDate:
 			date := notionapi.AttrGetDate(attr)
 			text = c.FormatDate(date)

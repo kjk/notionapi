@@ -73,7 +73,7 @@ func collectCollectionsInfo(page *notionapi.Page) {
 		if block.Type == notionapi.BlockCollectionView {
 			viewInfo := block.CollectionViews[0]
 			collection := viewInfo.Collection
-			schema := collection.CollectionSchema
+			schema := collection.Schema
 			for _, colInfo := range schema {
 				typ := colInfo.Type
 				collectionSchemaTypes[typ] = true

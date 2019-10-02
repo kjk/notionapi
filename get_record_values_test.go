@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -42,16 +42,21 @@ const (
 func TestGetRecordValues1(t *testing.T) {
 	var res GetRecordValuesResponse
 	err := json.Unmarshal([]byte(getRecordValuesJSON1), &res)
-	assert.NoError(t, err)
-	assert.NotNil(t, res.Results)
-	assert.Equal(t, 1, len(res.Results))
+	require.NoError(t, err)
+	require.NotNil(t, res.Results)
+	require.Equal(t, 1, len(res.Results))
+	for _, rec := range res.Results {
+		err = parseRecord(TableBlock, rec)
+		require.NoError(t, err)
+	}
+
 	{
 		res0 := res.Results[0]
-		assert.Equal(t, RoleReader, res0.Role)
-		v := res0.Value
-		assert.True(t, v.Alive)
-		assert.Equal(t, "300db9dc-27c8-4958-a08b-8d0c37f4cfe5", v.ParentID)
-		assert.Equal(t, BlockPage, v.Type)
-		assert.Equal(t, int64(34), v.Version)
+		require.Equal(t, RoleReader, res0.Role)
+		v := res0.Block
+		require.True(t, v.Alive)
+		require.Equal(t, "300db9dc-27c8-4958-a08b-8d0c37f4cfe5", v.ParentID)
+		require.Equal(t, BlockPage, v.Type)
+		require.Equal(t, int64(34), v.Version)
 	}
 }

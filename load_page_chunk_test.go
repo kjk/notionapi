@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -130,24 +130,28 @@ const (
 func TestLoadPageChunk1(t *testing.T) {
 	var res LoadPageChunkResponse
 	err := json.Unmarshal([]byte(loadPageJSON1), &res)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	blocks := res.RecordMap.Blocks
-	assert.Equal(t, 3, len(blocks))
-	{
-		v := blocks["4c6a54c6-8b3e-4ea2-af9c-faabcc88d58d"].Value
-		assert.True(t, v.Alive)
-		assert.Equal(t, "4c6a54c6-8b3e-4ea2-af9c-faabcc88d58d", v.ID)
-		assert.Equal(t, "300db9dc-27c8-4958-a08b-8d0c37f4cfe5", v.ParentID)
-		assert.Equal(t, BlockPage, v.Type)
-		assert.Equal(t, int64(34), v.Version)
+	require.Equal(t, 3, len(blocks))
+	for _, rec := range blocks {
+		err = parseRecord(TableBlock, rec)
+		require.NoError(t, err)
 	}
 	{
-		v := blocks["c76d351e-e836-4a04-8f09-85c893660b4e"].Value
-		assert.True(t, v.Alive)
-		assert.Equal(t, "c76d351e-e836-4a04-8f09-85c893660b4e", v.ID)
-		assert.Equal(t, "4c6a54c6-8b3e-4ea2-af9c-faabcc88d58d", v.ParentID)
-		assert.Equal(t, BlockText, v.Type)
-		assert.Equal(t, int64(66), v.Version)
+		v := blocks["4c6a54c6-8b3e-4ea2-af9c-faabcc88d58d"].Block
+		require.True(t, v.Alive)
+		require.Equal(t, "4c6a54c6-8b3e-4ea2-af9c-faabcc88d58d", v.ID)
+		require.Equal(t, "300db9dc-27c8-4958-a08b-8d0c37f4cfe5", v.ParentID)
+		require.Equal(t, BlockPage, v.Type)
+		require.Equal(t, int64(34), v.Version)
+	}
+	{
+		v := blocks["c76d351e-e836-4a04-8f09-85c893660b4e"].Block
+		require.True(t, v.Alive)
+		require.Equal(t, "c76d351e-e836-4a04-8f09-85c893660b4e", v.ID)
+		require.Equal(t, "4c6a54c6-8b3e-4ea2-af9c-faabcc88d58d", v.ParentID)
+		require.Equal(t, BlockText, v.Type)
+		require.Equal(t, int64(66), v.Version)
 
 	}
 }
