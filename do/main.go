@@ -220,6 +220,11 @@ func main() {
 	parseFlags()
 	must(os.MkdirAll(cacheDir, 0755))
 
+	if false {
+		testSubPages()
+		return
+	}
+
 	if flgCleanCache {
 		removeFilesInDir(cacheDir)
 	}
@@ -230,6 +235,8 @@ func main() {
 	}
 
 	if flgSmokeTest {
+		// smoke test includes sanity test
+		sanityTests()
 		smokeTest()
 		return
 	}
