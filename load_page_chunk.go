@@ -38,37 +38,6 @@ type RecordMap struct {
 	Discussions     map[string]*Record `jsoon:"discussion"`
 }
 
-// AggregateQuery describes an aggregate query
-type AggregateQuery struct {
-	// e.g. "count"
-	AggregationType string `json:"aggregation_type"`
-	ID              string `json:"id"`
-	Property        string `json:"property"`
-	// "title" is the special field that references a page
-	Type string `json:"type"`
-	// "table", "list"
-	ViewType string `json:"view_type"`
-}
-
-// FilterQuery describes the filtering of a query
-// TODO: rename QueryFilter
-type FilterQuery struct {
-	Comparator string `json:"comparator"`
-	ID         string `json:"id"`
-	Property   string `json:"property"`
-	Type       string `json:"type"`
-	Value      string `json:"value"`
-}
-
-// SortQuery describes the sorting of a query
-// TODO: rename QuerySort
-type SortQuery struct {
-	ID        string `json:"id"`
-	Direction string `json:"direction"`
-	Property  string `json:"property"`
-	Type      string `json:"type"`
-}
-
 // LoadPageChunk executes a raw API call /api/v3/loadPageChunk
 func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPageChunkResponse, error) { // emulating notion's website api usage: 50 items on first request,
 	// 30 on subsequent requests

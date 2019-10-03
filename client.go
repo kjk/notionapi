@@ -511,11 +511,8 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				//return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
 				continue
 			}
-			var agg []*AggregateQuery
-			if collectionView.Query != nil {
-				agg = collectionView.Query.Aggregate
-			}
-			res, err := c.QueryCollection(collectionID, collectionViewID, agg, user)
+			q := collectionView.Query
+			res, err := c.QueryCollection(collectionID, collectionViewID, q, user)
 			if err != nil {
 				return nil, err
 			}
@@ -525,7 +522,9 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				CollectionView: collectionView,
 				Collection:     collection,
 			}
-			buildTableView(tableView, res)
+			if err := buildTableView(tableView, res); err != nil {
+				return nil, err
+			}
 			block.TableViews = append(block.TableViews, tableView)
 			p.TableViews = append(p.TableViews, tableView)
 		}
