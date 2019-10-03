@@ -1320,9 +1320,7 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 	} else if typ == notionapi.ColumnTypeMultiSelect {
 		vals := strings.Split(colVal, ",")
 		s := ""
-		for i := range vals {
-			// TODO: Notion prints in reverse order
-			idx := len(vals) - 1 - i
+		for idx := range vals {
 			val := vals[idx]
 			if val == "" {
 				continue
