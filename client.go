@@ -538,6 +538,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				collInfo.CollectionRows = append(collInfo.CollectionRows, rowBlock.Block)
 			}
 			block.CollectionViews = append(block.CollectionViews, collInfo)
+			buildTableView(tableView)
 			p.TableViews = append(p.TableViews, tableView)
 		}
 	}
@@ -569,4 +570,20 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	}
 
 	return p, nil
+}
+
+func buildTableView(tv *TableView) {
+	var cols []*TableProperty
+	cv := tv.CollectionView
+	//c := tv.Collection
+	props := cv.Format.TableProperties
+	for _, prop := range props {
+		if prop.Visible {
+			cols = append(cols, prop)
+		}
+	}
+	/*
+		for _, rowID := range cv.PageSort {
+
+		}*/
 }

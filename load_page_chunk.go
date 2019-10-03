@@ -183,12 +183,6 @@ type CollectionColumnOption struct {
 	Value string `json:"value"`
 }
 
-// UserWithRole describes a user and its role
-type UserWithRole struct {
-	Role  string `json:"role"`
-	Value *User  `json:"value"`
-}
-
 // User describes a user
 type User struct {
 	Email                      string `json:"email"`

@@ -5,7 +5,7 @@ import (
 )
 
 // CreateEmailUser invites a new user through his email address
-func (c *Client) CreateEmailUser(email string) (*UserWithRole, error) {
+func (c *Client) CreateEmailUser(email string) (*User, error) {
 	req := struct {
 		Email string `json:"email"`
 	}{
@@ -13,19 +13,19 @@ func (c *Client) CreateEmailUser(email string) (*UserWithRole, error) {
 	}
 
 	var rsp struct {
-		UserID    string `json:"userId"`
-		RecordMap struct {
-			NotionUser map[string]UserWithRole `json:"notion_user"`
-		} `json:"recordMap"`
+		UserID    string     `json:"userId"`
+		RecordMap *RecordMap `json:"recordMap"`
 	}
 
 	apiURL := "/api/v3/createEmailUser"
 	_, err := doNotionAPI(c, apiURL, req, &rsp)
 
-	users, ok := rsp.RecordMap.NotionUser[rsp.UserID]
+	recordMap := rsp.RecordMap
+	parseRecordMap(recordMap)
+	users, ok := recordMap.Users[rsp.UserID]
 	if !ok {
 		return nil, errors.New("error inviting user")
 	}
 
-	return &users, err
+	return users.User, err
 }
