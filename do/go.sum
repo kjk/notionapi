@@ -15,6 +15,8 @@ github.com/kjk/fmthtml v0.0.0-20190816041536-39f5e479d32d h1:XPQyRFr5tgB3me4Y3H7
 github.com/kjk/fmthtml v0.0.0-20190816041536-39f5e479d32d/go.mod h1:lui2Jr5/5hp4zegfsA3aIlfPAjRAwWIxY6Nm/JjbQM0=
 github.com/kjk/siser v0.0.0-20190801014033-b3367920d7f2 h1:vrqsThWMeIUgprELZhUEw0wFu/LJANlftGo6US4vIDg=
 github.com/kjk/siser v0.0.0-20190801014033-b3367920d7f2/go.mod h1:5VyY+9nF1wpSfWAIM/mIrd0fZCiA/6IK6CSf3PnjfMA=
+github.com/kjk/wc v0.0.0-20190930115922-d3d14fbdd13b h1:RQzta8Igtq6+/yGhFM11Ac2NFclZnrcNKzg/haxpKdM=
+github.com/kjk/wc v0.0.0-20190930115922-d3d14fbdd13b/go.mod h1:GY03jZd//g0dg742p+znkwa+CRkieCcUt8FFAm4Qces=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=

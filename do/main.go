@@ -34,6 +34,8 @@ var (
 	// html generated for a page
 	flgNoOpen bool
 
+	flgWc bool
+
 	flgExportPage string
 	flgExportType string
 	flgRecursive  bool
@@ -76,6 +78,7 @@ func parseFlags() {
 	flag.BoolVar(&flgReExport, "re-export", false, "if true, will re-export from notion")
 	flag.BoolVar(&flgNoCache, "no-cache", false, "if true, will not use a cached version in log/ directory")
 	flag.BoolVar(&flgNoOpen, "no-open", false, "if true, will not automatically open the browser with html file generated with -tohtml")
+	flag.BoolVar(&flgWc, "wc", false, "wc -l on source files")
 	flag.Parse()
 
 	// normalize ids early on
@@ -222,6 +225,11 @@ func main() {
 
 	if false {
 		testSubPages()
+		return
+	}
+
+	if flgWc {
+		doLineCount()
 		return
 	}
 
