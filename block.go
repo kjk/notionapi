@@ -8,85 +8,83 @@ import (
 )
 
 const (
-	// TODO: put in alphabetica order
 	// BlockAudio is audio embed (e.g. an mp3 file)
 	BlockAudio = "audio"
-	// BlockPage is a notion Page
-	BlockPage = "page"
-	// BlockText is a text block
-	BlockText = "text"
 	// BlockBookmark is a bookmark block
 	BlockBookmark = "bookmark"
+	// BlockBreadcrumb is breadcrumb block
+	BlockBreadcrumb = "breadcrumb"
 	// BlockBulletedList is a bulleted list block
 	BlockBulletedList = "bulleted_list"
-	// BlockNumberedList is a numbered list block
-	BlockNumberedList = "numbered_list"
-	// BlockToggle is a toggle block
-	BlockToggle = "toggle"
-	// BlockTodo is a todo block
-	BlockTodo = "to_do"
-	// BlockDivider is a divider block
-	BlockDivider = "divider"
-	// BlockImage is an image block
-	BlockImage = "image"
-	// BlockHeader is a header block
-	BlockHeader = "header"
-	// BlockSubHeader is a header block
-	BlockSubHeader = "sub_header"
-	// BlockSubSubHeader
-	BlockSubSubHeader = "sub_sub_header"
-	// BlockQuote is a quote block
-	BlockQuote = "quote"
-	// BlockComment is a comment block
-	BlockComment = "comment"
 	// BlockCode is a code block
 	BlockCode = "code"
+	// BlockCodepen is embedded codepen block
+	BlockCodepen = "codepen"
+	// BlockCallout is a callout
+	BlockCallout = "callout"
+	// BlockColumn is a child of TypeColumnList
+	BlockColumn = "column"
 	// BlockColumnList is for multi-column. Number of columns is
 	// number of content blocks of type TypeColumn
 	BlockColumnList = "column_list"
-	// BlockColumn is a child of TypeColumnList
-	BlockColumn = "column"
-
-	// TODO: those are probably CollectionViewType
-	// BlockTable is a table block
-	BlockTable = "table"
-	// BlockList is a lists block
-	BlockList = "list"
-
 	// BlockCollectionView is a collection view block for inline collections
 	BlockCollectionView = "collection_view"
 	// BlockCollectionViewPage is a page that is a collection
 	BlockCollectionViewPage = "collection_view_page"
-	// BlockVideo is youtube video embed
-	BlockVideo = "video"
-	// BlockFile is an embedded file
-	BlockFile = "file"
-	// BlockPDF is an embedded pdf file
-	BlockPDF = "pdf"
-	// BlockGist is embedded gist block
-	BlockGist = "gist"
+	// BlockComment is a comment block
+	BlockComment = "comment"
+	// BlockDivider is a divider block
+	BlockDivider = "divider"
 	// BlockDrive is embedded Google Drive file
 	BlockDrive = "drive"
-	// BlockTweet is embedded gist block
-	BlockTweet = "tweet"
-	// BlockMaps is embedded Google Map block
-	BlockMaps = "maps"
-	// BlockCodepen is embedded codepen block
-	BlockCodepen = "codepen"
 	// BlockEmbed is a generic oembed link
 	BlockEmbed = "embed"
-	// BlockCallout is a callout
-	BlockCallout = "callout"
-	// BlockTableOfContents is table of contents
-	BlockTableOfContents = "table_of_contents"
-	// BlockBreadcrumb is breadcrumb block
-	BlockBreadcrumb = "breadcrumb"
 	// BlockEquation is TeX equation block
 	BlockEquation = "equation"
 	// BlockFactory represents a factory block
 	BlockFactory = "factory"
 	// BlockFigma represents figma embed
 	BlockFigma = "figma"
+	// BlockFile is an embedded file
+	BlockFile = "file"
+	// BlockGist is embedded gist block
+	BlockGist = "gist"
+	// BlockHeader is a header block
+	BlockHeader = "header"
+	// BlockImage is an image block
+	BlockImage = "image"
+	// BlockMaps is embedded Google Map block
+	BlockMaps = "maps"
+	// BlockNumberedList is a numbered list block
+	BlockNumberedList = "numbered_list"
+	// BlockPDF is an embedded pdf file
+	BlockPDF = "pdf"
+	// BlockPage is a notion Page
+	BlockPage = "page"
+	// BlockQuote is a quote block
+	BlockQuote = "quote"
+	// BlockSubHeader is a header block
+	BlockSubHeader = "sub_header"
+	// BlockSubSubHeader
+	BlockSubSubHeader = "sub_sub_header"
+	// BlockTableOfContents is table of contents
+	BlockTableOfContents = "table_of_contents"
+	// BlockText is a text block
+	BlockText = "text"
+	// BlockTodo is a todo block
+	BlockTodo = "to_do"
+	// BlockToggle is a toggle block
+	BlockToggle = "toggle"
+	// BlockTweet is embedded gist block
+	BlockTweet = "tweet"
+	// BlockVideo is youtube video embed
+	BlockVideo = "video"
+
+	// TODO: those are probably CollectionViewType
+	// BlockTable is a table block
+	BlockTable = "table"
+	// BlockList is a lists block
+	BlockList = "list"
 )
 
 // FormatBookmark describes format for BlockBookmark
