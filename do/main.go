@@ -55,8 +55,8 @@ var (
 )
 
 var (
-	dataDir  = "data"
-	cacheDir = filepath.Join("data", "cache")
+	dataDir  = "tmpdata"
+	cacheDir = filepath.Join(dataDir, "cache")
 )
 
 func parseFlags() {

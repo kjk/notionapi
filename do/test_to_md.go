@@ -118,7 +118,7 @@ func exportPages(pageID string, exportType string) map[string][]byte {
 		ext = "html"
 	}
 	name := pageID + "-" + ext + ".zip"
-	zipPath := filepath.Join("data", name)
+	zipPath := filepath.Join(dataDir, name)
 	if flgReExport {
 		os.Remove(zipPath)
 	}

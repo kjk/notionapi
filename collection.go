@@ -18,6 +18,22 @@ type CollectionColumnOption struct {
 	Value string `json:"value"`
 }
 
+type FormulaArg struct {
+	Name       *string `json:"name,omitempty"`
+	ResultType string  `json:"result_type"`
+	Type       string  `json:"type"`
+	Value      *string `json:"value,omitempty"`
+	ValueType  *string `json:"value_type,omitempty"`
+}
+
+type ColumnFormula struct {
+	Args       []FormulaArg `json:"args"`
+	Name       string       `json:"name"`
+	Operator   string       `json:"operator"`
+	ResultType string       `json:"result_type"`
+	Type       string       `json:"type"`
+}
+
 // ColumnSchema describes a info of a collection column
 type ColumnSchema struct {
 	Name string `json:"name"`
@@ -28,6 +44,7 @@ type ColumnSchema struct {
 	NumberFormat string `json:"number_format"`
 
 	// For Type == ColumnTypeRollup
+	Aggregation        string `json:"aggregation"` // e.g. "unique"
 	TargetProperty     string `json:"target_property"`
 	RelationProperty   string `json:"relation_property"`
 	TargetPropertyType string `json:"target_property_type"`
@@ -35,6 +52,9 @@ type ColumnSchema struct {
 	// for Type == ColumnTypeRelation
 	CollectionID string `json:"collection_id"`
 	Property     string `json:"property"`
+
+	// for Type == ColumnTypeFormula
+	Formula *ColumnFormula
 
 	Options []*CollectionColumnOption `json:"options"`
 

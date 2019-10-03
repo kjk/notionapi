@@ -35,7 +35,7 @@ func loadAndRenderPageRecur(pageID string) {
 // it tries to exercise as many features as possible while still
 // being reasonably fast
 func smokeTest() {
-	smokeDir = filepath.Join("data", "smoke")
+	smokeDir = filepath.Join(dataDir, "smoke")
 	recreateDir(smokeDir)
 	// over-write cacheDir
 	defer func(curr string) {
