@@ -107,7 +107,8 @@ type TableView struct {
 	Collection     *Collection
 
 	// a table is an array of rows
-	Rows []*TableRow
+	ColumnHeaders []*TableProperty
+	Rows          []*TableRow
 }
 
 func (t *TableView) RowCount() int {

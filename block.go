@@ -298,7 +298,7 @@ const (
 	PermissionPublic = "public_permission"
 )
 
-// Permission describes user permissions o
+// Permission represents user permissions o
 type Permission struct {
 	Type string `json:"type"`
 
@@ -311,51 +311,6 @@ type Permission struct {
 	// if Type == "public_permission"
 	AllowDuplicate            bool `json:"allow_duplicate"`
 	AllowSearchEngineIndexing bool `json:"allow_search_engine_indexing"`
-}
-
-// CollectionView represents a collection view
-type CollectionView struct {
-	ID          string       `json:"id"`
-	Version     int64        `json:"version"`
-	Type        string       `json:"type"` // "table"
-	Format      *FormatTable `json:"format"`
-	Name        string       `json:"name"`
-	ParentID    string       `json:"parent_id"`
-	ParentTable string       `json:"parent_table"`
-	Query       *Query       `json:"query"`
-	Alive       bool         `json:"alive"`
-	PageSort    []string     `json:"page_sort"`
-
-	// set by us
-	RawJSON map[string]interface{} `json:"-"`
-}
-
-// Discussion represents a discussion
-type Discussion struct {
-	ID          string   `json:"id"`
-	Version     int64    `json:"version"`
-	ParentID    string   `json:"parent_id"`
-	ParentTable string   `json:"parent_table"`
-	Resolved    bool     `json:"resolved"`
-	Comments    []string `json:"comments"`
-	// set by us
-	RawJSON map[string]interface{} `json:"-"`
-}
-
-// Comment describes a single comment in a discussion
-type Comment struct {
-	ID             string      `json:"id"`
-	Version        int64       `json:"version"`
-	Alive          bool        `json:"alive"`
-	ParentID       string      `json:"parent_id"`
-	ParentTable    string      `json:"parent_table"`
-	CreatedBy      string      `json:"created_by"`
-	CreatedTime    int64       `json:"created_time"`
-	Text           interface{} `json:"text"`
-	LastEditedTime int64       `json:"last_edited_time"`
-
-	// set by us
-	RawJSON map[string]interface{} `json:"-"`
 }
 
 // Block describes a block

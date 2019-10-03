@@ -38,43 +38,6 @@ type RecordMap struct {
 	Discussions     map[string]*Record `jsoon:"discussion"`
 }
 
-// Space describes Notion workspace.
-type Space struct {
-	ID                  string                  `json:"id"`
-	Version             float64                 `json:"version"`
-	Name                string                  `json:"name"`
-	Domain              string                  `json:"domain"`
-	Permissions         []*SpacePermissions     `json:"permissions,omitempty"`
-	PermissionGroups    []SpacePermissionGroups `json:"permission_groups"`
-	Icon                string                  `json:"icon"`
-	EmailDomains        []string                `json:"email_domains"`
-	BetaEnabled         bool                    `json:"beta_enabled"`
-	Pages               []string                `json:"pages,omitempty"`
-	DisablePublicAccess bool                    `json:"disable_public_access"`
-	DisableGuests       bool                    `json:"disable_guests"`
-	DisableMoveToSpace  bool                    `json:"disable_move_to_space"`
-	DisableExport       bool                    `json:"disable_export"`
-
-	CreatedBy      string `json:"created_by"`
-	CreatedTime    int64  `json:"created_time"`
-	LastEditedBy   string `json:"last_edited_by"`
-	LastEditedTime int64  `json:"last_edited_time"`
-
-	RawJSON map[string]interface{} `json:"-"`
-}
-
-type SpacePermissions struct {
-	Role   string `json:"role"`
-	Type   string `json:"type"` // e.g. "user_permission"
-	UserID string `json:"user_id"`
-}
-
-type SpacePermissionGroups struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	UserIds []string `json:"user_ids,omitempty"`
-}
-
 // AggregateQuery describes an aggregate query
 type AggregateQuery struct {
 	// e.g. "count"
@@ -142,7 +105,8 @@ func (c *Collection) GetName() string {
 
 // CollectionFormat describes format of a collection
 type CollectionFormat struct {
-	CollectionPageProperties []*CollectionPageProperty `json:"collection_page_properties"`
+	CoverPosition  float64                   `json:"collection_cover_position"`
+	PageProperties []*CollectionPageProperty `json:"collection_page_properties"`
 }
 
 // CollectionPageProperty describes properties of a collection
@@ -181,51 +145,6 @@ type CollectionColumnOption struct {
 	Color string `json:"color"`
 	ID    string `json:"id"`
 	Value string `json:"value"`
-}
-
-// User describes a user
-type User struct {
-	Email                      string `json:"email"`
-	FamilyName                 string `json:"family_name"`
-	GivenName                  string `json:"given_name"`
-	ID                         string `json:"id"`
-	Locale                     string `json:"locale"`
-	MobileOnboardingCompleted  bool   `json:"mobile_onboarding_completed"`
-	OnboardingCompleted        bool   `json:"onboarding_completed"`
-	ClipperOnboardingCompleted bool   `json:"clipper_onboarding_completed"`
-	ProfilePhoto               string `json:"profile_photo"`
-	TimeZone                   string `json:"time_zone"`
-	Version                    int    `json:"version"`
-
-	RawJSON map[string]interface{} `json:"-"`
-}
-
-// Date describes a date
-type Date struct {
-	// "MMM DD, YYYY", "MM/DD/YYYY", "DD/MM/YYYY", "YYYY/MM/DD", "relative"
-	DateFormat string    `json:"date_format"`
-	Reminder   *Reminder `json:"reminder,omitempty"`
-	// "2018-07-12"
-	StartDate string `json:"start_date"`
-	// "09:00"
-	StartTime string `json:"start_time,omitempty"`
-	// "2018-07-12"
-	EndDate string `json:"end_date,omitempty"`
-	// "09:00"
-	EndTime string `json:"end_time,omitempty"`
-	// "America/Los_Angeles"
-	TimeZone *string `json:"time_zone,omitempty"`
-	// "H:mm" for 24hr, not given for 12hr
-	TimeFormat string `json:"time_format,omitempty"`
-	// "date", "datetime", "datetimerange", "daterange"
-	Type string `json:"type"`
-}
-
-// Reminder describes date reminder
-type Reminder struct {
-	Time  string `json:"time"` // e.g. "09:00"
-	Unit  string `json:"unit"` // e.g. "day"
-	Value int64  `json:"value"`
 }
 
 // LoadPageChunk executes a raw API call /api/v3/loadPageChunk

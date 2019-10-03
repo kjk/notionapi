@@ -582,6 +582,7 @@ func buildTableView(tv *TableView) {
 			cols = append(cols, prop)
 		}
 	}
+	tv.ColumnHeaders = cols
 	/*
 		for _, rowID := range cv.PageSort {
 

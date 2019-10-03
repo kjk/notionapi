@@ -6,6 +6,34 @@ import (
 	"time"
 )
 
+// Date represents a date
+type Date struct {
+	// "MMM DD, YYYY", "MM/DD/YYYY", "DD/MM/YYYY", "YYYY/MM/DD", "relative"
+	DateFormat string    `json:"date_format"`
+	Reminder   *Reminder `json:"reminder,omitempty"`
+	// "2018-07-12"
+	StartDate string `json:"start_date"`
+	// "09:00"
+	StartTime string `json:"start_time,omitempty"`
+	// "2018-07-12"
+	EndDate string `json:"end_date,omitempty"`
+	// "09:00"
+	EndTime string `json:"end_time,omitempty"`
+	// "America/Los_Angeles"
+	TimeZone *string `json:"time_zone,omitempty"`
+	// "H:mm" for 24hr, not given for 12hr
+	TimeFormat string `json:"time_format,omitempty"`
+	// "date", "datetime", "datetimerange", "daterange"
+	Type string `json:"type"`
+}
+
+// Reminder represents a date reminder
+type Reminder struct {
+	Time  string `json:"time"` // e.g. "09:00"
+	Unit  string `json:"unit"` // e.g. "day"
+	Value int64  `json:"value"`
+}
+
 // parseNotionDateTime parses date and time as sent in JSON by notion
 // server and returns time.Time
 // date is sent in "2019-04-09" format
@@ -61,7 +89,7 @@ func formatDateTime(d *Date, date string, t string) string {
 	goFormat := convertNotionTimeFormatToGoFormat(d, withTime)
 	s := dt.Format(goFormat)
 	// TODO: this is a lousy way of doing it
-	for i := 0; i <=9 ; i++ {
+	for i := 0; i <= 9; i++ {
 		toReplace := fmt.Sprintf("0%d:", i)
 		replacement := fmt.Sprintf("%d:", i)
 		s = strings.Replace(s, toReplace, replacement, 1)
