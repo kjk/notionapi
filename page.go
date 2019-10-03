@@ -26,7 +26,9 @@ type Page struct {
 	DiscussionRecords     []*Record
 	CommentRecords        []*Record
 
-	Tables []*Table
+	// for every block of type collection_view and its view_ids
+	// we build TableView representing that collection view_id
+	TableViews []*TableView
 
 	idToBlock          map[string]*Block
 	idToUser           map[string]*User
@@ -95,9 +97,9 @@ type TableRow struct {
 	Columns []*TableCell
 }
 
-// Table represents a table (Notion calls it a Collection View)
-// We build a nicer representation
-type Table struct {
+// TableView represents a table (Notion calls it a Collection View)
+// We build a representation easier to work with
+type TableView struct {
 	// this is the raw data from which we build a representation
 	// that is nicer to work with
 	Page           *Page
@@ -108,11 +110,11 @@ type Table struct {
 	Rows []*TableRow
 }
 
-func (t *Table) RowCount() int {
+func (t *TableView) RowCount() int {
 	return len(t.Rows)
 }
 
-func (t *Table) ColumnCount() int {
+func (t *TableView) ColumnCount() int {
 	if len(t.Rows) == 0 {
 		return 0
 	}

@@ -53,7 +53,7 @@ const (
 	// BlockList is a lists block
 	BlockList = "list"
 
-	// BlockCollectionView is a collection view block
+	// BlockCollectionView is a collection view block for inline collections
 	BlockCollectionView = "collection_view"
 	// BlockCollectionViewPage is a page that is a collection
 	BlockCollectionViewPage = "collection_view_page"
@@ -453,8 +453,6 @@ type CollectionViewInfo struct {
 	CollectionView   *CollectionView
 	Collection       *Collection
 	CollectionRows   []*Block
-	// for serialization of state to JSON
-	queryCollectionResponse *QueryCollectionResponse
 }
 
 func (b *Block) Prop(key string) (interface{}, bool) {

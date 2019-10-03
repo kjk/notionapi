@@ -1311,11 +1311,8 @@ func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notio
 	}
 	if colInfo.Type == notionapi.ColumnTypeTitle {
 		if isEmptyBlock(row) {
-			// row here is a page. For cosmetics we don't want to link
-			// to empty pages.
-			if colVal == "" {
-				colVal = "Untitled"
-			}
+			// row here is a page. For cosmetic reasons we don't want
+			// to link to empty pages.
 		} else {
 			uri := c.tableCellURL(row, block, collection)
 			if colVal == "" {

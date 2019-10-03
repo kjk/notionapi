@@ -58,7 +58,7 @@ func parseRecord(table string, r *Record) error {
 		panicIf(r.Table != table)
 	}
 
-	// set Block/Space etc. based on Table type
+	// set Block/Space etc. based on TableView type
 	var pRawJSON *map[string]interface{}
 	var obj interface{}
 	switch table {

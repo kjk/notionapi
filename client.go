@@ -520,11 +520,14 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				return nil, err
 			}
 
-			// this is repeated in unmarshalCollectionViewInfo
 			collInfo := &CollectionViewInfo{
-				CollectionView:          collectionView,
-				Collection:              collection,
-				queryCollectionResponse: res,
+				CollectionView: collectionView,
+				Collection:     collection,
+			}
+			tableView := &TableView{
+				Page:           p,
+				CollectionView: collectionView,
+				Collection:     collection,
 			}
 			blockIds := res.Result.BlockIDS
 			for _, id := range blockIds {
@@ -535,6 +538,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				collInfo.CollectionRows = append(collInfo.CollectionRows, rowBlock.Block)
 			}
 			block.CollectionViews = append(block.CollectionViews, collInfo)
+			p.TableViews = append(p.TableViews, tableView)
 		}
 	}
 
