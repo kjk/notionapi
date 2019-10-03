@@ -171,6 +171,8 @@ func (t *TableView) Cell(row, col int) []*TextSpan {
 	return t.Rows[row].Columns[col]
 }
 
+// TODO: some tables miss title column in TableProperties
+// maybe synthesize it if doesn't exist as a first column
 func buildTableView(tv *TableView, res *QueryCollectionResponse) error {
 	cv := tv.CollectionView
 	c := tv.Collection

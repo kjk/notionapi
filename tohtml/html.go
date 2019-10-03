@@ -1265,6 +1265,7 @@ func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
 	c.Printf(`</div>`)
 }
 
+/*
 func hasTitleColumn(columns []*notionapi.ColumnInfo) bool {
 	for _, ci := range columns {
 		if ci.Type() == notionapi.ColumnTypeTitle {
@@ -1273,6 +1274,7 @@ func hasTitleColumn(columns []*notionapi.ColumnInfo) bool {
 	}
 	return false
 }
+*/
 
 func (c *Converter) renderTableHeader(ci *notionapi.ColumnInfo) {
 	name := ""
