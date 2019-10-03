@@ -100,12 +100,13 @@ func filePathForCollection(page *notionapi.Page, col *notionapi.Collection) stri
 	return name
 }
 
-func (c *Converter) tableCellURL(tv *notionapi.TableView, tr *notionapi.TableRow, ci *notionapi.ColumnInfo) string {
-	if c.TableCellURLOverwrite != nil {
-		return c.TableCellURLOverwrite(tv, tr, ci)
+// title columns are links to pages. this generates a link to a page
+func (c *Converter) tableTitleCellURL(tv *notionapi.TableView, row, col int) string {
+	if c.TableTitleCellURLOverride != nil {
+		return c.TableTitleCellURLOverride(tv, row, col)
 	}
 	title := ""
-	titleSpans := tr.Columns[ci.Index]
+	titleSpans := tv.CellContent(row, col)
 	if len(titleSpans) == 0 {
 		logf("title is empty)")
 	} else {
@@ -115,8 +116,7 @@ func (c *Converter) tableCellURL(tv *notionapi.TableView, tr *notionapi.TableRow
 		title = "Untitled"
 	}
 	name := safeName(title) + ".html"
-	col := tv.Collection
-	colName := col.GetName()
+	colName := tv.Collection.GetName()
 	if colName == "" {
 		colName = "Untitled Database"
 	}
@@ -265,8 +265,8 @@ type Converter struct {
 	// to destination URLs
 	RewriteURL func(url string) string
 
-	// Returns URL for a table cell that links to another table
-	TableCellURLOverwrite func(tv *notionapi.TableView, tr *notionapi.TableRow, ci *notionapi.ColumnInfo) string
+	// Returns URL for a title cell (that links to a page)
+	TableTitleCellURLOverride func(tv *notionapi.TableView, row, col int) string
 
 	// if true, generates stand-alone HTML with inline CSS
 	// otherwise it's just the inner part going inside the body
@@ -1268,8 +1268,9 @@ func hasTitleColumn(columns []*notionapi.ColumnInfo) bool {
 }
 */
 
-func (c *Converter) renderTableHeader(ci *notionapi.ColumnInfo) {
+func (c *Converter) renderTableHeader(tv *notionapi.TableView, col int) {
 	name := ""
+	ci := tv.Columns[col]
 	if ci != nil {
 		name = ci.Name()
 		name = EscapeHTML(name)
@@ -1284,23 +1285,25 @@ func isEmptyBlock(block *notionapi.Block) bool {
 	return len(block.ContentIDs) == 0
 }
 
-func (c *Converter) renderTableCell(tv *notionapi.TableView, tr *notionapi.TableRow, ci *notionapi.ColumnInfo) {
+func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
+	ci := tv.Columns[col]
+	tr := tv.Rows[row]
 	if ci == nil || ci.Schema == nil {
 		logf("ci or ci.Schema is nil\n")
 		// happens in fd56bfc6a3f0471a9f0cc3110ff19a79
 		return
 	}
-	row := tr.Page
+	rowPage := tr.Page
 	colName := ci.ID()
 	schema := ci.Schema
-	textSpans := tr.Columns[ci.Index]
+	textSpans := tv.CellContent(row, col)
 	colVal := c.GetInlineContent(textSpans)
 	if schema.Type == notionapi.ColumnTypeTitle {
-		if isEmptyBlock(row) {
+		if isEmptyBlock(rowPage) {
 			// row here is a page. For cosmetic reasons we don't want
 			// to link to empty pages.
 		} else {
-			uri := c.tableCellURL(tv, tr, ci)
+			uri := c.tableTitleCellURL(tv, row, col)
 			if colVal == "" {
 				colVal = "Untitled"
 			}
@@ -1328,11 +1331,11 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, tr *notionapi.Table
 	} else if schema.Type == notionapi.ColumnTypeCreatedTime {
 		// TODO: better formatting. Notion seems to be using
 		// relative formatting like "Today 3:03pm"
-		colVal = row.CreatedOn().Format("2006-01-02")
+		colVal = rowPage.CreatedOn().Format("2006-01-02")
 	} else if schema.Type == notionapi.ColumnTypeLastEditedTime {
 		// TODO: better formatting. Notion seems to be using
 		// relative formatting like "Today 3:03pm"
-		colVal = row.LastEditedOn().Format("2006-01-02")
+		colVal = rowPage.LastEditedOn().Format("2006-01-02")
 	} else if schema.Type == notionapi.ColumnTypeNumber {
 		// TODO: format number
 		colVal = fmtNumber(colVal, schema.NumberFormat)
@@ -1366,15 +1369,12 @@ func getMultiSelectoColor(opts []*notionapi.CollectionColumnOption, val string) 
 	return ""
 }
 
-func (c *Converter) renderTableRow(tv *notionapi.TableView, tr *notionapi.TableRow) {
-	//hasTitle := hasTitleColumn(tv.Columns)
-
+func (c *Converter) renderTableRow(tv *notionapi.TableView, row int) {
+	tr := tv.Rows[row]
 	c.Printf(`<tr id="%s">`, tr.Page.ID)
-	//if !hasTitle {
-	//	c.renderTableCell(tv, tr, tv.TitleColumnInfo)
-	//}
-	for _, ci := range tv.Columns {
-		c.renderTableCell(tv, tr, ci)
+	nCols := tv.ColumnCount()
+	for col := 0; col < nCols; col++ {
+		c.renderTableCell(tv, row, col)
 	}
 	c.Printf("</tr>\n")
 }
@@ -1393,7 +1393,8 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	// render only the first one
 	tv := block.TableViews[0]
 
-	if tv.ColumnCount() == 0 {
+	nCols := tv.ColumnCount()
+	if nCols == 0 {
 		logf("didn't find columns inof in block '%s'\n", tv.CollectionView.ID)
 		return
 	}
@@ -1415,11 +1416,8 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 			c.Printf(`<thead>`)
 			{
 				c.Printf(`<tr>`)
-				//if !hasTitle {
-				//	c.renderTableHeader(tv.TitleColumnInfo)
-				//}
-				for _, ci := range tv.Columns {
-					c.renderTableHeader(ci)
+				for col := 0; col < nCols; col++ {
+					c.renderTableHeader(tv, col)
 				}
 				c.Printf(`</tr>`)
 			}
@@ -1428,8 +1426,9 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 
 		c.Printf(`<tbody>`)
 		{
-			for _, tr := range tv.Rows {
-				c.renderTableRow(tv, tr)
+			nRows := tv.RowCount()
+			for row := 0; row < nRows; row++ {
+				c.renderTableRow(tv, row)
 			}
 		}
 		c.Printf(`</tbody>`)
