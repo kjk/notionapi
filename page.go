@@ -26,8 +26,7 @@ type Page struct {
 	DiscussionRecords     []*Record
 	CommentRecords        []*Record
 
-	// TODO: implement me
-	// Tables []*Table
+	Tables []*Table
 
 	idToBlock          map[string]*Block
 	idToUser           map[string]*User
@@ -61,7 +60,7 @@ func (p *Page) CollectionViewByID(id string) *CollectionView {
 	return p.idToCollectionView[ToDashID(id)]
 }
 
-// DiscussiomnByID returns a discussion by its id
+// DiscussionByID returns a discussion by its id
 func (p *Page) DiscussionByID(id string) *Discussion {
 	return p.idToDiscussion[ToDashID(id)]
 }
@@ -76,14 +75,50 @@ func (p *Page) Root() *Block {
 	return p.BlockByID(p.ID)
 }
 
-/*
-// Table represents a table (i.e. CollectionView)
-type Table struct {
-	CollectionView *Block      `json:"collection_view"`
-	Collection     *Collection `json:"collection"`
-	Data           []*Block
+// CellSchema describes a schema for a given cell (column)
+type CellSchema struct {
+	// TODO: implement me
 }
-*/
+
+// TableColumn represents a single cell in a table
+type TableCell struct {
+	Parent *TableRow
+
+	Value  []*TextSpan
+	Schema *CellSchema
+}
+
+type TableRow struct {
+	// data for row is stored as properties of a page
+	Page *Block
+
+	Columns []*TableCell
+}
+
+// Table represents a table (Notion calls it a Collection View)
+// We build a nicer representation
+type Table struct {
+	// this is the raw data from which we build a representation
+	// that is nicer to work with
+	Page           *Page
+	CollectionView *CollectionView
+	Collection     *Collection
+
+	// a table is an array of rows
+	Rows []*TableRow
+}
+
+func (t *Table) RowCount() int {
+	return len(t.Rows)
+}
+
+func (t *Table) ColumnCount() int {
+	if len(t.Rows) == 0 {
+		return 0
+	}
+	// we assume each row has the same amount of columns
+	return len(t.Rows[0].Columns)
+}
 
 // SetTitle changes page title
 func (p *Page) SetTitle(s string) error {
@@ -195,7 +230,6 @@ func isPageBlock(block *Block) bool {
 }
 
 // GetSubPages return list of ids for direct sub-pages of this page
-// TDOO: add pages that are title properties of collection_view
 func (p *Page) GetSubPages() []string {
 	root := p.Root()
 	panicIf(!isPageBlock(root))

@@ -69,7 +69,11 @@ type AggregationResult struct {
 
 // QueryCollection executes a raw API call /api/v3/queryCollection
 func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregateQuery []*AggregateQuery, user *User) (*QueryCollectionResponse, error) {
-	const startLimit = 70
+
+	// Notion has this as 70 and re-does the query if user scrolls to see more
+	// of the table. We start with a bigger number because we want all the data
+	// // and there seems to be no downside
+	const startLimit = 256
 
 	req := &queryCollectionRequest{
 		CollectionID:     collectionID,
@@ -86,6 +90,8 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregat
 		Limit:        startLimit,
 		UserLocale:   user.Locale,
 		UserTimeZone: user.TimeZone,
+		// don't know what this is, Notion sets it to true
+		LoadContentCover: true,
 	}
 
 	apiURL := "/api/v3/queryCollection"
@@ -96,10 +102,9 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregat
 		return nil, err
 	}
 
+	// fetch everything if a collection has more rows
+	// than we originally asked for
 	actualTotal := rsp.Result.Total
-
-	// Fetch again, now with everything
-	// TODO: there's probably a way to fetch the next chunk
 	if actualTotal > startLimit {
 		rsp = QueryCollectionResponse{}
 		req.Loader.Limit = actualTotal

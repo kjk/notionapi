@@ -34,9 +34,8 @@ type RecordMap struct {
 	Users           map[string]*Record `json:"notion_user"`
 	Collections     map[string]*Record `json:"collection"`
 	CollectionViews map[string]*Record `json:"collection_view"`
-	// TDOO: parses those types as well
-	Comments    map[string]*Record `josn:"comment"`
-	Discussions map[string]*Record `jsoon:"discussion"`
+	Comments        map[string]*Record `josn:"comment"`
+	Discussions     map[string]*Record `jsoon:"discussion"`
 }
 
 // Space describes Notion workspace.

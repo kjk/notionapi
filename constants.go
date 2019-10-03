@@ -32,16 +32,13 @@ const (
 
 const (
 	// those are Record.Type and determine the type of Record.Value
-	TableSpace = "space"
-	TableBlock = "block"
-
-	// TODO: not sure if those are values used by Notion but
-	// have to have names for those
+	TableSpace          = "space"
+	TableBlock          = "block"
 	TableUser           = "notion_user"
 	TableCollection     = "collection"
 	TableCollectionView = "collection_view"
 	TableComment        = "comment"
-	TableDiscussion     = "discusssion"
+	TableDiscussion     = "discussion"
 )
 
 const (
