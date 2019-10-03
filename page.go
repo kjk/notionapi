@@ -27,7 +27,7 @@ type Page struct {
 	CommentRecords        []*Record
 
 	// for every block of type collection_view and its view_ids
-	// we build TableView representing that collection view_id
+	// we } TableView representing that collection view_id
 	TableViews []*TableView
 
 	idToBlock          map[string]*Block

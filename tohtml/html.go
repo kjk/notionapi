@@ -1273,10 +1273,6 @@ func hasTitleColumn(columns []*notionapi.TableProperty) bool {
 	return false
 }
 
-func getColumns(view *notionapi.CollectionView) []*notionapi.TableProperty {
-	return view.Format.TableProperties
-}
-
 func (c *Converter) renderCollectionViewHeader(block *notionapi.Block, schema map[string]*notionapi.ColumnSchema, colName string) {
 	colInfo := schema[colName]
 	name := ""
@@ -1294,8 +1290,8 @@ func isEmptyBlock(block *notionapi.Block) bool {
 	return len(block.ContentIDs) == 0
 }
 
-func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notionapi.Block, viewInfo *notionapi.CollectionViewInfo, colName string) {
-	collection := viewInfo.Collection
+func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notionapi.Block, tableView *notionapi.TableView, colName string) {
+	collection := tableView.Collection
 	schema := collection.Schema
 
 	props := row.Properties
@@ -1380,17 +1376,17 @@ func getMultiSelectoColor(opts []*notionapi.CollectionColumnOption, val string) 
 	return ""
 }
 
-func (c *Converter) renderCollectionViewRow(block *notionapi.Block, row *notionapi.Block, viewInfo *notionapi.CollectionViewInfo) {
-	columns := getColumns(viewInfo.CollectionView)
+func (c *Converter) renderCollectionViewRow(block *notionapi.Block, row *notionapi.Block, tableView *notionapi.TableView) {
+	columns := tableView.CollectionView.Format.TableProperties
 	hasTitle := hasTitleColumn(columns)
 
 	c.Printf(`<tr id="%s">`, row.ID)
 	if !hasTitle {
-		c.renderCollectionVewRowCol(block, row, viewInfo, "title")
+		c.renderCollectionVewRowCol(block, row, tableView, "title")
 	}
 	for _, col := range columns {
 		colName := col.Property
-		c.renderCollectionVewRowCol(block, row, viewInfo, colName)
+		c.renderCollectionVewRowCol(block, row, tableView, colName)
 	}
 	c.Printf("</tr>\n")
 }
@@ -1402,20 +1398,21 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		pageID = notionapi.ToNoDashID(c.Page.ID)
 	}
 
-	if len(block.CollectionViews) == 0 {
+	if len(block.TableViews) == 0 {
 		logf("missing block.CollectionViews for block %s %s in page %s\n", block.ID, block.Type, pageID)
 		return
 	}
-	viewInfo := block.CollectionViews[0]
+	// render only the first one
+	viewInfo := block.TableViews[0]
 	collection := viewInfo.Collection
 	schema := collection.Schema
 
-	columns := getColumns(viewInfo.CollectionView)
+	columns := viewInfo.CollectionView.Format.TableProperties
 	if len(columns) == 0 {
 		logf("didn't find columns inof in block '%s'\n", viewInfo.CollectionView.ID)
 		return
 	}
-	isList := (viewInfo.CollectionView.Type == notionapi.CollectionViewTypeList)
+	isList := viewInfo.CollectionView.Type == notionapi.CollectionViewTypeList
 	hasTitle := hasTitleColumn(columns)
 
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)

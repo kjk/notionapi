@@ -520,10 +520,6 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				return nil, err
 			}
 
-			collInfo := &CollectionViewInfo{
-				CollectionView: collectionView,
-				Collection:     collection,
-			}
 			tableView := &TableView{
 				Page:           p,
 				CollectionView: collectionView,
@@ -535,9 +531,9 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				if !ok {
 					return nil, fmt.Errorf("didn't find block with id '%s' for collection view with id '%s'", id, collectionViewID)
 				}
-				collInfo.CollectionRows = append(collInfo.CollectionRows, rowBlock.Block)
+				tableView.CollectionRows = append(tableView.CollectionRows, rowBlock.Block)
 			}
-			block.CollectionViews = append(block.CollectionViews, collInfo)
+			block.TableViews = append(block.TableViews, tableView)
 			buildTableView(tableView)
 			p.TableViews = append(p.TableViews, tableView)
 		}
@@ -570,21 +566,4 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	}
 
 	return p, nil
-}
-
-func buildTableView(tv *TableView) {
-	var cols []*TableProperty
-	cv := tv.CollectionView
-	//c := tv.Collection
-	props := cv.Format.TableProperties
-	for _, prop := range props {
-		if prop.Visible {
-			cols = append(cols, prop)
-		}
-	}
-	tv.ColumnHeaders = cols
-	/*
-		for _, rowID := range cv.PageSort {
-
-		}*/
 }

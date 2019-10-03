@@ -353,9 +353,9 @@ type Block struct {
 	Code         string `json:"-"`
 	CodeLanguage string `json:"-"`
 
-	// for BlockCollectionView
-	// It looks like the info about which view is selected is stored in browser
-	CollectionViews []*CollectionViewInfo `json:"-"`
+	// for BlockCollectionView. There can be multiple views
+	// those correspond to ViewIDs
+	TableViews []*TableView `json:"-"`
 
 	Page *Page `json:"-"`
 

@@ -627,7 +627,7 @@ func (c *Converter) RenderColumn(block *notionapi.Block) {
 
 // RenderCollectionView renders BlockCollectionView
 func (c *Converter) RenderCollectionView(block *notionapi.Block) {
-	if len(block.CollectionViews) == 0 {
+	if len(block.TableViews) == 0 {
 		return
 	}
 	c.WriteString("RendeRenderCollectionViewrCode NYI\n")

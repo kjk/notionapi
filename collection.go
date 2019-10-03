@@ -117,16 +117,6 @@ type CollectionView struct {
 	RawJSON map[string]interface{} `json:"-"`
 }
 
-// CollectionViewInfo describes a particular view of the collection
-// TODO: same as table?
-// TODO: remove this
-type CollectionViewInfo struct {
-	OriginatingBlock *Block
-	CollectionView   *CollectionView
-	Collection       *Collection
-	CollectionRows   []*Block
-}
-
 // CellSchema describes a schema for a given cell (column)
 type CellSchema struct {
 	// TODO: implement me
@@ -147,8 +137,8 @@ type TableRow struct {
 	Columns []*TableCell
 }
 
-// TableView represents a table (Notion calls it a Collection View)
-// We build a representation easier to work with
+// TableView represents a view of a table (Notion calls it a Collection View)
+// Meant to be a representation that is easier to work with
 type TableView struct {
 	// this is the raw data from which we build a representation
 	// that is nicer to work with
@@ -159,6 +149,10 @@ type TableView struct {
 	// a table is an array of rows
 	ColumnHeaders []*TableProperty
 	Rows          []*TableRow
+
+	// TODO: temporary
+	OriginatingBlock *Block
+	CollectionRows   []*Block
 }
 
 func (t *TableView) RowCount() int {
@@ -171,4 +165,21 @@ func (t *TableView) ColumnCount() int {
 	}
 	// we assume each row has the same amount of columns
 	return len(t.Rows[0].Columns)
+}
+
+func buildTableView(tv *TableView) {
+	var cols []*TableProperty
+	cv := tv.CollectionView
+	//c := tv.Collection
+	props := cv.Format.TableProperties
+	for _, prop := range props {
+		if prop.Visible {
+			cols = append(cols, prop)
+		}
+	}
+	tv.ColumnHeaders = cols
+	/*
+		for _, rowID := range cv.PageSort {
+
+		}*/
 }
