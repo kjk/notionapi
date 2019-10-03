@@ -213,12 +213,13 @@ func buildTableView(tv *TableView, res *QueryCollectionResponse) error {
 			continue
 		}
 		propName := prop.Property
+		schema := c.Schema[propName]
 		ci := &ColumnInfo{
 			TableView: tv,
 
 			Index:    idx,
 			Property: prop,
-			Schema:   c.Schema[propName],
+			Schema:   schema,
 		}
 		idx++
 		tv.Columns = append(tv.Columns, ci)

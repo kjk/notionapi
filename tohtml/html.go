@@ -1288,17 +1288,25 @@ func isEmptyBlock(block *notionapi.Block) bool {
 func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 	ci := tv.Columns[col]
 	tr := tv.Rows[row]
-	if ci == nil || ci.Schema == nil {
-		logf("ci or ci.Schema is nil\n")
-		// happens in fd56bfc6a3f0471a9f0cc3110ff19a79
-		return
-	}
 	rowPage := tr.Page
 	colName := ci.ID()
 	schema := ci.Schema
 	textSpans := tv.CellContent(row, col)
 	colVal := c.GetInlineContent(textSpans)
-	if schema.Type == notionapi.ColumnTypeTitle {
+
+	// TODO: see e.g. b20a830016df405ea641936f8a5bd572
+	// schema can be nil for relation properties. Notion puts them as last row,
+	// the value comes from page and their schema has to be fished out
+
+	if schema == nil {
+		colNameCls := EscapeHTML(colName)
+		c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
+		return
+	}
+
+	typ := schema.Type
+
+	if typ == notionapi.ColumnTypeTitle {
 		if isEmptyBlock(rowPage) {
 			// row here is a page. For cosmetic reasons we don't want
 			// to link to empty pages.
@@ -1309,7 +1317,7 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 			}
 			colVal = fmt.Sprintf(`<a href="%s">%s</a>`, uri, colVal)
 		}
-	} else if schema.Type == notionapi.ColumnTypeMultiSelect {
+	} else if typ == notionapi.ColumnTypeMultiSelect {
 		vals := strings.Split(colVal, ",")
 		s := ""
 		for i := range vals {
@@ -1328,22 +1336,29 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 			}
 		}
 		colVal = s
-	} else if schema.Type == notionapi.ColumnTypeCreatedTime {
+	} else if typ == notionapi.ColumnTypeCreatedTime {
 		// TODO: better formatting. Notion seems to be using
 		// relative formatting like "Today 3:03pm"
 		colVal = rowPage.CreatedOn().Format("2006-01-02")
-	} else if schema.Type == notionapi.ColumnTypeLastEditedTime {
+	} else if typ == notionapi.ColumnTypeLastEditedTime {
 		// TODO: better formatting. Notion seems to be using
 		// relative formatting like "Today 3:03pm"
 		colVal = rowPage.LastEditedOn().Format("2006-01-02")
-	} else if schema.Type == notionapi.ColumnTypeNumber {
+	} else if typ == notionapi.ColumnTypeNumber {
 		// TODO: format number
 		colVal = fmtNumber(colVal, schema.NumberFormat)
+	} else if typ == notionapi.ColumnTypeLastEditedBy {
+		uid := rowPage.LastEditedBy
+		colVal = notionapi.GetUserNameByID(tv.Page, uid)
+	} else if typ == notionapi.ColumnTypeCreatedBy {
+		uid := rowPage.CreatedBy
+		colVal = notionapi.GetUserNameByID(tv.Page, uid)
 	} else if schema.Type == notionapi.ColumnTypeRelation {
 		// TODO: not sure how to format relations
 		//colVal = c.GetInlineContent(textSpans)
 		colVal = ""
 	}
+
 	colNameCls := EscapeHTML(colName)
 	c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
 }
