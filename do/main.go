@@ -234,7 +234,16 @@ func main() {
 	}
 
 	if flgCleanCache {
+		{
+			dir := filepath.Join(dataDir, "diff")
+			os.RemoveAll(dir)
+		}
+		{
+			dir := filepath.Join(dataDir, "smoke")
+			os.RemoveAll(dir)
+		}
 		removeFilesInDir(cacheDir)
+		return
 	}
 
 	if flgSanityTest {
