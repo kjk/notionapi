@@ -120,13 +120,22 @@ type CollectionView struct {
 }
 
 type TableRow struct {
+	// TableView that owns this row
+	TableView *TableView
+
 	// data for row is stored as properties of a page
-	Page    *Block
+	Page *Block
+
+	// values extracted from Page for each column
 	Columns [][]*TextSpan
 }
 
 // ColumnInfo describes a schema for a given cell (column)
 type ColumnInfo struct {
+	// TableView that owns this column
+	TableView *TableView
+
+	// so that we can access TableRow.Columns[Index]
 	Index    int
 	Schema   *ColumnSchema
 	Property *TableProperty
@@ -168,7 +177,7 @@ func (t *TableView) ColumnCount() int {
 	return len(t.Columns)
 }
 
-func (t *TableView) Cell(row, col int) []*TextSpan {
+func (t *TableView) CellContent(row, col int) []*TextSpan {
 	return t.Rows[row].Columns[col]
 }
 
@@ -185,6 +194,8 @@ func buildTableView(tv *TableView, res *QueryCollectionResponse) error {
 		}
 		propName := prop.Property
 		ci := &ColumnInfo{
+			TableView: tv,
+
 			Index:    idx,
 			Property: prop,
 			Schema:   c.Schema[propName],
@@ -204,7 +215,8 @@ func buildTableView(tv *TableView, res *QueryCollectionResponse) error {
 		}
 		b := rec.Block
 		tr := &TableRow{
-			Page: b,
+			TableView: tv,
+			Page:      b,
 		}
 		tv.Rows = append(tv.Rows, tr)
 	}
