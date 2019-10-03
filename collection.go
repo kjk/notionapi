@@ -131,6 +131,21 @@ type ColumnInfo struct {
 	Property *TableProperty
 }
 
+func (c *ColumnInfo) ID() string {
+	return c.Property.Property
+}
+
+func (c *ColumnInfo) Type() string {
+	return c.Schema.Type
+}
+
+func (c *ColumnInfo) Name() string {
+	if c.Schema == nil {
+		return ""
+	}
+	return c.Schema.Name
+}
+
 // TableView represents a view of a table (Notion calls it a Collection View)
 // Meant to be a representation that is easier to work with
 type TableView struct {

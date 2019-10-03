@@ -106,7 +106,8 @@ func filePathForCollection(page *notionapi.Page, col *notionapi.Collection) stri
 	return name
 }
 
-func (c *Converter) tableCellURL(cell *notionapi.Block, block *notionapi.Block, col *notionapi.Collection) string {
+func (c *Converter) tableCellURL(cell *notionapi.Block, block *notionapi.Block, tv *notionapi.TableView) string {
+	col := tv.Collection
 	if c.TableCellURLOverwrite != nil {
 		return c.TableCellURLOverwrite(cell, block, col)
 	}
@@ -1264,20 +1265,19 @@ func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
 	c.Printf(`</div>`)
 }
 
-func hasTitleColumn(columns []*notionapi.TableProperty) bool {
-	for _, col := range columns {
-		if col.Property == "title" {
+func hasTitleColumn(columns []*notionapi.ColumnInfo) bool {
+	for _, ci := range columns {
+		if ci.Type() == notionapi.ColumnTypeTitle {
 			return true
 		}
 	}
 	return false
 }
 
-func (c *Converter) renderCollectionViewHeader(block *notionapi.Block, schema map[string]*notionapi.ColumnSchema, colName string) {
-	colInfo := schema[colName]
+func (c *Converter) renderTableHeader(ci *notionapi.ColumnInfo) {
 	name := ""
-	if colInfo != nil {
-		name = colInfo.Name
+	if ci != nil {
+		name = ci.Name()
 		name = EscapeHTML(name)
 	}
 	c.Printf(`<th>%s</th>`, name)
@@ -1290,33 +1290,33 @@ func isEmptyBlock(block *notionapi.Block) bool {
 	return len(block.ContentIDs) == 0
 }
 
-func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notionapi.Block, tableView *notionapi.TableView, colName string) {
-	collection := tableView.Collection
-	schema := collection.Schema
-
+func (c *Converter) renderCollectionVewRowCol(tr *notionapi.TableRow, tv *notionapi.TableView, ci *notionapi.ColumnInfo) {
+	if ci == nil || ci.Schema == nil {
+		logf("ci or ci.Schema is nil\n")
+		// happens in fd56bfc6a3f0471a9f0cc3110ff19a79
+		return
+	}
+	row := tr.Page
+	colName := ci.ID()
+	schema := ci.Schema
 	props := row.Properties
 	v := props[colName]
 	inlineContent, err := notionapi.ParseTextSpans(v)
 	maybePanicIfErr(err, "ParseTextSpans of '%v' failed with %s\n", v, err)
 	colVal := c.GetInlineContent(inlineContent)
-	colInfo := schema[colName]
-	if colInfo == nil {
-		logf("colInfo nil\n")
-		// happens in fd56bfc6a3f0471a9f0cc3110ff19a79
-		return
-	}
-	if colInfo.Type == notionapi.ColumnTypeTitle {
+	if schema.Type == notionapi.ColumnTypeTitle {
 		if isEmptyBlock(row) {
 			// row here is a page. For cosmetic reasons we don't want
 			// to link to empty pages.
 		} else {
-			uri := c.tableCellURL(row, block, collection)
+			block := tv.Page.Root()
+			uri := c.tableCellURL(row, block, tv)
 			if colVal == "" {
 				colVal = "Untitled"
 			}
 			colVal = fmt.Sprintf(`<a href="%s">%s</a>`, uri, colVal)
 		}
-	} else if colInfo.Type == notionapi.ColumnTypeMultiSelect {
+	} else if schema.Type == notionapi.ColumnTypeMultiSelect {
 		vals := strings.Split(colVal, ",")
 		s := ""
 		for i := range vals {
@@ -1327,7 +1327,7 @@ func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notio
 				continue
 			}
 			v := EscapeHTML(val)
-			col := getMultiSelectoColor(colInfo.Options, val)
+			col := getMultiSelectoColor(schema.Options, val)
 			if col == "" {
 				s += fmt.Sprintf(`<span class="selected-value">%s</span>`, v)
 			} else {
@@ -1335,18 +1335,18 @@ func (c *Converter) renderCollectionVewRowCol(block *notionapi.Block, row *notio
 			}
 		}
 		colVal = s
-	} else if colInfo.Type == notionapi.ColumnTypeCreatedTime {
+	} else if schema.Type == notionapi.ColumnTypeCreatedTime {
 		// TODO: better formatting. Notion seems to be using
 		// relative formatting like "Today 3:03pm"
 		colVal = row.CreatedOn().Format("2006-01-02")
-	} else if colInfo.Type == notionapi.ColumnTypeLastEditedTime {
+	} else if schema.Type == notionapi.ColumnTypeLastEditedTime {
 		// TODO: better formatting. Notion seems to be using
 		// relative formatting like "Today 3:03pm"
 		colVal = row.LastEditedOn().Format("2006-01-02")
-	} else if colInfo.Type == notionapi.ColumnTypeNumber {
+	} else if schema.Type == notionapi.ColumnTypeNumber {
 		// TODO: format number
-		colVal = fmtNumber(colVal, colInfo.NumberFormat)
-	} else if colInfo.Type == notionapi.ColumnTypeRelation {
+		colVal = fmtNumber(colVal, schema.NumberFormat)
+	} else if schema.Type == notionapi.ColumnTypeRelation {
 		// TODO: not sure how to format relations
 		//colVal = c.GetInlineContent(inlineContent)
 		colVal = ""
@@ -1376,17 +1376,16 @@ func getMultiSelectoColor(opts []*notionapi.CollectionColumnOption, val string) 
 	return ""
 }
 
-func (c *Converter) renderCollectionViewRow(block *notionapi.Block, row *notionapi.Block, tableView *notionapi.TableView) {
-	columns := tableView.CollectionView.Format.TableProperties
-	hasTitle := hasTitleColumn(columns)
+func (c *Converter) renderCollectionViewRow(tr *notionapi.TableRow, tableView *notionapi.TableView) {
+	hasTitle := hasTitleColumn(tableView.Columns)
+	hasTitle = true // TODO: temporary
 
-	c.Printf(`<tr id="%s">`, row.ID)
+	c.Printf(`<tr id="%s">`, tr.Page.ID)
 	if !hasTitle {
-		c.renderCollectionVewRowCol(block, row, tableView, "title")
+		//c.renderCollectionVewRowCol(block, row, tableView, "title")
 	}
-	for _, col := range columns {
-		colName := col.Property
-		c.renderCollectionVewRowCol(block, row, tableView, colName)
+	for _, ci := range tableView.Columns {
+		c.renderCollectionVewRowCol(tr, tableView, ci)
 	}
 	c.Printf("</tr>\n")
 }
@@ -1404,20 +1403,18 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 	}
 	// render only the first one
 	tableView := block.TableViews[0]
-	collection := tableView.Collection
-	schema := collection.Schema
 
-	columns := tableView.CollectionView.Format.TableProperties
-	if len(columns) == 0 {
+	if tableView.ColumnCount() == 0 {
 		logf("didn't find columns inof in block '%s'\n", tableView.CollectionView.ID)
 		return
 	}
 	isList := tableView.CollectionView.Type == notionapi.CollectionViewTypeList
-	hasTitle := hasTitleColumn(columns)
+	hasTitle := hasTitleColumn(tableView.Columns)
+	hasTitle = true // TODO: temporary
 
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
 	{
-		name := collection.GetName()
+		name := tableView.Collection.GetName()
 		c.Printf(`<h4 class="collection-title">%s</h4>`, name)
 		if isList {
 			c.Printf("%s", `<table class="collection-content" style="width: 100%">`)
@@ -1431,10 +1428,10 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 			{
 				c.Printf(`<tr>`)
 				if !hasTitle {
-					c.renderCollectionViewHeader(block, schema, "title")
+					//c.renderTableHeader(block, schema, "title")
 				}
-				for _, col := range columns {
-					c.renderCollectionViewHeader(block, schema, col.Property)
+				for _, ci := range tableView.Columns {
+					c.renderTableHeader(ci)
 				}
 				c.Printf(`</tr>`)
 			}
@@ -1444,8 +1441,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		c.Printf(`<tbody>`)
 		{
 			for _, tr := range tableView.Rows {
-				row := tr.Page
-				c.renderCollectionViewRow(block, row, tableView)
+				c.renderCollectionViewRow(tr, tableView)
 			}
 		}
 		c.Printf(`</tbody>`)
