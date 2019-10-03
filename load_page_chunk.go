@@ -69,40 +69,6 @@ type SortQuery struct {
 	Type      string `json:"type"`
 }
 
-// Collection describes a collection
-type Collection struct {
-	ID          string                           `json:"id"`
-	Version     int                              `json:"version"`
-	Name        interface{}                      `json:"name"`
-	Schema      map[string]*CollectionColumnInfo `json:"schema"`
-	Format      *CollectionFormat                `json:"format"`
-	ParentID    string                           `json:"parent_id"`
-	ParentTable string                           `json:"parent_table"`
-	Alive       bool                             `json:"alive"`
-	CopiedFrom  string                           `json:"copied_from"`
-
-	// TODO: are those ever present?
-	Type          string   `json:"type"`
-	FileIDs       []string `json:"file_ids"`
-	Icon          string   `json:"icon"`
-	TemplatePages []string `json:"template_pages"`
-
-	// calculated by us
-	name    []*TextSpan
-	RawJSON map[string]interface{} `json:"-"`
-}
-
-// GetName parses Name and returns as a string
-func (c *Collection) GetName() string {
-	if len(c.name) == 0 {
-		if c.Name == nil {
-			return ""
-		}
-		c.name, _ = ParseTextSpans(c.Name)
-	}
-	return TextSpansToString(c.name)
-}
-
 // CollectionFormat describes format of a collection
 type CollectionFormat struct {
 	CoverPosition  float64                   `json:"collection_cover_position"`

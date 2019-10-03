@@ -79,12 +79,6 @@ const (
 	BlockTweet = "tweet"
 	// BlockVideo is youtube video embed
 	BlockVideo = "video"
-
-	// TODO: those are probably CollectionViewType
-	// BlockTable is a table block
-	BlockTable = "table"
-	// BlockList is a lists block
-	BlockList = "list"
 )
 
 // FormatBookmark describes format for BlockBookmark
@@ -262,34 +256,6 @@ type FormatVideo struct {
 	DisplaySource      string  `json:"display_source"`
 }
 
-// TableProperty describes property of a table
-type TableProperty struct {
-	Width    int    `json:"width"`
-	Visible  bool   `json:"visible"`
-	Property string `json:"property"`
-}
-
-// FormatTable describes format for BlockTable
-type FormatTable struct {
-	PageSort        []string         `json:"page_sort"`
-	TableWrap       bool             `json:"table_wrap"`
-	TableProperties []*TableProperty `json:"table_properties"`
-}
-
-// FormatList describes format for BlockList
-type FormatList struct {
-	ListProperties []*TableProperty `json:"list_properties"`
-	PageSort       []string         `json:"page_sort"`
-}
-
-/*
-TODO: maybe different than  TableProperty
-type ListProperty struct {
-	Visible  bool   `json:"visible"`
-	Property string `json:"property"`
-}
-*/
-
 const (
 	// value of Permission.Type
 	PermissionUser   = "user_permission"
@@ -397,15 +363,6 @@ type Block struct {
 	RawJSON map[string]interface{} `json:"-"`
 
 	isResolved bool
-}
-
-// CollectionViewInfo describes a particular view of the collection
-// TODO: same as table?
-type CollectionViewInfo struct {
-	OriginatingBlock *Block
-	CollectionView   *CollectionView
-	Collection       *Collection
-	CollectionRows   []*Block
 }
 
 func (b *Block) Prop(key string) (interface{}, bool) {
@@ -653,22 +610,6 @@ func (b *Block) FormatImage() *FormatImage {
 func (b *Block) FormatColumn() *FormatColumn {
 	var format FormatColumn
 	if ok := b.unmarshalFormat(BlockColumn, &format); !ok {
-		return nil
-	}
-	return &format
-}
-
-func (b *Block) FormatTable() *FormatTable {
-	var format FormatTable
-	if ok := b.unmarshalFormat(BlockTable, &format); !ok {
-		return nil
-	}
-	return &format
-}
-
-func (b *Block) FormatList() *FormatList {
-	var format FormatList
-	if ok := b.unmarshalFormat(BlockList, &format); !ok {
 		return nil
 	}
 	return &format

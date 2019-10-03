@@ -9,6 +9,6 @@ func sanityTests() {
 	logf("ok\ttestSubPages()\n")
 	pageID := "c30393989ae549c3a39f21ca5a681d72"
 	testCachingDownloads(pageID)
-	logf("ok\testCachingDownloads() of %s ok!\n", pageID)
+	logf("ok\ttestCachingDownloads() of %s ok!\n", pageID)
 	// TODO: more tests?
 }

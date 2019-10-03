@@ -1415,7 +1415,7 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		logf("didn't find columns inof in block '%s'\n", viewInfo.CollectionView.ID)
 		return
 	}
-	isList := (viewInfo.CollectionView.Type == notionapi.BlockList)
+	isList := (viewInfo.CollectionView.Type == notionapi.CollectionViewTypeList)
 	hasTitle := hasTitleColumn(columns)
 
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
