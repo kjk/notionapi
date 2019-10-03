@@ -174,7 +174,7 @@ func (t *TableView) Cell(row, col int) []*TextSpan {
 func buildTableView(tv *TableView, res *QueryCollectionResponse) error {
 	cv := tv.CollectionView
 	c := tv.Collection
-	// TODO: maybe auto-add "title" property
+
 	for _, prop := range cv.Format.TableProperties {
 		if !prop.Visible {
 			continue

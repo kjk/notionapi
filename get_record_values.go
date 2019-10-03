@@ -94,6 +94,12 @@ func parseRecord(table string, r *Record) error {
 	if obj == nil {
 		return fmt.Errorf("unsupported table '%s'", r.Table)
 	}
+	if false {
+		if table == TableCollectionView {
+			s := string(r.Value)
+			fmt.Printf("collection_view json:\n%s\n\n", s)
+		}
+	}
 	if err := json.Unmarshal(r.Value, pRawJSON); err != nil {
 		return err
 	}

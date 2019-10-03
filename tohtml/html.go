@@ -1290,7 +1290,7 @@ func isEmptyBlock(block *notionapi.Block) bool {
 	return len(block.ContentIDs) == 0
 }
 
-func (c *Converter) renderCollectionVewRowCol(tr *notionapi.TableRow, tv *notionapi.TableView, ci *notionapi.ColumnInfo) {
+func (c *Converter) renderTableCell(tv *notionapi.TableView, tr *notionapi.TableRow, ci *notionapi.ColumnInfo) {
 	if ci == nil || ci.Schema == nil {
 		logf("ci or ci.Schema is nil\n")
 		// happens in fd56bfc6a3f0471a9f0cc3110ff19a79
@@ -1301,9 +1301,9 @@ func (c *Converter) renderCollectionVewRowCol(tr *notionapi.TableRow, tv *notion
 	schema := ci.Schema
 	props := row.Properties
 	v := props[colName]
-	inlineContent, err := notionapi.ParseTextSpans(v)
+	textSpans, err := notionapi.ParseTextSpans(v)
 	maybePanicIfErr(err, "ParseTextSpans of '%v' failed with %s\n", v, err)
-	colVal := c.GetInlineContent(inlineContent)
+	colVal := c.GetInlineContent(textSpans)
 	if schema.Type == notionapi.ColumnTypeTitle {
 		if isEmptyBlock(row) {
 			// row here is a page. For cosmetic reasons we don't want
@@ -1348,7 +1348,7 @@ func (c *Converter) renderCollectionVewRowCol(tr *notionapi.TableRow, tv *notion
 		colVal = fmtNumber(colVal, schema.NumberFormat)
 	} else if schema.Type == notionapi.ColumnTypeRelation {
 		// TODO: not sure how to format relations
-		//colVal = c.GetInlineContent(inlineContent)
+		//colVal = c.GetInlineContent(textSpans)
 		colVal = ""
 	}
 	colNameCls := EscapeHTML(colName)
@@ -1376,16 +1376,15 @@ func getMultiSelectoColor(opts []*notionapi.CollectionColumnOption, val string) 
 	return ""
 }
 
-func (c *Converter) renderCollectionViewRow(tr *notionapi.TableRow, tableView *notionapi.TableView) {
-	hasTitle := hasTitleColumn(tableView.Columns)
-	hasTitle = true // TODO: temporary
+func (c *Converter) renderTableRow(tv *notionapi.TableView, tr *notionapi.TableRow) {
+	//hasTitle := hasTitleColumn(tv.Columns)
 
 	c.Printf(`<tr id="%s">`, tr.Page.ID)
-	if !hasTitle {
-		//c.renderCollectionVewRowCol(block, row, tableView, "title")
-	}
-	for _, ci := range tableView.Columns {
-		c.renderCollectionVewRowCol(tr, tableView, ci)
+	//if !hasTitle {
+	//	c.renderTableCell(tv, tr, tv.TitleColumnInfo)
+	//}
+	for _, ci := range tv.Columns {
+		c.renderTableCell(tv, tr, ci)
 	}
 	c.Printf("</tr>\n")
 }
@@ -1402,19 +1401,18 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		return
 	}
 	// render only the first one
-	tableView := block.TableViews[0]
+	tv := block.TableViews[0]
 
-	if tableView.ColumnCount() == 0 {
-		logf("didn't find columns inof in block '%s'\n", tableView.CollectionView.ID)
+	if tv.ColumnCount() == 0 {
+		logf("didn't find columns inof in block '%s'\n", tv.CollectionView.ID)
 		return
 	}
-	isList := tableView.CollectionView.Type == notionapi.CollectionViewTypeList
-	hasTitle := hasTitleColumn(tableView.Columns)
-	hasTitle = true // TODO: temporary
+	isList := tv.CollectionView.Type == notionapi.CollectionViewTypeList
+	//hasTitle := hasTitleColumn(tv.Columns)
 
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
 	{
-		name := tableView.Collection.GetName()
+		name := tv.Collection.GetName()
 		c.Printf(`<h4 class="collection-title">%s</h4>`, name)
 		if isList {
 			c.Printf("%s", `<table class="collection-content" style="width: 100%">`)
@@ -1427,10 +1425,10 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 			c.Printf(`<thead>`)
 			{
 				c.Printf(`<tr>`)
-				if !hasTitle {
-					//c.renderTableHeader(block, schema, "title")
-				}
-				for _, ci := range tableView.Columns {
+				//if !hasTitle {
+				//	c.renderTableHeader(tv.TitleColumnInfo)
+				//}
+				for _, ci := range tv.Columns {
 					c.renderTableHeader(ci)
 				}
 				c.Printf(`</tr>`)
@@ -1440,8 +1438,8 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 
 		c.Printf(`<tbody>`)
 		{
-			for _, tr := range tableView.Rows {
-				c.renderCollectionViewRow(tr, tableView)
+			for _, tr := range tv.Rows {
+				c.renderTableRow(tv, tr)
 			}
 		}
 		c.Printf(`</tbody>`)
