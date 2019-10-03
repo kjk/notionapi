@@ -17,12 +17,6 @@ func maybePanic(format string, args ...interface{}) {
 	notionapi.MaybePanic(format, args...)
 }
 
-func maybePanicIfErr(err error, format string, args ...interface{}) {
-	if err != nil {
-		notionapi.MaybePanic(format, args...)
-	}
-}
-
 func isSafeChar(r rune) bool {
 	if r >= '0' && r <= '9' {
 		return true
@@ -106,14 +100,12 @@ func filePathForCollection(page *notionapi.Page, col *notionapi.Collection) stri
 	return name
 }
 
-func (c *Converter) tableCellURL(cell *notionapi.Block, block *notionapi.Block, tv *notionapi.TableView) string {
-	col := tv.Collection
+func (c *Converter) tableCellURL(tv *notionapi.TableView, tr *notionapi.TableRow, ci *notionapi.ColumnInfo) string {
 	if c.TableCellURLOverwrite != nil {
-		return c.TableCellURLOverwrite(cell, block, col)
+		return c.TableCellURLOverwrite(tv, tr, ci)
 	}
-
 	title := ""
-	titleSpans := cell.GetTitle()
+	titleSpans := tr.Columns[ci.Index]
 	if len(titleSpans) == 0 {
 		logf("title is empty)")
 	} else {
@@ -123,11 +115,13 @@ func (c *Converter) tableCellURL(cell *notionapi.Block, block *notionapi.Block, 
 		title = "Untitled"
 	}
 	name := safeName(title) + ".html"
+	col := tv.Collection
 	colName := col.GetName()
 	if colName == "" {
 		colName = "Untitled Database"
 	}
 	name = safeName(colName) + "/" + name
+	block := tv.Page.Root()
 	for block.Parent != nil {
 		block = block.Parent
 		if block.Type != notionapi.BlockPage {
@@ -272,9 +266,7 @@ type Converter struct {
 	RewriteURL func(url string) string
 
 	// Returns URL for a table cell that links to another table
-	// cell is Block being linked (always a BlockPage?) and
-	// block is block for collection
-	TableCellURLOverwrite func(cell *notionapi.Block, block *notionapi.Block, col *notionapi.Collection) string
+	TableCellURLOverwrite func(tv *notionapi.TableView, tr *notionapi.TableRow, ci *notionapi.ColumnInfo) string
 
 	// if true, generates stand-alone HTML with inline CSS
 	// otherwise it's just the inner part going inside the body
@@ -1301,18 +1293,14 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, tr *notionapi.Table
 	row := tr.Page
 	colName := ci.ID()
 	schema := ci.Schema
-	props := row.Properties
-	v := props[colName]
-	textSpans, err := notionapi.ParseTextSpans(v)
-	maybePanicIfErr(err, "ParseTextSpans of '%v' failed with %s\n", v, err)
+	textSpans := tr.Columns[ci.Index]
 	colVal := c.GetInlineContent(textSpans)
 	if schema.Type == notionapi.ColumnTypeTitle {
 		if isEmptyBlock(row) {
 			// row here is a page. For cosmetic reasons we don't want
 			// to link to empty pages.
 		} else {
-			block := tv.Page.Root()
-			uri := c.tableCellURL(row, block, tv)
+			uri := c.tableCellURL(tv, tr, ci)
 			if colVal == "" {
 				colVal = "Untitled"
 			}

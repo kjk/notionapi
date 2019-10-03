@@ -127,6 +127,7 @@ type TableRow struct {
 
 // ColumnInfo describes a schema for a given cell (column)
 type ColumnInfo struct {
+	Index    int
 	Schema   *ColumnSchema
 	Property *TableProperty
 }
@@ -177,15 +178,18 @@ func buildTableView(tv *TableView, res *QueryCollectionResponse) error {
 	cv := tv.CollectionView
 	c := tv.Collection
 
+	idx := 0
 	for _, prop := range cv.Format.TableProperties {
 		if !prop.Visible {
 			continue
 		}
 		propName := prop.Property
 		ci := &ColumnInfo{
+			Index:    idx,
 			Property: prop,
 			Schema:   c.Schema[propName],
 		}
+		idx++
 		tv.Columns = append(tv.Columns, ci)
 	}
 

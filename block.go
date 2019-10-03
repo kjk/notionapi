@@ -83,7 +83,6 @@ const (
 
 // FormatBookmark describes format for BlockBookmark
 type FormatBookmark struct {
-	// TODO: rename BlockColor to Color everywhere
 	BlockColor string `json:"block_color"`
 	Cover      string `json:"bookmark_cover"`
 	Icon       string `json:"bookmark_icon"`

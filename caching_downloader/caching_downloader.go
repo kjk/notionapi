@@ -414,7 +414,7 @@ func (d *Downloader) DownloadPagesRecursively(startPageID string) ([]*notionapi.
 
 // Sha1OfURL returns sha1 of url
 func Sha1OfURL(uri string) string {
-	// TODO: could benefit from normalizaing url, e.g. with
+	// TODO: could benefit from normalizing url, e.g. with
 	// https://github.com/PuerkitoBio/purell
 	h := sha1.New()
 	h.Write([]byte(uri))
