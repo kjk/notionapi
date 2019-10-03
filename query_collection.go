@@ -7,11 +7,10 @@ type queryCollectionRequest struct {
 	CollectionID     string           `json:"collectionId"`
 	CollectionViewID string           `json:"collectionViewId"`
 	Query            *CollectionQuery `json:"query"`
-	Loader           *Loader          `json:"loader"`
+	Loader           *loader          `json:"loader"`
 }
 
-// Loader describes a loader
-type Loader struct {
+type loader struct {
 	Type  string `json:"type"`  // e.g. "table"
 	Limit int    `json:"limit"` // Notion uses 70 by default
 	// from User.TimeZone
@@ -85,7 +84,7 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, aggregat
 			FilterOperator: "and",
 		}
 	}
-	req.Loader = &Loader{
+	req.Loader = &loader{
 		Type:         "table",
 		Limit:        startLimit,
 		UserLocale:   user.Locale,
