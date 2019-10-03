@@ -525,16 +525,8 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				CollectionView: collectionView,
 				Collection:     collection,
 			}
-			blockIds := res.Result.BlockIDS
-			for _, id := range blockIds {
-				rowBlock, ok := res.RecordMap.Blocks[id]
-				if !ok {
-					return nil, fmt.Errorf("didn't find block with id '%s' for collection view with id '%s'", id, collectionViewID)
-				}
-				tableView.CollectionRows = append(tableView.CollectionRows, rowBlock.Block)
-			}
+			buildTableView(tableView, res)
 			block.TableViews = append(block.TableViews, tableView)
-			buildTableView(tableView)
 			p.TableViews = append(p.TableViews, tableView)
 		}
 	}

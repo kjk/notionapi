@@ -1403,16 +1403,16 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 		return
 	}
 	// render only the first one
-	viewInfo := block.TableViews[0]
-	collection := viewInfo.Collection
+	tableView := block.TableViews[0]
+	collection := tableView.Collection
 	schema := collection.Schema
 
-	columns := viewInfo.CollectionView.Format.TableProperties
+	columns := tableView.CollectionView.Format.TableProperties
 	if len(columns) == 0 {
-		logf("didn't find columns inof in block '%s'\n", viewInfo.CollectionView.ID)
+		logf("didn't find columns inof in block '%s'\n", tableView.CollectionView.ID)
 		return
 	}
-	isList := viewInfo.CollectionView.Type == notionapi.CollectionViewTypeList
+	isList := tableView.CollectionView.Type == notionapi.CollectionViewTypeList
 	hasTitle := hasTitleColumn(columns)
 
 	c.Printf(`<div id="%s" class="collection-content">`, block.ID)
@@ -1443,8 +1443,9 @@ func (c *Converter) RenderCollectionView(block *notionapi.Block) {
 
 		c.Printf(`<tbody>`)
 		{
-			for _, row := range viewInfo.CollectionRows {
-				c.renderCollectionViewRow(block, row, viewInfo)
+			for _, tr := range tableView.Rows {
+				row := tr.Page
+				c.renderCollectionViewRow(block, row, tableView)
 			}
 		}
 		c.Printf(`</tbody>`)

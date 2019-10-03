@@ -1,5 +1,7 @@
 package notionapi
 
+import "fmt"
+
 const (
 	// TODO: those are probably CollectionViewType
 	// CollectionViewTypeTable is a table block
@@ -117,42 +119,29 @@ type CollectionView struct {
 	RawJSON map[string]interface{} `json:"-"`
 }
 
-// CellSchema describes a schema for a given cell (column)
-type CellSchema struct {
-	// TODO: implement me
-}
-
-// TableColumn represents a single cell in a table
-type TableCell struct {
-	Parent *TableRow
-
-	Value  []*TextSpan
-	Schema *CellSchema
-}
-
 type TableRow struct {
 	// data for row is stored as properties of a page
-	Page *Block
+	Page    *Block
+	Columns [][]*TextSpan
+}
 
-	Columns []*TableCell
+// ColumnInfo describes a schema for a given cell (column)
+type ColumnInfo struct {
+	Schema   *ColumnSchema
+	Property *TableProperty
 }
 
 // TableView represents a view of a table (Notion calls it a Collection View)
 // Meant to be a representation that is easier to work with
 type TableView struct {
-	// this is the raw data from which we build a representation
-	// that is nicer to work with
+	// original data
 	Page           *Page
 	CollectionView *CollectionView
 	Collection     *Collection
 
-	// a table is an array of rows
-	ColumnHeaders []*TableProperty
-	Rows          []*TableRow
-
-	// TODO: temporary
-	OriginatingBlock *Block
-	CollectionRows   []*Block
+	// easier to work representation we calculate
+	Columns []*ColumnInfo
+	Rows    []*TableRow
 }
 
 func (t *TableView) RowCount() int {
@@ -160,26 +149,52 @@ func (t *TableView) RowCount() int {
 }
 
 func (t *TableView) ColumnCount() int {
-	if len(t.Rows) == 0 {
-		return 0
-	}
-	// we assume each row has the same amount of columns
-	return len(t.Rows[0].Columns)
+	return len(t.Columns)
 }
 
-func buildTableView(tv *TableView) {
-	var cols []*TableProperty
+func (t *TableView) Cell(row, col int) []*TextSpan {
+	return t.Rows[row].Columns[col]
+}
+
+func buildTableView(tv *TableView, res *QueryCollectionResponse) error {
 	cv := tv.CollectionView
-	//c := tv.Collection
-	props := cv.Format.TableProperties
-	for _, prop := range props {
-		if prop.Visible {
-			cols = append(cols, prop)
+	c := tv.Collection
+	// TODO: maybe auto-add "title" property
+	for _, prop := range cv.Format.TableProperties {
+		if !prop.Visible {
+			continue
+		}
+		propName := prop.Property
+		ci := &ColumnInfo{
+			Property: prop,
+			Schema:   c.Schema[propName],
+		}
+		tv.Columns = append(tv.Columns, ci)
+	}
+
+	// blockIDs are IDs of page blocks
+	// each page represents one table row
+	blockIds := res.Result.BlockIDS
+	for _, id := range blockIds {
+		rec, ok := res.RecordMap.Blocks[id]
+		if !ok {
+			cvID := tv.CollectionView.ID
+			return fmt.Errorf("didn't find block with id '%s' for collection view with id '%s'", id, cvID)
+		}
+		b := rec.Block
+		tr := &TableRow{
+			Page: b,
+		}
+		tv.Rows = append(tv.Rows, tr)
+	}
+
+	// pre-calculate cell content
+	for _, tr := range tv.Rows {
+		for _, ci := range tv.Columns {
+			propName := ci.Property.Property
+			v := tr.Page.GetProperty(propName)
+			tr.Columns = append(tr.Columns, v)
 		}
 	}
-	tv.ColumnHeaders = cols
-	/*
-		for _, rowID := range cv.PageSort {
-
-		}*/
+	return nil
 }
