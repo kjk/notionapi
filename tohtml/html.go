@@ -1277,7 +1277,7 @@ func getColumns(view *notionapi.CollectionView) []*notionapi.TableProperty {
 	return view.Format.TableProperties
 }
 
-func (c *Converter) renderCollectionViewHeader(block *notionapi.Block, schema map[string]*notionapi.CollectionColumnInfo, colName string) {
+func (c *Converter) renderCollectionViewHeader(block *notionapi.Block, schema map[string]*notionapi.ColumnSchema, colName string) {
 	colInfo := schema[colName]
 	name := ""
 	if colInfo != nil {

@@ -69,50 +69,6 @@ type SortQuery struct {
 	Type      string `json:"type"`
 }
 
-// CollectionFormat describes format of a collection
-type CollectionFormat struct {
-	CoverPosition  float64                   `json:"collection_cover_position"`
-	PageProperties []*CollectionPageProperty `json:"collection_page_properties"`
-}
-
-// CollectionPageProperty describes properties of a collection
-type CollectionPageProperty struct {
-	Property string `json:"property"`
-	Visible  bool   `json:"visible"`
-}
-
-// CollectionColumnInfo describes a info of a collection column
-type CollectionColumnInfo struct {
-	Name string `json:"name"`
-	// ColumnTypeTitle etc.
-	Type string `json:"type"`
-
-	// for Type == ColumnTypeNumber, e.g. "dollar", "number"
-	NumberFormat string `json:"number_format"`
-
-	// For Type == ColumnTypeRollup
-	TargetProperty     string `json:"target_property"`
-	RelationProperty   string `json:"relation_property"`
-	TargetPropertyType string `json:"target_property_type"`
-
-	// for Type == ColumnTypeRelation
-	CollectionID string `json:"collection_id"`
-	Property     string `json:"property"`
-
-	Options []*CollectionColumnOption `json:"options"`
-
-	// TODO: would have to set it up from Collection.RawJSON
-	//RawJSON map[string]interface{} `json:"-"`
-}
-
-// CollectionColumnOption describes options for ColumnTypeMultiSelect
-// collection column
-type CollectionColumnOption struct {
-	Color string `json:"color"`
-	ID    string `json:"id"`
-	Value string `json:"value"`
-}
-
 // LoadPageChunk executes a raw API call /api/v3/loadPageChunk
 func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPageChunkResponse, error) { // emulating notion's website api usage: 50 items on first request,
 	// 30 on subsequent requests

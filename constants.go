@@ -7,7 +7,7 @@ const (
 	PermissionTypePublic = "public_permission"
 )
 
-// for CollectionColumnInfo.Type
+// for Schema.Type
 const (
 	ColumnTypeCheckbox       = "checkbox"
 	ColumnTypeCreatedBy      = "created_by"

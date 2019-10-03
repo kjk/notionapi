@@ -77,52 +77,6 @@ func (p *Page) Root() *Block {
 	return p.BlockByID(p.ID)
 }
 
-// CellSchema describes a schema for a given cell (column)
-type CellSchema struct {
-	// TODO: implement me
-}
-
-// TableColumn represents a single cell in a table
-type TableCell struct {
-	Parent *TableRow
-
-	Value  []*TextSpan
-	Schema *CellSchema
-}
-
-type TableRow struct {
-	// data for row is stored as properties of a page
-	Page *Block
-
-	Columns []*TableCell
-}
-
-// TableView represents a table (Notion calls it a Collection View)
-// We build a representation easier to work with
-type TableView struct {
-	// this is the raw data from which we build a representation
-	// that is nicer to work with
-	Page           *Page
-	CollectionView *CollectionView
-	Collection     *Collection
-
-	// a table is an array of rows
-	ColumnHeaders []*TableProperty
-	Rows          []*TableRow
-}
-
-func (t *TableView) RowCount() int {
-	return len(t.Rows)
-}
-
-func (t *TableView) ColumnCount() int {
-	if len(t.Rows) == 0 {
-		return 0
-	}
-	// we assume each row has the same amount of columns
-	return len(t.Rows[0].Columns)
-}
-
 // SetTitle changes page title
 func (p *Page) SetTitle(s string) error {
 	op := p.Root().SetTitleOp(s)
