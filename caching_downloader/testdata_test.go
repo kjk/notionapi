@@ -3,6 +3,10 @@ package caching_downloader
 import (
 	"testing"
 
+	"github.com/kjk/notionapi/tohtml"
+
+	"github.com/kjk/notionapi/tomarkdown"
+
 	"github.com/kjk/notionapi"
 
 	"github.com/stretchr/testify/require"
@@ -27,8 +31,32 @@ func testDownloadFromCache(t *testing.T, pageID string) *notionapi.Page {
 	return p
 }
 
+func convertToMdAndHTML(t *testing.T, page *notionapi.Page) {
+	{
+		conv := tomarkdown.NewConverter(page)
+		md := conv.ToMarkdown()
+		require.NotEmpty(t, md)
+	}
+
+	{
+		conv := tohtml.NewConverter(page)
+		html, err := conv.ToHTML()
+		require.NoError(t, err)
+		require.NotEmpty(t, html)
+	}
+}
+
 func TestPage94167af6567043279811dc923edd1f04(t *testing.T) {
 	pid := "94167af6567043279811dc923edd1f04"
 	p := testDownloadFromCache(t, pid)
 	require.Equal(t, 2, len(p.TableViews))
+	convertToMdAndHTML(t, p)
+}
+
+func TestPage44f1a38eefe94336907c7576ef4dd19b(t *testing.T) {
+	// used to crash because has no title column
+	pid := "44f1a38eefe94336907c7576ef4dd19b"
+	p := testDownloadFromCache(t, pid)
+	require.Equal(t, 1, len(p.TableViews))
+	convertToMdAndHTML(t, p)
 }
