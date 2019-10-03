@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -93,6 +94,30 @@ func readZipFile(path string) map[string][]byte {
 	return res
 }
 
+// absolute path of the current directory
+func currDirAbs() string {
+	dir, err := filepath.Abs(".")
+	must(err)
+	return dir
+}
+
+// we are executed for do/ directory so top dir is parent dir
+func cdUpDir(dirName string) {
+	startDir := currDirAbs()
+	dir := startDir
+	for {
+		// we're already in top directory
+		if filepath.Base(dir) == dirName {
+			err := os.Chdir(dir)
+			must(err)
+			return
+		}
+		parentDir := filepath.Dir(dir)
+		panicIf(dir == parentDir, "invalid startDir: '%s', dir: '%s'", startDir, dir)
+		dir = parentDir
+	}
+}
+
 func fileExists(path string) bool {
 	st, err := os.Stat(path)
 	if err != nil {
@@ -113,6 +138,23 @@ func recreateDir(dir string) {
 	os.RemoveAll(dir)
 	err := os.MkdirAll(dir, 0755)
 	must(err)
+}
+
+func removeFilesInDir(dir string) {
+	err := os.MkdirAll(dir, 0755)
+	must(err)
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, fi := range files {
+		if !fi.Mode().IsRegular() {
+			continue
+		}
+		path := filepath.Join(dir, fi.Name())
+		err = os.Remove(path)
+		must(err)
+	}
 }
 
 func writeFile(path string, data []byte) {

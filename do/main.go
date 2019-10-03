@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -84,50 +83,6 @@ func parseFlags() {
 	// normalize ids early on
 	flgDownloadPage = notionapi.ToNoDashID(flgDownloadPage)
 	flgToHTML = notionapi.ToNoDashID(flgToHTML)
-}
-
-// absolute path of top directory in the repo
-func topDir() string {
-	dir, err := filepath.Abs(".")
-	must(err)
-	return dir
-}
-
-// we are executed for do/ directory so top dir is parent dir
-func cdToTopDir() {
-	startDir, err := os.Getwd()
-	must(err)
-	startDir, err = filepath.Abs(startDir)
-	must(err)
-	dir := startDir
-	for {
-		// we're already in top directory
-		if filepath.Base(dir) == "notionapi" {
-			err = os.Chdir(dir)
-			must(err)
-			return
-		}
-		parentDir := filepath.Dir(dir)
-		panicIf(dir == parentDir, "invalid startDir: '%s', dir: '%s'", startDir, dir)
-		dir = parentDir
-	}
-}
-
-func removeFilesInDir(dir string) {
-	err := os.MkdirAll(dir, 0755)
-	must(err)
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return
-	}
-	for _, fi := range files {
-		if !fi.Mode().IsRegular() {
-			continue
-		}
-		path := filepath.Join(dir, fi.Name())
-		err = os.Remove(path)
-		must(err)
-	}
 }
 
 func getToken() string {
@@ -217,8 +172,8 @@ func traceNotionAPI() {
 }
 
 func main() {
-	cdToTopDir()
-	logf("topDir: '%s'\n", topDir())
+	cdUpDir("notionapi")
+	logf("currDirAbs: '%s'\n", currDirAbs())
 
 	parseFlags()
 	must(os.MkdirAll(cacheDir, 0755))
