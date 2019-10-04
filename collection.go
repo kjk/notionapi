@@ -203,9 +203,14 @@ func (t *TableView) CellContent(row, col int) []*TextSpan {
 
 // TODO: some tables miss title column in TableProperties
 // maybe synthesize it if doesn't exist as a first column
-func buildTableView(tv *TableView, res *QueryCollectionResponse) error {
+func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) error {
 	cv := tv.CollectionView
-	c := tv.Collection
+	collection := tv.Collection
+
+	if cv.Format == nil {
+		log(c, "buildTableView: page: '%s', missing CollectionView.Format in collection view with id '%s'\n", ToNoDashID(tv.Page.ID), cv.ID)
+		return nil
+	}
 
 	idx := 0
 	for _, prop := range cv.Format.TableProperties {
@@ -213,7 +218,7 @@ func buildTableView(tv *TableView, res *QueryCollectionResponse) error {
 			continue
 		}
 		propName := prop.Property
-		schema := c.Schema[propName]
+		schema := collection.Schema[propName]
 		ci := &ColumnInfo{
 			TableView: tv,
 

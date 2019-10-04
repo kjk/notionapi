@@ -522,7 +522,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				CollectionView: collectionView,
 				Collection:     collection,
 			}
-			if err := buildTableView(tableView, res); err != nil {
+			if err := c.buildTableView(tableView, res); err != nil {
 				return nil, err
 			}
 			block.TableViews = append(block.TableViews, tableView)

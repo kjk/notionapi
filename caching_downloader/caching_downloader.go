@@ -228,7 +228,7 @@ func (d *Downloader) ReadPageFromCache(pageID string) (*notionapi.Page, error) {
 	if d.didMakeHTTPRequests {
 		d.Cache.Remove(name)
 		nNew := httpCache.RequestsNotFromCache - nPrevRequestsFromCache
-		d.emitError("Downloader.ReadPageFromCache() unexpectedly made %d server connections for page %s", nNew, pageID)
+		d.emitError("Downloader.ReadPageFromCache() unexpectedly made %d server connections for page %s\n", nNew, pageID)
 	}
 	return page, nil
 }
