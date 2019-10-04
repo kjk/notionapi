@@ -226,11 +226,18 @@ func (d *Downloader) ReadPageFromCache(pageID string) (*notionapi.Page, error) {
 	d.didMakeHTTPRequests = httpCache.RequestsNotFromCache > nPrevRequestsFromCache
 
 	if d.didMakeHTTPRequests {
-		// update the cached version
-		// TODO: report an error
-		_ = d.Cache.WriteFile(name, data)
+		// update cached version
+		data, err := serializeHTTPCache(httpCache)
+		if err != nil {
+			return nil, err
+		}
+		err = d.Cache.WriteFile(name, data)
+		if err != nil {
+			d.emitError("ReadPageFromCache(): WriteFile('%s') failed with '%s'\n", name, err)
+			d.Cache.Remove(name)
+		}
 		nNew := httpCache.RequestsNotFromCache - nPrevRequestsFromCache
-		d.emitError("Downloader.ReadPageFromCache() unexpectedly made %d server connections for page %s\n", nNew, pageID)
+		d.emitError("ReadPageFromCache(): unexpectedly made %d HTTP requests for page %s\n", nNew, pageID)
 	}
 	return page, nil
 }
