@@ -212,6 +212,22 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 		return nil
 	}
 
+	if collection == nil {
+		log(c, "buildTableView: page: '%s', colleciton is nil, collection view id: '%s'\n", ToNoDashID(tv.Page.ID), cv.ID)
+		// TODO: maybe should return nil if this is missing in data returned
+		// by Notion. If it's a bug in our interpretation, we should fix
+		// that instead
+		return fmt.Errorf("buildTableView: page: '%s', colleciton is nil, collection view id: '%s'", ToNoDashID(tv.Page.ID), cv.ID)
+	}
+
+	if collection.Schema == nil {
+		log(c, "buildTableView: page: '%s', missing collection.Schema, collection view id: '%s', collection id: '%s'\n", ToNoDashID(tv.Page.ID), cv.ID, collection.ID)
+		// TODO: maybe should return nil if this is missing in data returned
+		// by Notion. If it's a bug in our interpretation, we should fix
+		// that instead
+		return fmt.Errorf("buildTableView: page: '%s', missing collection.Schema, collection view id: '%s', collection id: '%s'", ToNoDashID(tv.Page.ID), cv.ID, collection.ID)
+	}
+
 	idx := 0
 	for _, prop := range cv.Format.TableProperties {
 		if !prop.Visible {
