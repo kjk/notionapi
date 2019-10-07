@@ -342,6 +342,7 @@ func escapeMarkdownLinkText(s string) string {
 func (c *Converter) RenderPage(block *notionapi.Block) {
 	if c.Page.IsRoot(block) {
 		c.renderRootPage(block)
+		return
 	}
 	title := c.GetInlineContent(block.InlineContent, false)
 	uri := ""
