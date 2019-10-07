@@ -88,3 +88,47 @@ func downloadPage(client *notionapi.Client, pageID string) (*notionapi.Page, err
 	d.NoReadCache = flgNoCache
 	return d.DownloadPage(pageID)
 }
+
+const (
+	idNoDashLength = 32
+)
+
+// only hex chars seem to be valid
+func isValidNoDashIDChar(c byte) bool {
+	switch {
+	case c >= '0' && c <= '9':
+		return true
+	case c >= 'a' && c <= 'f':
+		return true
+	case c >= 'A' && c <= 'F':
+		// currently not used but just in case notion starts using them
+		return true
+	}
+	return false
+}
+
+// given e.g.:
+// /p/foo-395f6c6af50d44e48919a45fcc064d3e
+// returns:
+// 395f6c6af50d44e48919a45fcc064d3e
+func extractNotionIDFromURL(uri string) string {
+	n := len(uri)
+	if n < idNoDashLength {
+		return ""
+	}
+
+	s := ""
+	for i := n - 1; i > 0; i-- {
+		c := uri[i]
+		if c == '-' {
+			continue
+		}
+		if isValidNoDashIDChar(c) {
+			s = string(c) + s
+			if len(s) == idNoDashLength {
+				return s
+			}
+		}
+	}
+	return ""
+}

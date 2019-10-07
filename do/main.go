@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/kjk/notionapi"
 )
@@ -24,6 +29,9 @@ var (
 
 	// id of notion page to download and convert to HTML
 	flgToHTML string
+
+	flgPreviewHTML     string
+	flgPreviewMarkdown string
 
 	// if true, will try to avoid downloading the page by using
 	// cached version saved in log/ directory
@@ -69,6 +77,10 @@ func parseFlags() {
 	flag.StringVar(&flgExportType, "export-type", "", "html or markdown")
 	flag.StringVar(&flgTestToMd, "test-to-md", "", "test markdown generation")
 	flag.StringVar(&flgTestToHTML, "test-to-html", "", "id of start page")
+
+	flag.StringVar(&flgPreviewHTML, "preview-html", "", "id of start page")
+	flag.StringVar(&flgPreviewMarkdown, "preview-md", "", "id of start page")
+
 	flag.BoolVar(&flgSanityTest, "sanity", false, "runs a quick sanity tests (fast and basic)")
 	flag.BoolVar(&flgSmokeTest, "smoke", false, "run a smoke test (not fast, run after non-trivial changes)")
 	flag.StringVar(&flgTestDownloadCache, "test-download-cache", "", "page id to use to test download cache")
@@ -250,5 +262,57 @@ func main() {
 		return
 	}
 
+	if flgPreviewHTML != "" {
+		uri := "/previewhtml/" + flgPreviewHTML
+		startHTTPServer(uri)
+		return
+	}
+	if flgPreviewMarkdown != "" {
+		uri := "/previewmd/" + flgPreviewMarkdown
+		startHTTPServer(uri)
+		return
+	}
+
 	flag.Usage()
+}
+
+func startHTTPServer(uri string) {
+	flgHTTPAddr := "localhost:8503"
+	httpSrv := makeHTTPServer()
+	httpSrv.Addr = flgHTTPAddr
+
+	logf("Starting on addr: %v\n", flgHTTPAddr)
+
+	chServerClosed := make(chan bool, 1)
+	go func() {
+		err := httpSrv.ListenAndServe()
+		// mute error caused by Shutdown()
+		if err == http.ErrServerClosed {
+			err = nil
+		}
+		must(err)
+		logf("HTTP server shutdown gracefully\n")
+		chServerClosed <- true
+	}()
+
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt /* SIGINT */, syscall.SIGTERM)
+
+	openBrowser("http://" + flgHTTPAddr + uri)
+	time.Sleep(time.Second * 2)
+
+	sig := <-c
+	logf("Got signal %s\n", sig)
+
+	if httpSrv != nil {
+		// Shutdown() needs a non-nil context
+		_ = httpSrv.Shutdown(context.Background())
+		select {
+		case <-chServerClosed:
+			// do nothing
+		case <-time.After(time.Second * 5):
+			// timeout
+		}
+	}
+
 }

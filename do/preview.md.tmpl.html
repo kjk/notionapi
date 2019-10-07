@@ -1,0 +1,64 @@
+<html>
+
+<head>
+  <style>
+    body {
+      display: flex;
+      flex-direction: row;
+      align-content: flex-start;
+      margin: 0;
+      padding: 0;
+    }
+
+    .bg1 {
+      background-color: #fcfcfc;
+    }
+
+    .bg2 {
+      background-color: #f0f0f0;
+    }
+
+    .bg3 {
+      background-color: #e7e7e7;
+    }
+
+    .bg4 {
+      background-color: #e0e0e0;
+    }
+
+    .bgr {
+      background-color: red;
+    }
+
+    .left {
+      width: 50%;
+      margin-left: 8px;
+      margin-right: 4px;
+    }
+
+    .right {
+      width: 50%;
+      margin-right: 8px;
+      margin-left: 4px;
+    }
+
+    code {
+      white-space: pre-wrap;
+    }
+
+    pre {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="left bg1">
+    <pre><code>{{ .Markdown }}</code></pre>
+  </div>
+
+  <div class="right bg1">{{ .HTML }}</div>
+</body>
+
+</html>
