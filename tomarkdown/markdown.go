@@ -331,15 +331,27 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 	c.RenderChildren(block)
 }
 
+func escapeMarkdownLinkText(s string) string {
+	// TODO: shouldn't escape those that are already escaped
+	s = strings.Replace(s, `[`, `\[`, -1)
+	s = strings.Replace(s, `]`, `\]`, -1)
+	return s
+}
+
 // RenderPage renders BlockPage
 func (c *Converter) RenderPage(block *notionapi.Block) {
 	if c.Page.IsRoot(block) {
 		c.renderRootPage(block)
 	}
-	// TODO: if block.Title has "[" or "]" in it, needs to escape
-	fileName := markdownFileName(block.Title, block.ID)
 	title := c.GetInlineContent(block.InlineContent, false)
-	c.Printf("[%s](./%s)", title, fileName)
+	uri := ""
+	if c.RewriteURL != nil {
+		uri = c.RewriteURL("https://notion.so/" + block.ID)
+	} else {
+		uri = "./" + markdownFileName(block.Title, block.ID)
+	}
+	title = escapeMarkdownLinkText(title)
+	c.Printf("[%s](%s)", title, uri)
 	c.Eol()
 }
 
