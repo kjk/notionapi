@@ -51,13 +51,13 @@ func logf(format string, args ...interface{}) {
 	if len(args) == 0 {
 		fmt.Print(format)
 		if logFile != nil {
-			fmt.Fprint(logFile, format)
+			_, _ = fmt.Fprint(logFile, format)
 		}
 		return
 	}
 	fmt.Printf(format, args...)
 	if logFile != nil {
-		fmt.Fprintf(logFile, format, args...)
+		_, _ = fmt.Fprintf(logFile, format, args...)
 	}
 }
 
@@ -81,14 +81,14 @@ func openBrowser(url string) {
 func readZipFile(path string) map[string][]byte {
 	r, err := zip.OpenReader(path)
 	must(err)
-	defer r.Close()
+	defer fileClose(r)
 	res := map[string][]byte{}
 	for _, f := range r.File {
 		rc, err := f.Open()
 		must(err)
 		d, err := ioutil.ReadAll(rc)
 		must(err)
-		rc.Close()
+		_ = rc.Close()
 		res[f.Name] = d
 	}
 	return res
@@ -135,7 +135,7 @@ func dirExists(path string) bool {
 }
 
 func recreateDir(dir string) {
-	os.RemoveAll(dir)
+	_ = os.RemoveAll(dir)
 	err := os.MkdirAll(dir, 0755)
 	must(err)
 }
@@ -162,21 +162,14 @@ func writeFile(path string, data []byte) {
 	must(err)
 }
 
-func openCodeDiff(path1, path2 string) {
-	if runtime.GOOS == "darwin" {
-		path1 = strings.Replace(path1, ".\\", "./", -1)
-		path2 = strings.Replace(path2, ".\\", "./", -1)
-	}
-	cmd := exec.Command("code", "--new-window", "--diff", path1, path2)
-	logf("running: %s\n", strings.Join(cmd.Args, " "))
-	err := cmd.Start()
-	must(err)
-}
-
 func readFile(path string) []byte {
 	d, err := ioutil.ReadFile(path)
 	must(err)
 	return d
+}
+
+func fileClose(f io.Closer) {
+	_ = f.Close()
 }
 
 func areFilesEuqal(path1, path2 string) bool {
@@ -188,5 +181,38 @@ func areFilesEuqal(path1, path2 string) bool {
 func openNotepadWithFile(path string) {
 	cmd := exec.Command("notepad.exe", path)
 	err := cmd.Start()
+	must(err)
+}
+
+func openCodeDiff(path1, path2 string) {
+	if runtime.GOOS == "darwin" {
+		path1 = strings.Replace(path1, ".\\", "./", -1)
+		path2 = strings.Replace(path2, ".\\", "./", -1)
+	}
+	cmd := exec.Command("code", "--new-window", "--diff", path1, path2)
+	logf("running: %s\n", strings.Join(cmd.Args, " "))
+	err := cmd.Start()
+	must(err)
+}
+
+func runCmd(cmd *exec.Cmd) {
+	fmt.Printf("> %s\n", cmd)
+	canCapture := (cmd.Stdout == nil) && (cmd.Stderr == nil)
+	if canCapture {
+		out, err := cmd.CombinedOutput()
+		if err == nil {
+			if len(out) > 0 {
+				fmt.Printf("Output:\n%s\n", string(out))
+			}
+			return
+		}
+		fmt.Printf("cmd '%s' failed with '%s'. Output:\n%s\n", cmd, err, string(out))
+		must(err)
+	}
+	err := cmd.Run()
+	if err == nil {
+		return
+	}
+	fmt.Printf("cmd '%s' failed with '%s'\n", cmd, err)
 	must(err)
 }
