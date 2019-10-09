@@ -40,7 +40,7 @@ func toHTML(pageID string) *notionapi.Page {
 		must(err)
 		uri := "file://" + path
 		logf("Opening browser with %s\n", uri)
-		openBrowser(uri)
+		u.OpenBrowser(uri)
 	}
 	return page
 }

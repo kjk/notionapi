@@ -53,7 +53,7 @@ func smokeTest() {
 	f, err := os.Create(logFilePath)
 	must(err)
 	defer f.Close()
-	logFile = f
+	u.LogFile = f
 
 	smokeSeen = map[string]bool{}
 	flgNoOpen = true

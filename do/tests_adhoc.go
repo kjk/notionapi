@@ -6,6 +6,14 @@ import (
 	"github.com/kjk/notionapi"
 )
 
+func assert(ok bool, format string, args ...interface{}) {
+	if ok {
+		return
+	}
+	s := fmt.Sprintf(format, args...)
+	panic(s)
+}
+
 func pageURL(pageID string) string {
 	return "https://notion.so/" + pageID
 }

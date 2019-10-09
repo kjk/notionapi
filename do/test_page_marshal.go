@@ -7,6 +7,7 @@ import (
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml"
 	"github.com/kjk/notionapi/tomarkdown"
+	"github.com/kjk/u"
 )
 
 func pageToHTML(page *notionapi.Page) []byte {
@@ -53,7 +54,7 @@ func testCachingDownloads(pageID string) {
 	must(err)
 
 	// verify we made the same amount of requests
-	panicIf(nRequests != cache.RequestsNotFromCache, "nRequests: %d, cache.RequestsNotFromCache: %d", nRequests, cache.RequestsNotFromCache)
+	u.PanicIf(nRequests != cache.RequestsNotFromCache, "nRequests: %d, cache.RequestsNotFromCache: %d", nRequests, cache.RequestsNotFromCache)
 
 	html2 := pageToHTML(page2)
 	md_2 := pageToMarkdown(page2)

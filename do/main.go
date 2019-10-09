@@ -164,7 +164,7 @@ func testSubPages() {
 	must(err)
 	subPages := page.GetSubPages()
 	nExp := 7
-	panicIf(len(subPages) != nExp, "expected %d sub-pages of '%s', got %d", nExp, uri, len(subPages))
+	u.PanicIf(len(subPages) != nExp, "expected %d sub-pages of '%s', got %d", nExp, uri, len(subPages))
 }
 
 func traceNotionAPI() {
@@ -185,8 +185,8 @@ func traceNotionAPI() {
 }
 
 func main() {
-	cdUpDir("notionapi")
-	logf("currDirAbs: '%s'\n", currDirAbs())
+	u.CdUpDir("notionapi")
+	logf("currDirAbs: '%s'\n", u.CurrDirAbsMust())
 
 	parseFlags()
 	must(os.MkdirAll(cacheDir, 0755))
@@ -299,7 +299,7 @@ func startHTTPServer(uri string) {
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt /* SIGINT */, syscall.SIGTERM)
 
-	openBrowser("http://" + flgHTTPAddr + uri)
+	u.OpenBrowser("http://" + flgHTTPAddr + uri)
 	time.Sleep(time.Second * 2)
 
 	sig := <-c
