@@ -11,6 +11,7 @@ import (
 	"github.com/kjk/fmthtml"
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml"
+	"github.com/kjk/u"
 )
 
 // detect location of https://winmerge.org/
@@ -113,8 +114,8 @@ func testToHTML(startPageID string) {
 	gotDiffDir := filepath.Join(diffDir, "got")
 	must(os.MkdirAll(expDiffDir, 0755))
 	must(os.MkdirAll(gotDiffDir, 0755))
-	removeFilesInDir(expDiffDir)
-	removeFilesInDir(gotDiffDir)
+	u.RemoveFilesInDirMust(expDiffDir)
+	u.RemoveFilesInDirMust(gotDiffDir)
 
 	nDifferent := 0
 
@@ -169,12 +170,12 @@ func testToHTML(startPageID string) {
 			{
 				fileName := fmt.Sprintf("%s.1-from-notion.html", notionapi.ToNoDashID(pageID))
 				path := filepath.Join(diffDir, fileName)
-				writeFile(path, expData)
+				u.WriteFileMust(path, expData)
 			}
 			{
 				fileName := fmt.Sprintf("%s.2-mine.html", notionapi.ToNoDashID(pageID))
 				path := filepath.Join(diffDir, fileName)
-				writeFile(path, pageHTML)
+				u.WriteFileMust(path, pageHTML)
 			}
 		}
 
@@ -194,9 +195,9 @@ func testToHTML(startPageID string) {
 		// differetn in in dirs
 		fileName := fmt.Sprintf("%s.html", notionapi.ToNoDashID(pageID))
 		expPath := filepath.Join(expDiffDir, fileName)
-		writeFile(expPath, expDataFormatted)
+		u.WriteFileMust(expPath, expDataFormatted)
 		gotPath := filepath.Join(gotDiffDir, fileName)
-		writeFile(gotPath, gotDataFormatted)
+		u.WriteFileMust(gotPath, gotDataFormatted)
 		logf("\nHTML in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
 
 		// if has diff tool capable of comparing directories, save files to

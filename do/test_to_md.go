@@ -9,6 +9,7 @@ import (
 
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tomarkdown"
+	"github.com/kjk/u"
 )
 
 var knownBadMarkdown = [][]string{
@@ -132,7 +133,7 @@ func exportPages(pageID string, exportType string) map[string][]byte {
 		must(exportPageToFile(pageID, exportType, true, zipPath))
 	}
 
-	return readZipFile(zipPath)
+	return u.ReadZipFileMust(zipPath)
 }
 
 func testToMarkdown(startPageID string) {
@@ -158,8 +159,8 @@ func testToMarkdown(startPageID string) {
 	if hasDirDiff {
 		must(os.MkdirAll(expDiffDir, 0755))
 		must(os.MkdirAll(gotDiffDir, 0755))
-		removeFilesInDir(expDiffDir)
-		removeFilesInDir(gotDiffDir)
+		u.RemoveFilesInDirMust(expDiffDir)
+		u.RemoveFilesInDirMust(gotDiffDir)
 	}
 	nDifferent := 0
 
@@ -204,9 +205,9 @@ func testToMarkdown(startPageID string) {
 		if hasDirDiff {
 			fileName := fmt.Sprintf("%s.md", notionapi.ToNoDashID(pageID))
 			expPath := filepath.Join(expDiffDir, fileName)
-			writeFile(expPath, expData)
+			u.WriteFileMust(expPath, expData)
 			gotPath := filepath.Join(gotDiffDir, fileName)
-			writeFile(gotPath, pageMd)
+			u.WriteFileMust(gotPath, pageMd)
 			fmt.Printf(" https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
 			if nDifferent == 0 {
 				dirDiff(expDiffDir, gotDiffDir)
@@ -225,8 +226,8 @@ func testToMarkdown(startPageID string) {
 		fileName := fmt.Sprintf("%s.md", notionapi.ToNoDashID(pageID))
 		expPath := "exp-" + fileName
 		gotPath := "got-" + fileName
-		writeFile(expPath, expData)
-		writeFile(gotPath, pageMd)
+		u.WriteFileMust(expPath, expData)
+		u.WriteFileMust(gotPath, pageMd)
 		openCodeDiff(expPath, gotPath)
 		os.Exit(1)
 	}

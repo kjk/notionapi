@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/kjk/notionapi"
+	"github.com/kjk/u"
 )
 
 /*
@@ -120,7 +121,7 @@ func exportPageToFile(id string, exportType string, recursive bool, path string)
 		return err
 	}
 
-	writeFile(path, d)
+	u.WriteFileMust(path, d)
 	logf("Downloaded exported page of id %s as %s\n", id, path)
 	return nil
 }
@@ -141,7 +142,7 @@ func exportPage(id string, exportType string, recursive bool) {
 		return
 	}
 	name := notionapi.ToNoDashID(id) + "-" + exportType + ".zip"
-	writeFile(name, d)
+	u.WriteFileMust(name, d)
 	logf("Downloaded exported page of id %s as %s\n", id, name)
 }
 
@@ -168,7 +169,7 @@ func testSubPages() {
 
 func traceNotionAPI() {
 	nodeModulesDir := filepath.Join("tracenotion", "node_modules")
-	if !dirExists(nodeModulesDir) {
+	if !u.DirExists(nodeModulesDir) {
 		cmd := exec.Command("yarn")
 		cmd.Dir = "tracenotion"
 		err := cmd.Run()
@@ -209,7 +210,7 @@ func main() {
 			dir := filepath.Join(dataDir, "smoke")
 			os.RemoveAll(dir)
 		}
-		removeFilesInDir(cacheDir)
+		u.RemoveFilesInDirMust(cacheDir)
 		return
 	}
 

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kjk/u"
 )
 
 /*
@@ -33,31 +34,25 @@ var (
 )
 
 var (
-	cssFromFile  string
+	cssFromFile  []byte
 	fullHTMLWrap string
 )
 
-func loadFile(path string) string {
-	// ignoring an error, the caller checks returned value for non-empty
-	d, _ := ioutil.ReadFile(path)
-	return string(d)
-}
-
 func loadCSS() string {
 	if len(cssFromFile) > 0 {
-		return cssFromFile
+		return string(cssFromFile)
 	}
 	currDir, err := filepath.Abs(".")
 	must(err)
 	path1 := filepath.Join("main.css")
-	cssFromFile = loadFile(path1)
+	cssFromFile = u.ReadFileMust(path1)
 	if len(cssFromFile) > 0 {
-		return cssFromFile
+		return string(cssFromFile)
 	}
 	path2 := filepath.Join("do", "main.css")
-	cssFromFile = loadFile(path2)
+	cssFromFile = u.ReadFileMust(path2)
 	if len(cssFromFile) > 0 {
-		return cssFromFile
+		return string(cssFromFile)
 	}
 	logf("couldn't load css from the following files:\n'%s'\n'%s'\nCurr directory: %s\n", path1, path2, currDir)
 	os.Exit(1)

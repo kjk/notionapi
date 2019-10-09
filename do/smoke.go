@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/kjk/notionapi"
+	"github.com/kjk/u"
 )
 
 var (
@@ -24,7 +25,7 @@ func loadAndRenderPageRecur(pageID string) {
 	_, md := toMarkdown(page)
 	mdName := fmt.Sprintf("%s.page.md", id)
 	mdPath := filepath.Join(cacheDir, mdName)
-	writeFile(mdPath, md)
+	u.WriteFileMust(mdPath, md)
 	logf("%s : md version of the page\n", mdPath)
 	for _, pageID := range page.GetSubPages() {
 		loadAndRenderPageRecur(pageID)
