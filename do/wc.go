@@ -3,20 +3,20 @@ package main
 import (
 	"fmt"
 
-	"github.com/kjk/wc"
+	"github.com/kjk/u"
 )
 
-var srcFiles = wc.MakeAllowedFileFilterForExts(".go", ".js", ".html", ".css")
-var excludeDirs = wc.MakeExcludeDirsFilter("node_modules", "tmpdata")
-var allFiles = wc.MakeFilterAnd(srcFiles, excludeDirs)
+var srcFiles = u.MakeAllowedFileFilterForExts(".go", ".js", ".html", ".css")
+var excludeDirs = u.MakeExcludeDirsFilter("node_modules", "tmpdata")
+var allFiles = u.MakeFilterAnd(srcFiles, excludeDirs)
 
 func doLineCount() int {
-	stats := wc.NewLineStats()
+	stats := u.NewLineStats()
 	err := stats.CalcInDir(".", allFiles, true)
 	if err != nil {
 		fmt.Printf("doLineCount: stats.wcInDir() failed with '%s'\n", err)
 		return 1
 	}
-	wc.PrintLineStats(stats)
+	u.PrintLineStats(stats)
 	return 0
 }

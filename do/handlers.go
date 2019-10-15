@@ -21,8 +21,7 @@ const (
 )
 
 var (
-	mdPreviewTmpl   *template.Template
-	htmlPreviewTmpl *template.Template
+	templates *template.Template
 )
 
 func previewToMD(pageID string) ([]byte, error) {
@@ -75,18 +74,14 @@ func previewToMD(pageID string) ([]byte, error) {
 
 func reloadTemplates() {
 	var err error
-	path := filepath.Join("do", "preview.md.tmpl.html")
-	mdPreviewTmpl, err = template.ParseFiles(path)
-	must(err)
-	//path := filepath.Join("do", "preview.html.tmpl.html")
-	htmlPreviewTmpl, err = template.ParseFiles(path)
-	//htmlPreviewTmpl, err = template.ParseFiles("preview.html.tmpl.html")
+	pattern := filepath.Join("do", "*.tmpl.html")
+	templates, err = template.ParseGlob(pattern)
 	must(err)
 }
 
-func serveHTMLTempalte(w http.ResponseWriter, r *http.Request, tmpl *template.Template, d interface{}) {
+func serveHTMLTemplate(w http.ResponseWriter, r *http.Request, tmplName string, d interface{}) {
 	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, d)
+	err := templates.ExecuteTemplate(&buf, tmplName, d)
 	if err != nil {
 		logf("tmpl.Execute failed with '%s'\n", err)
 		return
@@ -98,16 +93,23 @@ func serveHTMLTempalte(w http.ResponseWriter, r *http.Request, tmpl *template.Te
 }
 
 func handlePreviewHTML(w http.ResponseWriter, r *http.Request) {
-	logf("handlePreivewHTML\n")
+	logf("handlePreviewHTML\n")
 	reloadTemplates()
 
+	pageID := extractNotionIDFromURL(r.URL.Path)
+	if pageID == "" {
+		logf("url '%s' has no valid notion id\n", r.URL)
+		return
+	}
+
 	d := map[string]interface{}{}
-	serveHTMLTempalte(w, r, htmlPreviewTmpl, d)
+	serveHTMLTemplate(w, r, "preview.html.tmpl.html", d)
 }
 
 func handlePreviewMarkdown(w http.ResponseWriter, r *http.Request) {
 	logf("handlePreviewMarkdown url: %s\n", r.URL)
 	reloadTemplates()
+
 	pageID := extractNotionIDFromURL(r.URL.Path)
 	if pageID == "" {
 		logf("url '%s' has no valid notion id\n", r.URL)
@@ -124,7 +126,7 @@ func handlePreviewMarkdown(w http.ResponseWriter, r *http.Request) {
 		"Markdown": string(md),
 		"HTML":     template.HTML("<b>HTML preview</b>"),
 	}
-	serveHTMLTempalte(w, r, mdPreviewTmpl, d)
+	serveHTMLTemplate(w, r, "preview.md.tmpl.html", d)
 }
 
 // https://blog.gopheracademy.com/advent-2016/exposing-go-on-the-internet/
