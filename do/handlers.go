@@ -11,18 +11,28 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kjk/notionapi/tohtml"
+
 	"github.com/kjk/notionapi/tomarkdown"
 )
 
 const (
-	htmlMimeType     = "text/html; charset=utf-8"
-	jsMimeType       = "text/javascript; charset=utf-8"
-	markdownMimeType = "text/markdown; charset=UTF-8"
+	mimeTypeHTML       = "text/html; charset=utf-8"
+	mimeTypeText       = "text/plain"
+	mimeTypeJavaScript = "text/javascript; charset=utf-8"
+	mimeTypeMarkdown   = "text/markdown; charset=UTF-8"
 )
 
 var (
 	templates *template.Template
 )
+
+func reloadTemplates() {
+	var err error
+	pattern := filepath.Join("do", "*.tmpl.html")
+	templates, err = template.ParseGlob(pattern)
+	must(err)
+}
 
 func previewToMD(pageID string) ([]byte, error) {
 	client := makeNotionClient()
@@ -40,12 +50,12 @@ func previewToMD(pageID string) ([]byte, error) {
 	// =>
 	// /testmarkdown#${pageID}
 	rewriteURL := func(uri string) string {
-		fmt.Printf("rewriteURL: '%s'", uri)
+		logf("rewriteURL: '%s'", uri)
 		// ExtractNoDashIDFromNotionURL() only checks if last part of the url
 		// is a valid id. We only want to
 		parsedURL, _ := url.Parse(uri)
 		if !strings.Contains(uri, "notion.so") {
-			fmt.Printf("\n")
+			logf("\n")
 			return uri
 		}
 		//idStr := notionapi.ExtractNoDashIDFromNotionURL(uri)
@@ -56,13 +66,13 @@ func previewToMD(pageID string) ([]byte, error) {
 				id = extractNotionIDFromURL(uri)
 			}
 			if id == "" {
-				fmt.Printf("\n")
+				logf("\n")
 				return uri
 			}
 		}
 
 		res := "/previewmd/" + id
-		fmt.Printf("=> '%s'\n", res)
+		logf("=> '%s'\n", res)
 		// TODO: maybe preserve ?queryargs
 		return res
 	}
@@ -72,11 +82,62 @@ func previewToMD(pageID string) ([]byte, error) {
 	return d, nil
 }
 
-func reloadTemplates() {
-	var err error
-	pattern := filepath.Join("do", "*.tmpl.html")
-	templates, err = template.ParseGlob(pattern)
-	must(err)
+func previewToHTML(pageID string) ([]byte, error) {
+	client := makeNotionClient()
+	page, err := downloadPage(client, pageID)
+	if err != nil {
+		logf("previewToHTML: downloadPage() failed with '%s'\n", err)
+		return nil, err
+	}
+	if page == nil {
+		logf("toHTML: page is nil\n")
+		return nil, errors.New("page == nil")
+	}
+	conv := tohtml.NewConverter(page)
+	// change https://www.notion.so/Advanced-web-spidering-with-Puppeteer-ea07db1b9bff415ab180b0525f3898f6
+	// =>
+	// /previewhtml/${pageID}
+	rewriteURL := func(uri string) string {
+		logf("rewriteURL: '%s'", uri)
+		// ExtractNoDashIDFromNotionURL() only checks if last part of the url
+		// is a valid id. We only want to
+		parsedURL, _ := url.Parse(uri)
+		if !strings.Contains(uri, "notion.so") {
+			logf("\n")
+			return uri
+		}
+		//idStr := notionapi.ExtractNoDashIDFromNotionURL(uri)
+		id := extractNotionIDFromURL(uri)
+		if id == "" {
+			if parsedURL != nil {
+				//idStr = notionapi.ExtractNoDashIDFromNotionURL(parsedURL.Path)
+				id = extractNotionIDFromURL(uri)
+			}
+			if id == "" {
+				logf("\n")
+				return uri
+			}
+		}
+
+		res := "/previewhtml/" + id
+		logf("=> '%s'\n", res)
+		// TODO: maybe preserve ?queryargs
+		return res
+	}
+
+	conv.RewriteURL = rewriteURL
+	return conv.ToHTML()
+}
+
+func serveError(w http.ResponseWriter, r *http.Request, format string, args ...interface{}) {
+	s := format
+	if len(args) > 0 {
+		s = fmt.Sprintf(format, args...)
+	}
+	w.Header().Set("Content-Type", mimeTypeText)
+	code := http.StatusInternalServerError
+	w.WriteHeader(code)
+	_, _ = w.Write([]byte(s))
 }
 
 func serveHTMLTemplate(w http.ResponseWriter, r *http.Request, tmplName string, d interface{}) {
@@ -86,7 +147,7 @@ func serveHTMLTemplate(w http.ResponseWriter, r *http.Request, tmplName string, 
 		logf("tmpl.Execute failed with '%s'\n", err)
 		return
 	}
-	w.Header().Set("Content-Type", htmlMimeType)
+	w.Header().Set("Content-Type", mimeTypeHTML)
 	code := http.StatusOK
 	w.WriteHeader(code)
 	_, _ = w.Write(buf.Bytes())
@@ -101,8 +162,14 @@ func handlePreviewHTML(w http.ResponseWriter, r *http.Request) {
 		logf("url '%s' has no valid notion id\n", r.URL)
 		return
 	}
-
-	d := map[string]interface{}{}
+	html, err := previewToHTML(pageID)
+	if err != nil {
+		logf("previewToHTML('%s') failed with '%s'\n", pageID, err)
+		return
+	}
+	d := map[string]interface{}{
+		"HTML": template.HTML(html),
+	}
 	serveHTMLTemplate(w, r, "preview.html.tmpl.html", d)
 }
 
@@ -117,7 +184,7 @@ func handlePreviewMarkdown(w http.ResponseWriter, r *http.Request) {
 	}
 	md, err := previewToMD(pageID)
 	if err != nil {
-		logf("preivewToMD('%s') failed with '%s'\n", pageID, err)
+		logf("previewToMD('%s') failed with '%s'\n", pageID, err)
 		return
 	}
 
