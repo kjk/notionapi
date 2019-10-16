@@ -386,7 +386,7 @@ func (d *Downloader) DownloadPage(pageID string) (*notionapi.Page, error) {
 	return page, nil
 }
 
-func (d *Downloader) DownloadPagesRecursively(startPageID string) ([]*notionapi.Page, error) {
+func (d *Downloader) DownloadPagesRecursively(startPageID string, afterDownload func(*notionapi.Page) error) ([]*notionapi.Page, error) {
 	toVisit := []string{startPageID}
 	downloaded := map[string]*notionapi.Page{}
 	for len(toVisit) > 0 {
@@ -401,6 +401,12 @@ func (d *Downloader) DownloadPagesRecursively(startPageID string) ([]*notionapi.
 			return nil, err
 		}
 		downloaded[pageID] = page
+		if afterDownload != nil {
+			err = afterDownload(page)
+			if err != nil {
+				return nil, err
+			}
+		}
 
 		subPages := page.GetSubPages()
 		toVisit = append(toVisit, subPages...)

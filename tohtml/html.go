@@ -17,6 +17,10 @@ func maybePanic(format string, args ...interface{}) {
 	notionapi.MaybePanic(format, args...)
 }
 
+func logf(format string, args ...interface{}) {
+	notionapi.Logf(format, args...)
+}
+
 func isSafeChar(r rune) bool {
 	if r >= '0' && r <= '9' {
 		return true
@@ -189,10 +193,6 @@ func htmlFileName(title string) string {
 // HTMLFileNameForPage returns file name for html file
 func HTMLFileNameForPage(page *notionapi.Page) string {
 	return htmlFileName(page.Root().Title)
-}
-
-func logf(format string, args ...interface{}) {
-	notionapi.Logf(format, args...)
 }
 
 type PageByIDProvider interface {
