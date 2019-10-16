@@ -480,6 +480,12 @@ func (c *Converter) GetInlineContent(blocks []*notionapi.TextSpan) string {
 // RenderCode renders BlockCode
 func (c *Converter) RenderCode(block *notionapi.Block) {
 	cls := "code"
+	if !c.NotionCompat {
+		lang := strings.ToLower(strings.TrimSpace(block.CodeLanguage))
+		if lang != "" {
+			cls += " lang-" + lang
+		}
+	}
 	c.Printf(`<pre id="%s" class="%s">`, block.ID, cls)
 	{
 		code := EscapeHTML(block.Code)
@@ -567,7 +573,7 @@ func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 	c.Printf(`</figure>`)
 }
 
-func (c *Converter) renderLinkToPage(block *notionapi.Block) {
+func (c *Converter) renderLinkToPageNotion(block *notionapi.Block) {
 	uri := filePathForPage(block)
 	cls := GetBlockColorClass(block) + " link-to-page"
 	cls = CleanAttributeValue(cls)
@@ -588,6 +594,35 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 		c.Printf(`</a>`)
 	}
 	c.Printf(`</figure>`)
+}
+
+func (c *Converter) renderLinkToPage(block *notionapi.Block) {
+	if c.NotionCompat {
+		c.renderLinkToPageNotion(block)
+		return
+	}
+
+	uri := filePathForPage(block)
+	cls := GetBlockColorClass(block) + " link-to-page"
+	cls = CleanAttributeValue(cls)
+	c.Printf(`<div id="%s" class="%s">`, block.ID, cls)
+	{
+
+		c.Printf(`<a href="%s">`, uri)
+		pageIcon, ok := block.PropAsString("format.page_icon")
+		if ok {
+			if isURL(pageIcon) {
+				fileName := getDownloadedFileName(pageIcon, block)
+				c.Printf(`<img class="icon" src="%s"/>`, fileName)
+			} else {
+				c.Printf(`<span class="icon">%s</span>`, pageIcon)
+			}
+		}
+		// TODO: possibly r.RenderInlines(block.InlineContent)
+		c.Printf(EscapeHTML(block.Title))
+		c.Printf(`</a>`)
+	}
+	c.Printf(`</div>`)
 }
 
 func (c *Converter) renderRootPage(block *notionapi.Block) {
@@ -627,7 +662,6 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 }
 
 func (c *Converter) renderSubPage(block *notionapi.Block) {
-	// TODO: probably a different look
 	c.renderLinkToPage(block)
 }
 
@@ -658,10 +692,17 @@ func GetBlockColorClass(block *notionapi.Block) string {
 // RenderText renders BlockText
 func (c *Converter) RenderText(block *notionapi.Block) {
 	cls := GetBlockColorClass(block)
-	c.Printf(`<p id="%s" class="%s">`, block.ID, cls)
+	if c.NotionCompat {
+		c.Printf(`<p id="%s" class="%s">`, block.ID, cls)
+		c.RenderInlines(block.InlineContent)
+		c.RenderChildren(block)
+		c.Printf(`</p>`)
+		return
+	}
+	c.Printf(`<div id="%s" class="%s">`, block.ID, cls)
 	c.RenderInlines(block.InlineContent)
 	c.RenderChildren(block)
-	c.Printf(`</p>`)
+	c.Printf(`</div>`)
 }
 
 func equationToHTML(katexPath string, equation string) (string, error) {
@@ -737,7 +778,11 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 
 	cls := GetBlockColorClass(block) + " numbered-list"
 	cls = CleanAttributeValue(cls)
-	c.Printf(`<ol id="%s" class="%s" start="%d">`, block.ID, cls, c.ListNo)
+
+	// Notion puts <ol> around every <li>
+	if c.NotionCompat || !isPrevSame {
+		c.Printf(`<ol id="%s" class="%s" start="%d">`, block.ID, cls, c.ListNo)
+	}
 	{
 		c.Printf(`<li>`)
 		{
@@ -746,14 +791,21 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 		}
 		c.Printf(`</li>`)
 	}
-	c.Printf(`</ol>`)
+	isNextSame := c.IsNextBlockOfType(notionapi.BlockNumberedList)
+	if c.NotionCompat || !isNextSame {
+		c.Printf(`</ol>`)
+	}
 }
 
 // RenderBulletedList renders BlockBulletedList
 func (c *Converter) RenderBulletedList(block *notionapi.Block) {
+	isPrevSame := c.IsPrevBlockOfType(notionapi.BlockBulletedList)
 	cls := GetBlockColorClass(block) + " bulleted-list"
 	cls = CleanAttributeValue(cls)
-	c.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
+	// Notion puts <ul> around every <li>
+	if c.NotionCompat || !isPrevSame {
+		c.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
+	}
 	{
 		c.Printf(`<li>`)
 		{
@@ -762,18 +814,20 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 		}
 		c.Printf(`</li>`)
 	}
-	c.Printf(`</ul>`)
+	isNextSame := c.IsNextBlockOfType(notionapi.BlockBulletedList)
+	if c.NotionCompat || !isNextSame {
+		c.Printf(`</ul>`)
+	}
 }
 
 // RenderHeaderLevel renders BlockHeader, SubHeader and SubSubHeader
 func (c *Converter) RenderHeaderLevel(block *notionapi.Block, level int) {
 	cls := GetBlockColorClass(block)
 	c.Printf(`<h%d id="%s" class="%s">`, level, block.ID, cls)
-	id := block.ID
-	if c.AddHeaderAnchor {
-		c.Printf(`<a class="notion-header-anchor" href="#%s" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M5.88.03c-.18.01-.36.03-.53.09-.27.1-.53.25-.75.47a.5.5 0 1 0 .69.69c.11-.11.24-.17.38-.22.35-.12.78-.07 1.06.22.39.39.39 1.04 0 1.44l-1.5 1.5c-.44.44-.8.48-1.06.47-.26-.01-.41-.13-.41-.13a.5.5 0 1 0-.5.88s.34.22.84.25c.5.03 1.2-.16 1.81-.78l1.5-1.5c.78-.78.78-2.04 0-2.81-.28-.28-.61-.45-.97-.53-.18-.04-.38-.04-.56-.03zm-2 2.31c-.5-.02-1.19.15-1.78.75l-1.5 1.5c-.78.78-.78 2.04 0 2.81.56.56 1.36.72 2.06.47.27-.1.53-.25.75-.47a.5.5 0 1 0-.69-.69c-.11.11-.24.17-.38.22-.35.12-.78.07-1.06-.22-.39-.39-.39-1.04 0-1.44l1.5-1.5c.4-.4.75-.45 1.03-.44.28.01.47.09.47.09a.5.5 0 1 0 .44-.88s-.34-.2-.84-.22z"></path></svg></a>`, id)
-	}
 	c.RenderInlines(block.InlineContent)
+	if c.AddHeaderAnchor {
+		c.Printf(`<a class="header-anchor" href="#%s" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M5.88.03c-.18.01-.36.03-.53.09-.27.1-.53.25-.75.47a.5.5 0 1 0 .69.69c.11-.11.24-.17.38-.22.35-.12.78-.07 1.06.22.39.39.39 1.04 0 1.44l-1.5 1.5c-.44.44-.8.48-1.06.47-.26-.01-.41-.13-.41-.13a.5.5 0 1 0-.5.88s.34.22.84.25c.5.03 1.2-.16 1.81-.78l1.5-1.5c.78-.78.78-2.04 0-2.81-.28-.28-.61-.45-.97-.53-.18-.04-.38-.04-.56-.03zm-2 2.31c-.5-.02-1.19.15-1.78.75l-1.5 1.5c-.78.78-.78 2.04 0 2.81.56.56 1.36.72 2.06.47.27-.1.53-.25.75-.47a.5.5 0 1 0-.69-.69c-.11.11-.24.17-.38.22-.35.12-.78.07-1.06-.22-.39-.39-.39-1.04 0-1.44l1.5-1.5c.4-.4.75-.45 1.03-.44.28.01.47.09.47.09a.5.5 0 1 0 .44-.88s-.34-.2-.84-.22z"></path></svg></a>`, block.ID)
+	}
 	c.Printf(`</h%d>`, level)
 }
 
@@ -963,6 +1017,7 @@ func (c *Converter) RenderDivider(block *notionapi.Block) {
 	c.Printf(`<hr id="%s"/>`, block.ID)
 }
 
+// RenderCaption renders a caption
 func (c *Converter) RenderCaption(block *notionapi.Block) {
 	caption := block.GetCaption()
 	if caption == nil {
@@ -1053,26 +1108,6 @@ func (c *Converter) renderEmbed(block *notionapi.Block) {
 	c.Printf(`</figure>`)
 }
 
-// RenderTweet renders BlockTweet
-func (c *Converter) RenderTweet(block *notionapi.Block) {
-	c.renderEmbed(block)
-}
-
-// RenderGist renders BlockGist
-func (c *Converter) RenderGist(block *notionapi.Block) {
-	c.renderEmbed(block)
-}
-
-// RenderCodepen renders BlockCodepen
-func (c *Converter) RenderCodepen(block *notionapi.Block) {
-	c.renderEmbed(block)
-}
-
-// RenderMaps renders BlockMaps
-func (c *Converter) RenderMaps(block *notionapi.Block) {
-	c.renderEmbed(block)
-}
-
 // RenderEmbed renders BlockEmbed
 func (c *Converter) RenderEmbed(block *notionapi.Block) {
 	c.Printf(`<figure id="%s">`, block.ID)
@@ -1087,6 +1122,34 @@ func (c *Converter) RenderEmbed(block *notionapi.Block) {
 		c.RenderCaption(block)
 	}
 	c.Printf(`</figure>`)
+}
+
+// RenderTweet renders BlockTweet
+func (c *Converter) RenderTweet(block *notionapi.Block) {
+	c.renderEmbed(block)
+}
+
+// RenderGist renders BlockGist
+func (c *Converter) RenderGist(block *notionapi.Block) {
+	if c.NotionCompat {
+		c.renderEmbed(block)
+	} else {
+		uri := block.Source + ".js"
+		// TODO: support caption
+		// TODO: maybe support comments
+		// TODO: quote uri
+		c.Printf(`<script src="%s", class="notion-embed-gist"></script>`, uri)
+	}
+}
+
+// RenderCodepen renders BlockCodepen
+func (c *Converter) RenderCodepen(block *notionapi.Block) {
+	c.renderEmbed(block)
+}
+
+// RenderMaps renders BlockMaps
+func (c *Converter) RenderMaps(block *notionapi.Block) {
+	c.renderEmbed(block)
 }
 
 // RenderFigma renders BlockFigma
@@ -1178,7 +1241,7 @@ func (c *Converter) RenderImage(block *notionapi.Block) {
 }
 
 // RenderColumnList renders BlockColumnList
-// it's children are BlockColumn
+// Its children are BlockColumn
 func (c *Converter) RenderColumnList(block *notionapi.Block) {
 	nColumns := len(block.Content)
 	if nColumns == 0 {
@@ -1191,7 +1254,7 @@ func (c *Converter) RenderColumnList(block *notionapi.Block) {
 }
 
 // RenderColumn renders BlockColumn
-// it's parent is BlockColumnList
+// Its parent is BlockColumnList
 func (c *Converter) RenderColumn(block *notionapi.Block) {
 	var colRatio float64 = 50
 	fc := block.FormatColumn()

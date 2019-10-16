@@ -82,11 +82,11 @@ div.notion-wrap {
   content: "\2610";
 }
 
-.notion-header-anchor svg {
+.header-anchor svg {
   opacity: 0.2;
 }
 
-.notion-header-anchor:hover svg {
+.header-anchor:hover svg {
   opacity: 1;
 }
 
@@ -95,15 +95,15 @@ The sizes are chosen to look ok next to a lower-case letter, which is likely
 to be at the end. The downside is that it won't look good if the last letter
 is upper-case.
 */
-h1 a.notion-header-anchor svg {
+h1 a.header-anchor svg {
   height: 17px;
 }
 
-h2 a.notion-header-anchor svg {
+h2 a.header-anchor svg {
   height: 14px;
 }
 
-h3 a.notion-header-anchor svg {
+h3 a.header-anchor svg {
   height: 12px;
 }
 
