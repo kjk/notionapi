@@ -60,3 +60,22 @@ func TestPage44f1a38eefe94336907c7576ef4dd19b(t *testing.T) {
 	require.Equal(t, 1, len(p.TableViews))
 	convertToMdAndHTML(t, p)
 }
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// benchmark JSON decoding of requests
+func BenchmarkJSONDecode(b *testing.B) {
+	pid := "44f1a38eefe94336907c7576ef4dd19b"
+	for i := 0; i < b.N; i++ {
+		cache, err := NewDirectoryCache("testdata")
+		must(err)
+		client := &notionapi.Client{}
+		downloader := New(cache, client)
+		_, err = downloader.DownloadPage(pid)
+		must(err)
+	}
+}
