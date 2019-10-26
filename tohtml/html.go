@@ -1363,6 +1363,9 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 
 	if schema == nil {
 		colNameCls := EscapeHTML(colName)
+		if colVal == "" {
+			colVal = "&nbsp;"
+		}
 		c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
 		return
 	}
@@ -1421,6 +1424,9 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 	}
 
 	colNameCls := EscapeHTML(colName)
+	if colVal == "" {
+		colVal = "&nbsp;"
+	}
 	c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
 }
 
