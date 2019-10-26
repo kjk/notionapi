@@ -545,10 +545,13 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			// TODO: Support parent table collection
 			continue
 		case TableBlock:
+			// Page's parent is outside of this page
+			if isPageBlock(b) && !p.IsSubPage(b) {
+				continue
+			}
+
 			b.Parent = p.BlockByID(b.ParentID)
-			// TODO: this is from https://github.com/shedokan/notionapi/commit/cc7f5b7d3ea324138e568af4da455f8290499a03
-			// but it fails on 'do -smoke'. figure out what is expected
-			if false && b.Parent == nil {
+			if b.Parent == nil {
 				return nil, fmt.Errorf("could not find parent '%s' of id '%s' of block '%s'", b.ParentTable, b.ParentID, b.ID)
 			}
 		default:
