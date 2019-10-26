@@ -149,16 +149,10 @@ func panicIf(cond bool, args ...interface{}) {
 // a direct child of this page (as opposed to a link to
 // arbitrary page)
 func (p *Page) IsSubPage(block *Block) bool {
-	if block == nil {
+	if block == nil || !isPageBlock(block) {
 		return false
 	}
-	switch block.Type {
-	case BlockPage, BlockCollectionViewPage:
-		// a page
-	default:
-		// not a page
-		return false
-	}
+
 	for {
 		parentID := block.ParentID
 		if parentID == p.ID {
