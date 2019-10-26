@@ -16,9 +16,11 @@ var (
 
 func makeNotionClient() *notionapi.Client {
 	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
 		AuthToken: getToken(),
+		DebugLog:  flgVerbose,
+		Logger:    os.Stdout,
 	}
+
 	if !didPrintTokenStatus {
 		didPrintTokenStatus = true
 		if client.AuthToken == "" {
