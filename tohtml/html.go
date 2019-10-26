@@ -1332,13 +1332,15 @@ func hasTitleColumn(columns []*notionapi.ColumnInfo) bool {
 */
 
 func (c *Converter) renderTableHeader(tv *notionapi.TableView, col int) {
-	name := ""
+	var style, name string
 	ci := tv.Columns[col]
 	if ci != nil {
 		name = ci.Name()
 		name = EscapeHTML(name)
+
+		style = fmt.Sprintf(` width="%d"`, ci.Property.Width)
 	}
-	c.Printf(`<th>%s</th>`, name)
+	c.Printf(`<th%s>%s</th>`, style, name)
 }
 
 func isEmptyBlock(block *notionapi.Block) bool {
