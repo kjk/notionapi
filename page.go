@@ -110,11 +110,21 @@ func (p *Page) NotionURL() string {
 	return "https://www.notion.so/" + id
 }
 
-func forEachBlockWithParent(blocks []*Block, parent *Block, cb func(*Block)) {
+func forEachBlockWithParent(seen map[string]bool, blocks []*Block, parent *Block, cb func(*Block)) {
 	for _, block := range blocks {
+		id := block.ID
+		if seen[id] {
+			// crash rather than have infinite recursion
+			panic("seen the same page again")
+		}
+		if block.Type == BlockPage || block.Type == BlockCollectionViewPage {
+			// skip sub-pages to avoid infnite recursion
+			continue
+		}
+		seen[id] = true
 		block.Parent = parent
 		cb(block)
-		forEachBlockWithParent(block.Content, block, cb)
+		forEachBlockWithParent(seen, block.Content, block, cb)
 	}
 }
 
@@ -122,13 +132,15 @@ func forEachBlockWithParent(blocks []*Block, parent *Block, cb func(*Block)) {
 // in depth-first order. To traverse every blocks in a Page, do:
 // ForEachBlock([]*notionapi.Block{page.Root}, cb)
 func ForEachBlock(blocks []*Block, cb func(*Block)) {
-	forEachBlockWithParent(blocks, nil, cb)
+	seen := map[string]bool{}
+	forEachBlockWithParent(seen, blocks, nil, cb)
 }
 
 func (p *Page) ForEachBlock(cb func(*Block)) {
 	root := p.Root()
 	cb(root)
-	forEachBlockWithParent(root.Content, nil, cb)
+	seen := map[string]bool{}
+	forEachBlockWithParent(seen, root.Content, nil, cb)
 }
 
 func panicIf(cond bool, args ...interface{}) {
