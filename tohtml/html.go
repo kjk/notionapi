@@ -948,17 +948,26 @@ func isHeaderBlock(block *notionapi.Block) bool {
 	return false
 }
 
-func getHeaderBlocks(blocks []*notionapi.Block) []*notionapi.Block {
+func getHeaderBlocks(blocks []*notionapi.Block, seen map[string]bool) []*notionapi.Block {
 	var res []*notionapi.Block
 	for _, b := range blocks {
+		id := b.ID
+		if seen[id] {
+			// crash is better than infinite recursion
+			panic("seen the same block twice")
+		}
+		seen[id] = true
 		if isHeaderBlock(b) {
 			res = append(res, b)
+			continue
+		}
+		if b.Type == notionapi.BlockPage || b.Type == notionapi.BlockCollectionViewPage {
 			continue
 		}
 		if len(b.Content) == 0 {
 			continue
 		}
-		sub := getHeaderBlocks(b.Content)
+		sub := getHeaderBlocks(b.Content, seen)
 		res = append(res, sub...)
 	}
 	return res
@@ -998,7 +1007,9 @@ func (c *Converter) RenderTableOfContents(block *notionapi.Block) {
 	cls := GetBlockColorClass(block) + " table_of_contents"
 	cls = CleanAttributeValue(cls)
 	c.Printf(`<nav id="%s" class="%s">`, block.ID, cls)
-	blocks := getHeaderBlocks(c.Page.Root().Content)
+	root := c.Page.Root()
+	seen := map[string]bool{}
+	blocks := getHeaderBlocks(root.Content, seen)
 	indent := 0
 	for i, b := range blocks {
 		indent += adjustIndent(blocks, i)
