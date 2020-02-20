@@ -137,7 +137,8 @@ func main() {
 		flgDownloadPage string
 
 		// id of notion page to download and convert to HTML
-		flgToHTML string
+		flgToHTML     string
+		flgToMarkdown string
 
 		flgPreviewHTML     string
 		flgPreviewMarkdown string
@@ -181,24 +182,30 @@ func main() {
 		flag.StringVar(&flgTestDownloadCache, "test-download-cache", "", "page id to use to test download cache")
 		flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
 		flag.StringVar(&flgToHTML, "to-html", "", "id of notion page to download and convert to html")
+		flag.StringVar(&flgToMarkdown, "to-md", "", "id of notion page to download and convert to markdown")
 		flag.BoolVar(&flgReExport, "re-export", false, "if true, will re-export from notion")
 		flag.BoolVar(&flgNoCache, "no-cache", false, "if true, will not use a cached version in log/ directory")
 		flag.BoolVar(&flgNoOpen, "no-open", false, "if true, will not automatically open the browser with html file generated with -tohtml")
 		flag.BoolVar(&flgWc, "wc", false, "wc -l on source files")
 		flag.BoolVar(&flgBench, "bench", false, "run benchmark")
 		flag.Parse()
-
-		// normalize ids early on
-		flgDownloadPage = notionapi.ToNoDashID(flgDownloadPage)
-		flgToHTML = notionapi.ToNoDashID(flgToHTML)
 	}
 
 	must(os.MkdirAll(cacheDir, 0755))
 
 	if false {
+		flgToHTML = "15061913435e4d79a49daff515f2afe0"
+	}
+
+	if false {
 		testSubPages()
 		return
 	}
+
+	// normalize ids early on
+	flgDownloadPage = notionapi.ToNoDashID(flgDownloadPage)
+	flgToHTML = notionapi.ToNoDashID(flgToHTML)
+	flgToMarkdown = notionapi.ToNoDashID(flgToMarkdown)
 
 	if flgWc {
 		doLineCount()
@@ -272,11 +279,18 @@ func main() {
 		return
 	}
 
+	if flgToMarkdown != "" {
+		flgNoCache = true
+		toMd(flgToMarkdown)
+		return
+	}
+
 	if flgPreviewHTML != "" {
 		uri := "/previewhtml/" + flgPreviewHTML
 		startHTTPServer(uri)
 		return
 	}
+
 	if flgPreviewMarkdown != "" {
 		uri := "/previewmd/" + flgPreviewMarkdown
 		startHTTPServer(uri)

@@ -83,7 +83,7 @@ func FilePathFromPageCoverURL(uri string, block *notionapi.Block) string {
 
 func filePathForPage(block *notionapi.Block) string {
 	name := safeName(block.Title) + ".html"
-	for block.Parent != nil {
+	for block.Parent != nil && block != block.Parent {
 		block = block.Parent
 		if block.Type != notionapi.BlockPage {
 			continue
@@ -126,7 +126,7 @@ func (c *Converter) tableTitleCellURL(tv *notionapi.TableView, row, col int) str
 	}
 	name = safeName(colName) + "/" + name
 	block := tv.Page.Root()
-	for block.Parent != nil {
+	for block.Parent != nil && block != block.Parent {
 		block = block.Parent
 		if block.Type != notionapi.BlockPage {
 			continue
