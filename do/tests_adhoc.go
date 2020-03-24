@@ -18,6 +18,20 @@ func pageURL(pageID string) string {
 	return "https://notion.so/" + pageID
 }
 
+func testDownloadFile() {
+	client := &notionapi.Client{
+		DebugLog:  flgVerbose,
+		AuthToken: getToken(),
+	}
+	uri := "https://s3.us-west-2.amazonaws.com/secure.notion-static.com/cacd0ab4-224c-4276-814f-e80a7fea1b3a/Screen_Shot_2020-03-19_at_6.11.37_PM.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAT73L2G45GQ6I6PXS%2F20200320%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20200320T011635Z&X-Amz-Expires=86400&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEPb%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJIMEYCIQCARBficIVNgZU6KsQpgVmlsWMvm64cvznOFSIQrViUEAIhAMojl3CRPCOhLsxR5Q6%2F%2BV28mLpwL4TJjgVBzrLPXUqfKr0DCN%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEQABoMMjc0NTY3MTQ5MzcwIgwZyKv1lfjAdtO4I9kqkQNvn90XhdlUgA9UpNvIDDGCf%2FcFtyBSBiDtPgU92QmQjJmrCIfslN7g3UnWak2sfCbWQgScGcHafjZv4OG0IuixJGAZPaaMvlOOOy9G3q5JZz4%2BinwtMLf%2BzJBbUp9DDyhdm6rTWOdLxyTtWgfx3LdyBmhn%2FqvBXO6xLjyz4p58cry%2FSUrdTPe47y%2BUbFgbhFxp2zGYj63gHGRDASDzODaibYmxaprj2hSLHuiVfKL1Y582%2F6Gc8AIGNj3IybXG%2Ftn6db0Qh8mTzClIoyEW9VE0b%2BEX2kXE0lFn51ivcPGK3KoJlbcHVeJoQwfmPieq%2BnLkX97ur5VjYx%2F9eiROoIHpsRykLAuC85ZFmthZTDoR6pnSMiVKtWBGQWCOhUm27Jbr4AcPlC%2BYN23GvZgLRIzs9Xw4afsg8vgxkncAfraVqK9h3SSzW2XlXN7DMNaRaowko552oX%2BgcJEaFRO9zK5vsrCp6q1tkgiSqnafeb9MVkUttXNGd94VGWZgyh3FQL%2B6BqMUfIBppFnTGrXHhMXJaTDkys%2FzBTrqAR17y7hpLP5bM9hVoJQolj3N5PmytUXV5dQmtrriIYUWzKRPi68V2b9HMr3H4R%2BkiEdPELfMcWLUVA3mOZkXI2bfm2pTkan%2BfaDSzMmgWMqUcu0C12DG3iE5AEoOKyHZXjQuvgVjKk3RCntFzwntNn0nljM43FxGFiZ1iy0NnK%2Bf21N1tLy43BpO96ABc%2FYtVQ1DNI2o9lPxo8dfO8yWaxC97f%2BfYL4LHtSzwufnN6CJZiPQ9OmGNIxkOBWO6z5eKRudWs2bxvHkapQZ08lFRAKbuosslWu549iM5hrGqaPdD0hTbDEV4rK7CQ%3D%3D&X-Amz-Signature=6c6b08db4167214f255a31df07e27de3387d10a5a1e8b09c8f27cb789a880d67&X-Amz-SignedHeaders=host&response-content-disposition=filename%20%3D%22Screen_Shot_2020-03-19_at_6.11.37_PM.png%22"
+	rsp, err := client.DownloadFile(uri, "8511412cbfde432ba226648e9bdfbec2")
+	if err != nil {
+		fmt.Printf("c.DownloadFile() failed with '%s'\n", err)
+		return
+	}
+	fmt.Printf("c.DownloadFile() downloaded %d bytes\n", len(rsp.Data))
+}
+
 func testDownloadImage() {
 	client := &notionapi.Client{
 		DebugLog:  flgVerbose,

@@ -194,6 +194,11 @@ func main() {
 	must(os.MkdirAll(cacheDir, 0755))
 
 	if false {
+		testDownloadFile()
+		return
+	}
+
+	if false {
 		adhocTests()
 		return
 	}
