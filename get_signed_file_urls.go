@@ -128,11 +128,7 @@ func (c *Client) maybeSignImageURL(uri string, blockID string) string {
 	return rsp.SignedUrls[0]
 }
 
-// DownloadFile downloads a file stored in Notion
-func (c *Client) DownloadFile(uri string, blockID string) (*DownloadFileResponse, error) {
-	//fmt.Printf("DownloadFile: '%s'\n", uri)
-	uri = c.maybeSignImageURL(uri, blockID)
-
+func (c *Client) downloadFile(uri string) (*DownloadFileResponse, error) {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		//fmt.Printf("DownloadFile: NewRequest() for '%s' failed with '%s'\n", uri, err)
@@ -162,4 +158,19 @@ func (c *Client) DownloadFile(uri string, blockID string) (*DownloadFileResponse
 		Header: resp.Header,
 	}
 	return rsp, nil
+}
+
+// DownloadFile downloads a file stored in Notion
+func (c *Client) DownloadFile(uri string, blockID string) (*DownloadFileResponse, error) {
+	//fmt.Printf("DownloadFile: '%s'\n", uri)
+	// try proxing through www.notion.so/image/
+	if strings.Contains(uri, "s3.us-west-2.amazonaws.com") {
+		uri2 := "https://www.notion.so/image/" + url.PathEscape(uri)
+		res, err := c.downloadFile(uri2)
+		if err == nil {
+			return res, nil
+		}
+	}
+	uri2 := c.maybeSignImageURL(uri, blockID)
+	return c.downloadFile(uri2)
 }
