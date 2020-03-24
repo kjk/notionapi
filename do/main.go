@@ -194,7 +194,12 @@ func main() {
 	must(os.MkdirAll(cacheDir, 0755))
 
 	if false {
-		flgToHTML = "15061913435e4d79a49daff515f2afe0"
+		adhocTests()
+		return
+	}
+
+	if false {
+		flgToHTML = "8511412cbfde432ba226648e9bdfbec2"
 	}
 
 	if false {

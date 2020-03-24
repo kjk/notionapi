@@ -449,7 +449,8 @@ func GetCacheFileNameFromURL(uri string) string {
 }
 
 // DownloadFile downloads a file, caching in the cache
-func (d *Downloader) DownloadFile(uri string) (*notionapi.DownloadFileResponse, error) {
+func (d *Downloader) DownloadFile(uri string, blockID string) (*notionapi.DownloadFileResponse, error) {
+	//fmt.Printf("Downloader.DownloadFile('%s'\n", uri)
 	cacheFileName := GetCacheFileNameFromURL(uri)
 	var data []byte
 	var err error
@@ -475,7 +476,7 @@ func (d *Downloader) DownloadFile(uri string) (*notionapi.DownloadFileResponse, 
 	}
 
 	timeStart := time.Now()
-	res, err := d.Client.DownloadFile(uri)
+	res, err := d.Client.DownloadFile(uri, blockID)
 	if err != nil {
 		d.emitError("Downloader.DownloadFile(): failed to download %s, error: %s", uri, err)
 		return nil, err

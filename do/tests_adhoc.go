@@ -29,16 +29,16 @@ func testDownloadImage() {
 	page, err := downloadPage(client, pageID)
 	must(err)
 	block := page.Root()
-	assert(block.Title == "test image", "unexpected title ''%s'", block.Title)
+	assert(block.Title == "Test image", "unexpected title ''%s'", block.Title)
 	blocks := block.Content
 	assert(len(blocks) == 2, "expected 2 blockSS, got %d", len(blocks))
 
 	block = blocks[0]
-	if true {
+	if false {
 		fmt.Printf("block.Source: %s\n", block.Source)
 		exp := "https://i.imgur.com/NT9NcB6.png"
 		assert(block.Source == exp, "expected %s, got %s", exp, block.Source)
-		rsp, err := client.DownloadFile(block.Source)
+		rsp, err := client.DownloadFile(block.Source, block.ID)
 		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.Source)
 		fmt.Printf("Downloaded image %s of size %d\n", block.Source, len(rsp.Data))
 		ct := rsp.Header.Get("Content-Type")
@@ -54,7 +54,7 @@ func testDownloadImage() {
 		fmt.Printf("block.Source: %s\n", block.Source)
 		exp := "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e5661303-82e1-43e4-be8e-662d1598cd53/untitled"
 		assert(block.Source == exp, "expected '%s', got '%s'", exp, block.Source)
-		rsp, err := client.DownloadFile(block.Source)
+		rsp, err := client.DownloadFile(block.Source, block.ID)
 		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.Source)
 		fmt.Printf("Downloaded image %s of size %d\n", block.Source, len(rsp.Data))
 		ct := rsp.Header.Get("Content-Type")
@@ -189,8 +189,8 @@ func adhocTests() {
 	fmt.Printf("Running page tests\n")
 	recreateDir(cacheDir)
 
-	testDownloadBig()
-	//testDownloadImage()
+	//testDownloadBig()
+	testDownloadImage()
 	//testGist()
 	//testChangeTitle()
 	//testChangeFormat()

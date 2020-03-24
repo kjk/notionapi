@@ -15,12 +15,30 @@ const (
 	//s3URLPrefixEncoded = "https://s3.us-west-2.amazonaws.com/secure.notion-static.com/"
 )
 
-type getSignedFileUrlsRequest struct {
-	Urls []getSignedFileURL `json:"urls"`
+/*
+{"urls": [
+	{
+		"url" : "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e5661303-82e1-43e4-be8e-662d1598cd53/untitled",
+		"permissionRecord": {
+			"table":"block",
+			"id":"845fd39c-f048-4d41-a0f8-a83851d17afd"
+			}
+		}
+  ]}
+*/
+
+type getSignedURLPermissionRecord struct {
+	Table string `json:"table"`
+	ID    string `json:"id"`
 }
 
 type getSignedFileURL struct {
-	URL string `json:"url"`
+	URL        string                       `json:"url"`
+	Permission getSignedURLPermissionRecord `json:"permissionRecord"`
+}
+
+type getSignedFileUrlsRequest struct {
+	Urls []getSignedFileURL `json:"urls"`
 }
 
 // GetSignedFileUrlsResponse is a response of GetSignedFileUrls()
@@ -32,10 +50,14 @@ type GetSignedFileUrlsResponse struct {
 // GetSignedFileUrls executes a raw API call /api/v3/getSignedFileUrls
 // For files (e.g. images) stored in Notion we need to get a temporary
 // download url (which will be valid for only a short period of time)
-func (c *Client) GetSignedFileUrls(urls []string) (*GetSignedFileUrlsResponse, error) {
+func (c *Client) GetSignedFileUrls(urls []string, blockIDs []string) (*GetSignedFileUrlsResponse, error) {
 	req := &getSignedFileUrlsRequest{}
-	for _, url := range urls {
-		fu := getSignedFileURL{URL: url}
+	for i, url := range urls {
+		perm := getSignedURLPermissionRecord{
+			Table: "block",
+			ID:    blockIDs[i],
+		}
+		fu := getSignedFileURL{URL: url, Permission: perm}
 		req.Urls = append(req.Urls, fu)
 	}
 
@@ -88,7 +110,7 @@ func maybeProxyImageURL(uri string) string {
 	return "https://www.notion.so/image/" + url.PathEscape(uri)
 }
 
-func (c *Client) maybeSignImageURL(uri string) string {
+func (c *Client) maybeSignImageURL(uri string, blockID string) string {
 	if !strings.HasPrefix(uri, s3URLPrefix) {
 		return maybeProxyImageURL(uri)
 	}
@@ -99,7 +121,7 @@ func (c *Client) maybeSignImageURL(uri string) string {
 		if client:
 			url = client.session.head(url).headers.get("Location")
 	*/
-	rsp, err := c.GetSignedFileUrls([]string{uri})
+	rsp, err := c.GetSignedFileUrls([]string{uri}, []string{blockID})
 	if err != nil {
 		return uri
 	}
@@ -107,11 +129,13 @@ func (c *Client) maybeSignImageURL(uri string) string {
 }
 
 // DownloadFile downloads a file stored in Notion
-func (c *Client) DownloadFile(uri string) (*DownloadFileResponse, error) {
-	uri = c.maybeSignImageURL(uri)
+func (c *Client) DownloadFile(uri string, blockID string) (*DownloadFileResponse, error) {
+	//fmt.Printf("DownloadFile: '%s'\n", uri)
+	uri = c.maybeSignImageURL(uri, blockID)
 
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
+		//fmt.Printf("DownloadFile: NewRequest() for '%s' failed with '%s'\n", uri, err)
 		return nil, err
 	}
 	if c.AuthToken != "" {
@@ -120,10 +144,12 @@ func (c *Client) DownloadFile(uri string) (*DownloadFileResponse, error) {
 	httpClient := c.getHTTPClient()
 	resp, err := httpClient.Do(req)
 	if err != nil {
+		//fmt.Printf("DownloadFile: httpClient.Do() for '%s' failed with '%s'\n", uri, err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
+		//fmt.Printf("DownloadFile: httpClient.Do() for '%s' failed with '%s'\n", uri, resp.Status)
 		return nil, fmt.Errorf("http GET '%s' failed with status %s", uri, resp.Status)
 	}
 	var buf bytes.Buffer

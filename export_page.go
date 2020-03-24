@@ -111,7 +111,7 @@ func (c *Client) ExportPages(id string, exportType string, recursive bool) ([]by
 		}
 		time.Sleep(750 * time.Millisecond)
 	}
-	dlRsp, err := c.DownloadFile(exportURL)
+	dlRsp, err := c.DownloadFile(exportURL, id)
 	if err != nil {
 		return nil, err
 	}
