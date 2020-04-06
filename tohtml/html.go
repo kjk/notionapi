@@ -13,6 +13,10 @@ import (
 	"github.com/kjk/notionapi"
 )
 
+var (
+	byPassCover bool
+)
+
 func maybePanic(format string, args ...interface{}) {
 	notionapi.MaybePanic(format, args...)
 }
@@ -57,6 +61,11 @@ func fileNameFromPageCoverURL(uri string) string {
 	parts := strings.Split(uri, "/")
 	lastIdx := len(parts) - 1
 	return parts[lastIdx]
+}
+
+// ByPassPageCover when you do not want to check about the cover white list URL
+func ByPassPageCover(b bool) {
+	byPassCover = b
 }
 
 func FilePathFromPageCoverURL(uri string, block *notionapi.Block) string {
