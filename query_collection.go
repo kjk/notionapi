@@ -14,13 +14,23 @@ type AggregateQuery struct {
 	ViewType string `json:"view_type"`
 }
 
+// QueryFilterWrapper describes the filtering of a query
+type QueryFilterWrapper struct {
+	Filters  []*QueryFilterGroup `json:"filters"`
+	Operator string              `json:"operator"`
+}
+
+// QueryFilterGroup describes the filtering of a query
+type QueryFilterGroup struct {
+	Filter   *QueryFilter        `json:"filter"`
+	Filters  []*QueryFilterGroup `json:"filters"`
+	Operator string              `json:"operator"`
+}
+
 // QueryFilter describes the filtering of a query
 type QueryFilter struct {
-	Comparator string `json:"comparator"`
-	ID         string `json:"id"`
-	Property   string `json:"property"`
-	Type       string `json:"type"`
-	Value      string `json:"value"`
+	Operator string      `json:"operator"`
+	Value    interface{} `json:"value"` // not typed properly
 }
 
 // QuerySort describes sorting of a query
@@ -37,9 +47,8 @@ type Query struct {
 	GroupBy    interface{}       `json:"group_by"`
 	CalendarBy interface{}       `json:"calendar_by"`
 
-	FilterOperator string         `json:"filter_operator"`
-	Filter         []*QueryFilter `json:"filter"`
-	Sort           []*QuerySort   `json:"sort"`
+	Filter *QueryFilterWrapper `json:"filter"`
+	Sort   []*QuerySort        `json:"sort"`
 }
 
 type loader struct {
