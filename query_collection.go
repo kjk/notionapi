@@ -25,6 +25,7 @@ type QueryFilterGroup struct {
 	Filter   *QueryFilter        `json:"filter"`
 	Filters  []*QueryFilterGroup `json:"filters"`
 	Operator string              `json:"operator"`
+	Property string              `json:"property"`
 }
 
 // QueryFilter describes the filtering of a query
