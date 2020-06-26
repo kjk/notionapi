@@ -63,13 +63,13 @@ func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPa
 	if rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp); err != nil {
 		return nil, err
 	}
-	if err = parseRecordMap(rsp.RecordMap); err != nil {
+	if err = ParseRecordMap(rsp.RecordMap); err != nil {
 		return nil, err
 	}
 	return &rsp, nil
 }
 
-func parseRecordMap(recordMap *RecordMap) error {
+func ParseRecordMap(recordMap *RecordMap) error {
 	for _, r := range recordMap.Activities {
 		if err := parseRecord(TableActivity, r); err != nil {
 			return err
