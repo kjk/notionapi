@@ -34,8 +34,8 @@ type RecordMap struct {
 	Users           map[string]*Record `json:"notion_user"`
 	Collections     map[string]*Record `json:"collection"`
 	CollectionViews map[string]*Record `json:"collection_view"`
-	Comments        map[string]*Record `josn:"comment"`
-	Discussions     map[string]*Record `jsoon:"discussion"`
+	Comments        map[string]*Record `json:"comment"`
+	Discussions     map[string]*Record `json:"discussion"`
 }
 
 // LoadPageChunk executes a raw API call /api/v3/loadPageChunk
