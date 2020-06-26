@@ -33,6 +33,7 @@ const (
 const (
 	// those are Record.Type and determine the type of Record.Value
 	TableSpace          = "space"
+	TableActivity       = "activity"
 	TableBlock          = "block"
 	TableUser           = "notion_user"
 	TableCollection     = "collection"
