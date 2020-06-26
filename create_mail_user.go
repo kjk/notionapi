@@ -21,7 +21,7 @@ func (c *Client) CreateEmailUser(email string) (*User, error) {
 	_, err := doNotionAPI(c, apiURL, req, &rsp)
 
 	recordMap := rsp.RecordMap
-	parseRecordMap(recordMap)
+	ParseRecordMap(recordMap)
 	users, ok := recordMap.Users[rsp.UserID]
 	if !ok {
 		return nil, errors.New("error inviting user")

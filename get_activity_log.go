@@ -30,7 +30,7 @@ func (c *Client) GetActivityLog(spaceID string, startingAfterID string, limit in
 	if rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp); err != nil {
 		return nil, err
 	}
-	if err = parseRecordMap(rsp.RecordMap); err != nil {
+	if err = ParseRecordMap(rsp.RecordMap); err != nil {
 		return nil, err
 	}
 	if len(rsp.ActivityIDs) > 0 {

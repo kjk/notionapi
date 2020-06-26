@@ -123,7 +123,7 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, q *Query
 			return nil, fmt.Errorf("Client.QueryCollection() 2nd fetch failed: %s", err)
 		}
 	}
-	if err := parseRecordMap(rsp.RecordMap); err != nil {
+	if err := ParseRecordMap(rsp.RecordMap); err != nil {
 		return nil, err
 	}
 	return &rsp, nil
