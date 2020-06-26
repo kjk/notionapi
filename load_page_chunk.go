@@ -29,6 +29,7 @@ type LoadPageChunkResponse struct {
 
 // RecordMap contains a collections of blocks, a space, users, and collections.
 type RecordMap struct {
+	Activities      map[string]*Record `json:"activity"`
 	Blocks          map[string]*Record `json:"block"`
 	Spaces          map[string]*Record `json:"space"`
 	Users           map[string]*Record `json:"notion_user"`
@@ -69,6 +70,12 @@ func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPa
 }
 
 func parseRecordMap(recordMap *RecordMap) error {
+	for _, r := range recordMap.Activities {
+		if err := parseRecord(TableActivity, r); err != nil {
+			return err
+		}
+	}
+
 	for _, r := range recordMap.Blocks {
 		if err := parseRecord(TableBlock, r); err != nil {
 			return err

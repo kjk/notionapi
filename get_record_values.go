@@ -27,6 +27,7 @@ type Record struct {
 	ID    string `json:"-"`
 	Table string `json:"-"`
 
+	Activity       *Activity       `json:"-"`
 	Block          *Block          `json:"-"`
 	Space          *Space          `json:"-"`
 	User           *User           `json:"-"`
@@ -62,6 +63,10 @@ func parseRecord(table string, r *Record) error {
 	var pRawJSON *map[string]interface{}
 	var obj interface{}
 	switch table {
+	case TableActivity:
+		r.Activity = &Activity{}
+		obj = r.Activity
+		pRawJSON = &r.Activity.RawJSON
 	case TableBlock:
 		r.Block = &Block{}
 		obj = r.Block
