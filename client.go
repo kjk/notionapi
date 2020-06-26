@@ -342,6 +342,8 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		idToBlock:          map[string]*Block{},
 		idToCollection:     map[string]*Collection{},
 		idToCollectionView: map[string]*CollectionView{},
+		idToComment:        map[string]*Comment{},
+		idToDiscussion:     map[string]*Discussion{},
 		idToUser:           map[string]*User{},
 		blocksToSkip:       map[string]struct{}{},
 	}
