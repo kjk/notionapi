@@ -950,11 +950,13 @@ func isHeaderBlock(block *notionapi.Block) bool {
 
 func getHeaderBlocks(blocks []*notionapi.Block, seen map[string]bool) []*notionapi.Block {
 	var res []*notionapi.Block
-	for _, b := range blocks {
+	for i, b := range blocks {
 		id := b.ID
 		if seen[id] {
-			// crash is better than infinite recursion
-			panic("seen the same block twice")
+			// avoid infinite recursion in processing a page
+			// it happens in e.g. 3df846eaf0404fe6b012208773063a04
+			logf("getHeaderBlocks: already seen block %s of type %s in page %s. Array pos %d out of %d\n", b.ID, b.Type, b.Page.ID, i, len(blocks))
+			continue
 		}
 		seen[id] = true
 		if isHeaderBlock(b) {
