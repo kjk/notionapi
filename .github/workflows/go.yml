@@ -5,13 +5,13 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.13
-        uses: actions/setup-go@v1
+      - name: Set up Go
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.14
 
       - name: Check out source code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Test
         run: go test -v ./...
@@ -21,9 +21,5 @@ jobs:
 
       - name: Staticcheck
         run: |
-          # add executables installed with go get to PATH
-          # TODO: this will hopefully be fixed by
-          # https://github.com/actions/setup-go/issues/14
-          export PATH=${PATH}:`go env GOPATH`/bin
           go get -u honnef.co/go/tools/cmd/staticcheck
           staticcheck ./...

@@ -117,7 +117,7 @@ func forEachBlockWithParent(seen map[string]bool, blocks []*Block, parent *Block
 			// crash rather than have infinite recursion
 			panic("seen the same page again")
 		}
-		if block.Type == BlockPage || block.Type == BlockCollectionViewPage {
+		if parent != nil && (block.Type == BlockPage || block.Type == BlockCollectionViewPage) {
 			// skip sub-pages to avoid infnite recursion
 			continue
 		}
@@ -136,11 +136,11 @@ func ForEachBlock(blocks []*Block, cb func(*Block)) {
 	forEachBlockWithParent(seen, blocks, nil, cb)
 }
 
+// ForEachBlock recursively calls cb for each block in th epage
 func (p *Page) ForEachBlock(cb func(*Block)) {
-	root := p.Root()
-	cb(root)
 	seen := map[string]bool{}
-	forEachBlockWithParent(seen, root.Content, nil, cb)
+	blocks := []*Block{p.Root()}
+	forEachBlockWithParent(seen, blocks, nil, cb)
 }
 
 func panicIf(cond bool, args ...interface{}) {

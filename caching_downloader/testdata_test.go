@@ -46,6 +46,31 @@ func convertToMdAndHTML(t *testing.T, page *notionapi.Page) {
 	}
 }
 
+// https://www.notion.so/Test-headers-6682351e44bb4f9ca0e149b703265bdb
+// test that ForEachBlock() works
+func TestPage6682351e44bb4f9ca0e149b703265bdb(t *testing.T) {
+	pid := "6682351e44bb4f9ca0e149b703265bdb"
+	p := testDownloadFromCache(t, pid)
+	blockTypes := []string{}
+	cb := func(block *notionapi.Block) {
+		blockTypes = append(blockTypes, block.Type)
+	}
+	blocks := []*notionapi.Block{p.Root()}
+	notionapi.ForEachBlock(blocks, cb)
+	expected := []string{
+		notionapi.BlockPage,
+		notionapi.BlockHeader,
+		notionapi.BlockSubHeader,
+		notionapi.BlockText,
+		notionapi.BlockSubSubHeader,
+		notionapi.BlockText,
+		notionapi.BlockText,
+	}
+	require.Equal(t, blockTypes, expected)
+}
+
+// https://www.notion.so/Test-table-94167af6567043279811dc923edd1f04
+// simple table
 func TestPage94167af6567043279811dc923edd1f04(t *testing.T) {
 	pid := "94167af6567043279811dc923edd1f04"
 	p := testDownloadFromCache(t, pid)
@@ -53,6 +78,8 @@ func TestPage94167af6567043279811dc923edd1f04(t *testing.T) {
 	convertToMdAndHTML(t, p)
 }
 
+// https://www.notion.so/Test-table-no-title-44f1a38eefe94336907c7576ef4dd19b
+// used to crash the API because it has no title column
 func TestPage44f1a38eefe94336907c7576ef4dd19b(t *testing.T) {
 	// used to crash because has no title column
 	pid := "44f1a38eefe94336907c7576ef4dd19b"
