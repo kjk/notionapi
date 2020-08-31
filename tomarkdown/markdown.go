@@ -469,8 +469,11 @@ func (c *Converter) RenderTodo(block *notionapi.Block) {
 // RenderQuote renders BlockQuote
 func (c *Converter) RenderQuote(block *notionapi.Block) {
 	text := c.GetInlineContent(block.InlineContent, true)
-	s := fmt.Sprintf("> %s\n", text)
-	c.WriteString(s)
+	lines := strings.Split(strings.Replace(text, "\r\n", "\n", -1), "\n")
+	for _, line := range lines {
+		s := fmt.Sprintf("> %s\n", line)
+		c.WriteString(s)
+	}
 }
 
 // RenderCallout renders BlockCallout
