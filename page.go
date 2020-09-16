@@ -20,7 +20,6 @@ type Page struct {
 
 	// expose raw records for all data associated with this page
 	BlockRecords          []*Record
-	UserRecords           []*Record
 	CollectionRecords     []*Record
 	CollectionViewRecords []*Record
 	DiscussionRecords     []*Record
@@ -248,14 +247,10 @@ func makeUserName(user *User) string {
 
 // GetUserNameByID returns a full user name given user id
 // it's a helper function
+//
+// Deprecated: does not work anymore.
 func GetUserNameByID(page *Page, userID string) string {
-	for _, r := range page.UserRecords {
-		user := r.User
-		if user.ID == userID {
-			return makeUserName(user)
-		}
-	}
-	return userID
+	return ""
 }
 
 func (p *Page) resolveBlocks() error {

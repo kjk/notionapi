@@ -53,7 +53,7 @@ func TestUploadFile(t *testing.T) {
 		Logger:    os.Stdout,
 	}
 
-	page, err := client.DownloadPage("6b181fb69a7945ed8c5f424bcb34721c")
+	page, err := client.DownloadPage("6b181fb69a7945ed8c5f424bcb34721c", &User{})
 	assert.NoError(t, err)
 
 	root := page.Root()
@@ -81,8 +81,7 @@ func TestUploadFile(t *testing.T) {
 	}
 	assert.NotEmpty(t, parent)
 
-	// "a485fd92-b373-47e8-a417-f298689e344b"
-	userID := page.UserRecords[0].Block.ID
+	userID := "a485fd92-b373-47e8-a417-f298689e344b"
 
 	file, err := os.Open("test_file.svg")
 	assert.NoError(t, err)

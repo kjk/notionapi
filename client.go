@@ -391,7 +391,6 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			p.idToCollectionView[id] = r.CollectionView
 		}
 		for id, r := range recordMap.Users {
-			p.UserRecords = append(p.UserRecords, r)
 			p.idToUser[id] = r.User
 		}
 		for id, r := range recordMap.Discussions {
@@ -492,18 +491,9 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		if len(block.ViewIDs) == 0 {
 			return nil, fmt.Errorf("collection_view has no ViewIDs")
 		}
-		// TODO: should fish out the user based on block.CreatedBy
-		if len(p.UserRecords) == 0 {
-			return nil, fmt.Errorf("no users when trying to resolve collection_view")
-		}
 
 		collectionID := block.CollectionID
 		for _, collectionViewID := range block.ViewIDs {
-			var user *User
-			r := p.UserRecords[0]
-			if r != nil {
-				user = r.User
-			}
 			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {
 				return nil, fmt.Errorf("didn't find collection_view with id '%s'", collectionViewID)
@@ -514,7 +504,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				continue
 			}
 			q := collectionView.Query
-			res, err := c.QueryCollection(collectionID, collectionViewID, q, user)
+			res, err := c.QueryCollection(collectionID, collectionViewID, q, &User{})
 			if err != nil {
 				return nil, err
 			}
