@@ -1,6 +1,8 @@
 package notionapi
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // AggregateQuery describes an aggregate query
 type AggregateQuery struct {
@@ -48,32 +50,33 @@ type Query struct {
 	Sort           []*QuerySort   `json:"sort"`
 }
 
+type Query2FilterValue struct {
+	Type  string      `json:"type"`
+	Value interface{} `json:"value"` // can be string or number
+}
+
+type Query2FilterFilter struct {
+	Value    Query2FilterValue `json:"value"`
+	Operator string            `json:"operator"`
+}
+
+type Query2FilterElement struct {
+	Filter   Query2FilterFilter `json:"filter"`
+	Property string             `json:"property"`
+}
+
+type Query2Filter struct {
+	Filters  []Query2FilterElement `json:"filters"`
+	Operator string                `json:"operator"`
+}
+
 // Query2 describes a query
 type Query2 struct {
-	// TODO: "filter"
+	Filter       *Query2Filter     `json:"filter"`
 	Sort         []*QuerySort      `json:"sort"`
 	Aggregate    []*AggregateQuery `json:"aggregate"`
 	Aggregations []*Aggregator     `json:"aggregations"`
 }
-
-/*
-     "filter": {
-       "filters": [
-         {
-           "filter": {
-             "value": {
-               "type": "exact",
-               "value": "Notion"
-             },
-             "operator": "enum_is"
-           },
-           "property": "RA!P"
-         }
-       ],
-       "operator": "and"
-     }
-   }
-*/
 
 type loader struct {
 	Type  string `json:"type"`  // e.g. "table"
