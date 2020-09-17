@@ -31,6 +31,12 @@ type QuerySort struct {
 	Type      string `json:"type"`
 }
 
+// Aggregator describes part of the quer
+type Aggregator struct {
+	Aggregator string `json:"aggregator"` // e.g. "count"
+	Property   string `json:"property"`   // e.g. "title"
+}
+
 // Query describes a query
 type Query struct {
 	Aggregate  []*AggregateQuery `json:"aggregate"`
@@ -42,14 +48,41 @@ type Query struct {
 	Sort           []*QuerySort   `json:"sort"`
 }
 
+// Query2 describes a query
+type Query2 struct {
+	// TODO: "filter"
+	Sort         []*QuerySort      `json:"sort"`
+	Aggregate    []*AggregateQuery `json:"aggregate"`
+	Aggregations []*Aggregator     `json:"aggregations"`
+}
+
+/*
+     "filter": {
+       "filters": [
+         {
+           "filter": {
+             "value": {
+               "type": "exact",
+               "value": "Notion"
+             },
+             "operator": "enum_is"
+           },
+           "property": "RA!P"
+         }
+       ],
+       "operator": "and"
+     }
+   }
+*/
+
 type loader struct {
 	Type  string `json:"type"`  // e.g. "table"
 	Limit int    `json:"limit"` // Notion uses 70 by default
 	// from User.TimeZone
 	UserTimeZone string `json:"userTimeZone"`
 	// from User.Locale
-	UserLocale       string `json:"userLocale"`
-	LoadContentCover bool   `json:"loadContentCover"`
+	//UserLocale       string `json:"userLocale"`
+	LoadContentCover bool `json:"loadContentCover"`
 }
 
 // /api/v3/queryCollection request
@@ -95,11 +128,14 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, q *Query
 		CollectionViewID: collectionViewID,
 		Query:            q,
 	}
+	timeZone := "America/Los_Angeles"
+	if user != nil {
+		timeZone = user.TimeZone
+	}
 	req.Loader = &loader{
 		Type:         "table",
 		Limit:        startLimit,
-		UserLocale:   user.Locale,
-		UserTimeZone: user.TimeZone,
+		UserTimeZone: timeZone,
 		// don't know what this is, Notion sets it to true
 		LoadContentCover: true,
 	}

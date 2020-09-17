@@ -132,6 +132,7 @@ type CollectionView struct {
 	ParentID    string       `json:"parent_id"`
 	ParentTable string       `json:"parent_table"`
 	Query       *Query       `json:"query"`
+	Query2      *Query2      `json:"query2"`
 	Alive       bool         `json:"alive"`
 	PageSort    []string     `json:"page_sort"`
 

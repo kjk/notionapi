@@ -291,6 +291,12 @@ type Block struct {
 	// ID of the user who created this block
 	CreatedBy   string `json:"created_by"`
 	CreatedTime int64  `json:"created_time"`
+
+	CreatedByTable    string `json:"created_by_table"`     // e.g. "notion_user"
+	CreatedByID       string `json:"created_by_id"`        // e.g. "bb760e2d-d679-4b64-b2a9-03005b21870a",
+	LastEditedByTable string `json:"last_edited_by_table"` // e.g. "notion_user"
+	LastEditedByID    string `json:"last_edited_by_id"`    // e.g. "bb760e2d-d679-4b64-b2a9-03005b21870a"
+
 	// List of block ids with discussion content
 	DiscussionIDs []string `json:"discussion,omitempty"`
 	// those ids seem to map to storage in s3

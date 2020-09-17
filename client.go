@@ -390,10 +390,6 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			p.CollectionViewRecords = append(p.CollectionViewRecords, r)
 			p.idToCollectionView[id] = r.CollectionView
 		}
-		for id, r := range recordMap.Users {
-			p.UserRecords = append(p.UserRecords, r)
-			p.idToUser[id] = r.User
-		}
 		for id, r := range recordMap.Discussions {
 			p.DiscussionRecords = append(p.DiscussionRecords, r)
 			p.idToDiscussion[id] = r.Discussion
@@ -483,6 +479,14 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		return nil, fmt.Errorf("failed to resolve blocks on page '%s': %s", p.ID, err)
 	}
 
+	/*
+		TODO: use loadUserContent to get info about users
+			for id, r := range recordMap.Users {
+				p.UserRecords = append(p.UserRecords, r)
+				p.idToUser[id] = r.User
+			}
+	*/
+
 	blockIDs := getBlockIDsSorted(p.idToBlock)
 	for _, id := range blockIDs {
 		block := p.idToBlock[id]
@@ -492,17 +496,19 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		if len(block.ViewIDs) == 0 {
 			return nil, fmt.Errorf("collection_view has no ViewIDs")
 		}
+
 		// TODO: should fish out the user based on block.CreatedBy
-		if len(p.UserRecords) == 0 {
+		// TODO: notion changed the api and User is no long returned in loadPageChunk
+		// need to use syncRecordValues
+		if false && len(p.UserRecords) == 0 {
 			return nil, fmt.Errorf("no users when trying to resolve collection_view")
 		}
 
 		collectionID := block.CollectionID
 		for _, collectionViewID := range block.ViewIDs {
 			var user *User
-			r := p.UserRecords[0]
-			if r != nil {
-				user = r.User
+			if len(p.UserRecords) > 0 {
+				user = p.UserRecords[0].User
 			}
 			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {
