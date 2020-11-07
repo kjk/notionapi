@@ -94,19 +94,26 @@ func (c *Client) SetNewRecordOp(userID string, parent *Block, recordType string)
 	now := Now()
 
 	newBlock = &Block{
-		ID:             newID,
-		Version:        1,
-		Alive:          true,
-		Type:           recordType,
-		CreatedBy:      userID,
-		CreatedTime:    now,
-		LastEditedBy:   userID,
-		LastEditedTime: now,
-		ParentID:       parent.ID,
-		ParentTable:    "block",
+		ID:          newID,
+		Version:     1,
+		Alive:       true,
+		Type:        recordType,
+		CreatedBy:   userID,
+		CreatedTime: now,
+		ParentID:    parent.ID,
+		ParentTable: "block",
 	}
 
-	operation = newBlock.buildOp(CommandSet, []string{}, newBlock)
+	operation = newBlock.buildOp(CommandSet, []string{}, map[string]interface{}{
+		"id":           newBlock.ID,
+		"version":      newBlock.Version,
+		"alive":        newBlock.Alive,
+		"type":         newBlock.Type,
+		"created_by":   newBlock.CreatedBy,
+		"created_time": newBlock.CreatedTime,
+		"parent_id":    newBlock.ParentID,
+		"parent_table": newBlock.ParentTable,
+	})
 
 	return
 }
