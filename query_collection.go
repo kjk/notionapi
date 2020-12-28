@@ -1,82 +1,9 @@
 package notionapi
 
 import (
+	"encoding/json"
 	"fmt"
 )
-
-// AggregateQuery describes an aggregate query
-type AggregateQuery struct {
-	// e.g. "count"
-	AggregationType string `json:"aggregation_type"`
-	ID              string `json:"id"`
-	Property        string `json:"property"`
-	// "title" is the special field that references a page
-	Type string `json:"type"`
-	// "table", "list"
-	ViewType string `json:"view_type"`
-}
-
-// QueryFilter describes the filtering of a query
-type QueryFilter struct {
-	Comparator string `json:"comparator"`
-	ID         string `json:"id"`
-	Property   string `json:"property"`
-	Type       string `json:"type"`
-	Value      string `json:"value"`
-}
-
-// QuerySort describes sorting of a query
-type QuerySort struct {
-	ID        string `json:"id"`
-	Direction string `json:"direction"`
-	Property  string `json:"property"`
-	Type      string `json:"type"`
-}
-
-// Aggregator describes part of the quer
-type Aggregator struct {
-	Aggregator string `json:"aggregator"` // e.g. "count"
-	Property   string `json:"property"`   // e.g. "title"
-}
-
-// Query describes a query
-type Query struct {
-	Aggregate  []*AggregateQuery `json:"aggregate"`
-	GroupBy    interface{}       `json:"group_by"`
-	CalendarBy interface{}       `json:"calendar_by"`
-
-	FilterOperator string         `json:"filter_operator"`
-	Filter         []*QueryFilter `json:"filter"`
-	Sort           []*QuerySort   `json:"sort"`
-}
-
-type Query2FilterValue struct {
-	Type  string      `json:"type"`
-	Value interface{} `json:"value"` // can be string or number
-}
-
-type Query2FilterFilter struct {
-	Value    Query2FilterValue `json:"value"`
-	Operator string            `json:"operator"`
-}
-
-type Query2FilterElement struct {
-	Filter   Query2FilterFilter `json:"filter"`
-	Property string             `json:"property"`
-}
-
-type Query2Filter struct {
-	Filters  []Query2FilterElement `json:"filters"`
-	Operator string                `json:"operator"`
-}
-
-// Query2 describes a query
-type Query2 struct {
-	Filter       *Query2Filter     `json:"filter"`
-	Sort         []*QuerySort      `json:"sort"`
-	Aggregate    []*AggregateQuery `json:"aggregate"`
-	Aggregations []*Aggregator     `json:"aggregations"`
-}
 
 type loader struct {
 	Type  string `json:"type"`  // e.g. "table"
@@ -86,14 +13,15 @@ type loader struct {
 	// from User.Locale
 	//UserLocale       string `json:"userLocale"`
 	LoadContentCover bool `json:"loadContentCover"`
+	// TODO: searchQuery
 }
 
 // /api/v3/queryCollection request
 type queryCollectionRequest struct {
-	CollectionID     string  `json:"collectionId"`
-	CollectionViewID string  `json:"collectionViewId"`
-	Query2           *Query2 `json:"query"`
-	Loader           *loader `json:"loader"`
+	CollectionID     string          `json:"collectionId"`
+	CollectionViewID string          `json:"collectionViewId"`
+	Query2           json.RawMessage `json:"query"`
+	Loader           *loader         `json:"loader"`
 }
 
 // AggregationResult represents result of aggregation
@@ -119,7 +47,7 @@ type QueryCollectionResponse struct {
 }
 
 // QueryCollection executes a raw API call /api/v3/queryCollection
-func (c *Client) QueryCollection(collectionID, collectionViewID string, q *Query2, user *User) (*QueryCollectionResponse, error) {
+func (c *Client) QueryCollection(collectionID, collectionViewID string, q json.RawMessage, user *User) (*QueryCollectionResponse, error) {
 
 	// Notion has this as 70 and re-does the query if user scrolls to see more
 	// of the table. We start with a bigger number because we want all the data

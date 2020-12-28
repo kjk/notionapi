@@ -1,6 +1,9 @@
 package notionapi
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 const (
 	// TODO: those are probably CollectionViewType
@@ -124,17 +127,19 @@ type FormatTable struct {
 
 // CollectionView represents a collection view
 type CollectionView struct {
-	ID          string       `json:"id"`
-	Version     int64        `json:"version"`
-	Type        string       `json:"type"` // "table"
-	Format      *FormatTable `json:"format"`
-	Name        string       `json:"name"`
-	ParentID    string       `json:"parent_id"`
-	ParentTable string       `json:"parent_table"`
-	Query       *Query       `json:"query"`
-	Query2      *Query2      `json:"query2"`
-	Alive       bool         `json:"alive"`
-	PageSort    []string     `json:"page_sort"`
+	ID          string          `json:"id"`
+	Version     int64           `json:"version"`
+	Type        string          `json:"type"` // "table"
+	Format      *FormatTable    `json:"format"`
+	Name        string          `json:"name"`
+	ParentID    string          `json:"parent_id"`
+	ParentTable string          `json:"parent_table"`
+	Query       json.RawMessage `json:"query"`
+	Query2      json.RawMessage `json:"query2"`
+	Alive       bool            `json:"alive"`
+	PageSort    []string        `json:"page_sort"`
+	ShardID     int64           `json:"shard_id"`
+	SpaceID     string          `json:"space_id"`
 
 	// set by us
 	RawJSON map[string]interface{} `json:"-"`
