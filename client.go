@@ -519,7 +519,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				//return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
 				continue
 			}
-			q := collectionView.Query
+			q := collectionView.Query2
 			res, err := c.QueryCollection(collectionID, collectionViewID, q, user)
 			if err != nil {
 				return nil, err

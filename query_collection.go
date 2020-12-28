@@ -92,7 +92,7 @@ type loader struct {
 type queryCollectionRequest struct {
 	CollectionID     string  `json:"collectionId"`
 	CollectionViewID string  `json:"collectionViewId"`
-	Query            *Query  `json:"query"`
+	Query2           *Query2 `json:"query"`
 	Loader           *loader `json:"loader"`
 }
 
@@ -119,7 +119,7 @@ type QueryCollectionResponse struct {
 }
 
 // QueryCollection executes a raw API call /api/v3/queryCollection
-func (c *Client) QueryCollection(collectionID, collectionViewID string, q *Query, user *User) (*QueryCollectionResponse, error) {
+func (c *Client) QueryCollection(collectionID, collectionViewID string, q *Query2, user *User) (*QueryCollectionResponse, error) {
 
 	// Notion has this as 70 and re-does the query if user scrolls to see more
 	// of the table. We start with a bigger number because we want all the data
@@ -129,7 +129,7 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, q *Query
 	req := &queryCollectionRequest{
 		CollectionID:     collectionID,
 		CollectionViewID: collectionViewID,
-		Query:            q,
+		Query2:           q,
 	}
 	timeZone := "America/Los_Angeles"
 	if user != nil {
