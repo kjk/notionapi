@@ -1459,6 +1459,36 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 	c.Printf(`<td class="cell-%s%s">%s</td>`, colNameCls, colTypeClass, colVal)
 }
 
+// very crude way of formatting "1234.33" => "1,234.33"
+func fmtNumberWithCommas(v string) string {
+	if v == "" {
+		return v
+	}
+	parts := strings.Split(v, ".")
+	s := parts[0]
+	var a []string
+	for len(s) > 3 {
+		n := len(s)
+		subs := s[n-3 : n]
+		a = append(a, subs)
+		s = s[0 : n-3]
+	}
+	if len(s) > 0 {
+		a = append(a, s)
+	}
+	// reverse an array
+	al := len(a)
+	n := al / 2
+	for i := 0; i < n; i++ {
+		a[i], a[al-i-1] = a[al-i-1], a[i]
+	}
+	res := strings.Join(a, ",")
+	if len(parts) == 2 {
+		return res + "." + parts[1]
+	}
+	return res
+}
+
 // TODO: mmore formats
 func fmtNumber(v string, numFmt string) string {
 	if numFmt == "dollar" {
@@ -1477,7 +1507,7 @@ func fmtNumber(v string, numFmt string) string {
 		return fmt.Sprintf("%.02f%%", f*100)
 	}
 	if numFmt == "number_with_commas" {
-		// TODO: implement me, should be "3,442.28"
+		return fmtNumberWithCommas(v)
 	}
 	return v
 }
