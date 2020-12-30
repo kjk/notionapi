@@ -1446,6 +1446,10 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 		colVal = ""
 	} else if schema.Type == notionapi.ColumnTypeText {
 		colTypeClass = "col-type-text"
+	} else if schema.Type == notionapi.ColumnTypeSelect {
+		colTypeClass = "col-type-select"
+	} else if schema.Type == notionapi.ColumnTypeURL {
+		colTypeClass = "col-type-url"
 	}
 	// TODO: there are more types
 
