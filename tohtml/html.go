@@ -1387,7 +1387,9 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 
 	typ := schema.Type
 
+	colTypeClass := ""
 	if typ == notionapi.ColumnTypeTitle {
+		colTypeClass = "col-type-title"
 		if isEmptyBlock(rowPage) {
 			// row here is a page. For cosmetic reasons we don't want
 			// to link to empty pages.
@@ -1399,6 +1401,7 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 			colVal = fmt.Sprintf(`<a href="%s">%s</a>`, uri, colVal)
 		}
 	} else if typ == notionapi.ColumnTypeMultiSelect {
+		colTypeClass = "col-type-multi-select"
 		vals := strings.Split(colVal, ",")
 		s := ""
 		for idx := range vals {
@@ -1416,35 +1419,47 @@ func (c *Converter) renderTableCell(tv *notionapi.TableView, row, col int) {
 		}
 		colVal = s
 	} else if typ == notionapi.ColumnTypeCreatedTime {
+		colTypeClass = "col-type-created-time"
 		// TODO: better formatting. Notion seems to be using
 		// relative formatting like "Today 3:03pm"
 		colVal = rowPage.CreatedOn().Format("2006-01-02")
 	} else if typ == notionapi.ColumnTypeLastEditedTime {
+		colTypeClass = "col-type-last-edited-time"
 		// TODO: better formatting. Notion seems to be using
 		// relative formatting like "Today 3:03pm"
 		colVal = rowPage.LastEditedOn().Format("2006-01-02")
 	} else if typ == notionapi.ColumnTypeNumber {
-		// TODO: format number
+		colTypeClass = "col-type-number"
 		colVal = fmtNumber(colVal, schema.NumberFormat)
 	} else if typ == notionapi.ColumnTypeLastEditedBy {
+		colTypeClass = "col-type-last-edited-by"
 		uid := rowPage.LastEditedBy
 		colVal = notionapi.GetUserNameByID(tv.Page, uid)
 	} else if typ == notionapi.ColumnTypeCreatedBy {
+		colTypeClass = "col-type-created-by"
 		uid := rowPage.CreatedBy
 		colVal = notionapi.GetUserNameByID(tv.Page, uid)
 	} else if schema.Type == notionapi.ColumnTypeRelation {
+		colTypeClass = "col-type-relation"
 		// TODO: not sure how to format relations
 		//colVal = c.GetInlineContent(textSpans)
 		colVal = ""
+	} else if schema.Type == notionapi.ColumnTypeText {
+		colTypeClass = "col-type-text"
 	}
+	// TODO: there are more types
 
 	colNameCls := EscapeHTML(colName)
 	if colVal == "" {
 		colVal = "&nbsp;"
 	}
-	c.Printf(`<td class="cell-%s">%s</td>`, colNameCls, colVal)
+	if colTypeClass != "" {
+		colTypeClass = " " + colTypeClass
+	}
+	c.Printf(`<td class="cell-%s%s">%s</td>`, colNameCls, colTypeClass, colVal)
 }
 
+// TODO: mmore formats
 func fmtNumber(v string, numFmt string) string {
 	if numFmt == "dollar" {
 		v = strings.TrimPrefix(v, "$")
@@ -1454,9 +1469,19 @@ func fmtNumber(v string, numFmt string) string {
 		}
 		return fmt.Sprintf("$%.02f", f)
 	}
-	// TODO: mmore formats
+	if numFmt == "percent" {
+		f, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return v
+		}
+		return fmt.Sprintf("%.02f%%", f*100)
+	}
+	if numFmt == "number_with_commas" {
+		// TODO: implement me, should be "3,442.28"
+	}
 	return v
 }
+
 func getMultiSelectoColor(opts []*notionapi.CollectionColumnOption, val string) string {
 	for _, opt := range opts {
 		if opt.Value == val {
