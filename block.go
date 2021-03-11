@@ -676,6 +676,14 @@ func (b *Block) FormatBulletedList() *FormatBulletedList {
 	return &format
 }
 
+func (b *Block) FormatCallout() *FormatCallout {
+	var format FormatCallout
+	if ok := b.unmarshalFormat(BlockCallout, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
 func (b *Block) BlockByID(id string) *Block {
 	return b.Page.BlockByID(id)
 }
