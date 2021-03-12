@@ -26,9 +26,11 @@ type queryCollectionRequest struct {
 
 // AggregationResult represents result of aggregation
 type AggregationResult struct {
-	ID string `json:"id"`
+	ID   string `json:"id"`
+	Type string `json:"type"`
 	// TODO: maybe json.Number? Shouldn't float64 cover both?
-	Value float64 `json:"value"`
+	// When type is equal to date, value is an object.
+	Value interface{} `json:"value"`
 }
 
 // QueryCollectionResult is part of response for /api/v3/queryCollection
