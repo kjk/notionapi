@@ -271,6 +271,7 @@ type Converter struct {
 	// if true, generates stand-alone HTML with inline CSS
 	// otherwise it's just the inner part going inside the body
 	FullHTML bool
+	CustomCSS string
 
 	// we need this to properly render ordered and numbered lists
 	CurrBlocks   []*notionapi.Block
@@ -633,7 +634,12 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 			{
 				c.Printf(`<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
 				c.Printf(`<title>%s</title>`, EscapeHTML(block.Title))
-				c.Printf("<style>%s\t\n</style>", CSS)
+
+				styleValue := c.CustomCSS
+				if c.CustomCSS == "" {
+					styleValue = CSS
+				}
+				c.Printf("<style>%s\t\n</style>", styleValue)
 			}
 			c.Printf(`</head>`)
 		}
