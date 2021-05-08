@@ -88,6 +88,8 @@ type Collection struct {
 	ParentTable string                   `json:"parent_table"`
 	Alive       bool                     `json:"alive"`
 	CopiedFrom  string                   `json:"copied_from"`
+	Cover       string                   `json:"cover"`
+	Description []interface{}            `json:"description"`
 
 	// TODO: are those ever present?
 	Type          string   `json:"type"`
