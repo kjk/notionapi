@@ -2,6 +2,10 @@
 
 This is an unofficial, Go API for https://notion.so. Mostly for reading, limited write capabilities.
 
+For Go client using official Notion API, see https://github.com/kjk/notion
+
+Note: official Notion API is still in beta and not as capable as this unofficial API.
+
 It allows you to retrieve content of a Notion page in structured format.
 
 You can then e.g. convert that format to HTML.
