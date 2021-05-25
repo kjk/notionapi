@@ -345,6 +345,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		idToComment:        map[string]*Comment{},
 		idToDiscussion:     map[string]*Discussion{},
 		idToUser:           map[string]*User{},
+		idToSpace:          map[string]*Space{},
 		blocksToSkip:       map[string]struct{}{},
 	}
 
@@ -397,6 +398,10 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		for id, r := range recordMap.Comments {
 			p.CommentRecords = append(p.CommentRecords, r)
 			p.idToComment[id] = r.Comment
+		}
+		for id, r := range recordMap.Spaces {
+			p.SpaceRecords = append(p.SpaceRecords, r)
+			p.idToSpace[id] = r.Space
 		}
 
 		cursor := rsp.Cursor

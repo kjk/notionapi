@@ -79,6 +79,9 @@ const (
 	BlockTweet = "tweet"
 	// BlockVideo is youtube video embed
 	BlockVideo = "video"
+	BlockCopyIndicator = "copy_indicator"
+	BlockLinkToCollection = "link_to_collection"
+	BlockMiro = "miro"
 )
 
 // FormatBookmark describes format for BlockBookmark
