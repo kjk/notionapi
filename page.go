@@ -25,6 +25,7 @@ type Page struct {
 	CollectionViewRecords []*Record
 	DiscussionRecords     []*Record
 	CommentRecords        []*Record
+	SpaceRecords          []*Record
 
 	// for every block of type collection_view and its view_ids
 	// we } TableView representing that collection view_id
@@ -36,10 +37,16 @@ type Page struct {
 	idToCollectionView map[string]*CollectionView
 	idToComment        map[string]*Comment
 	idToDiscussion     map[string]*Discussion
+	idToSpace          map[string]*Space
 
 	blocksToSkip map[string]struct{} // not alive or when server doesn't return "value" for this block id
 
 	client *Client
+}
+
+// SpaceByID returns a space by its id
+func (p *Page) SpaceByID(id string) *Space {
+	return p.idToSpace[ToDashID(id)]
 }
 
 // BlockByID returns a block by its id
@@ -136,7 +143,7 @@ func ForEachBlock(blocks []*Block, cb func(*Block)) {
 	forEachBlockWithParent(seen, blocks, nil, cb)
 }
 
-// ForEachBlock recursively calls cb for each block in th epage
+// ForEachBlock recursively calls cb for each block in the page
 func (p *Page) ForEachBlock(cb func(*Block)) {
 	seen := map[string]bool{}
 	blocks := []*Block{p.Root()}

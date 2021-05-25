@@ -264,11 +264,13 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 			return fmt.Errorf("didn't find block with id '%s' for collection view with id '%s'", id, cvID)
 		}
 		b := rec.Block
-		tr := &TableRow{
-			TableView: tv,
-			Page:      b,
+		if b != nil {
+			tr := &TableRow{
+				TableView: tv,
+				Page:      b,
+			}
+			tv.Rows = append(tv.Rows, tr)
 		}
-		tv.Rows = append(tv.Rows, tr)
 	}
 
 	// pre-calculate cell content
