@@ -9,14 +9,8 @@ import (
 	"github.com/kjk/u"
 )
 
-func must(err error) {
-	u.Must(err)
-}
-
-// a centralized place allows us to tweak logging, if need be
-func logf(format string, args ...interface{}) {
-	u.Logf(format, args...)
-}
+var must = u.Must
+var logf = u.Logf
 
 func recreateDir(dir string) {
 	_ = os.RemoveAll(dir)

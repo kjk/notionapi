@@ -1,4 +1,4 @@
-module github.com/Nikolo/notionapi
+module github.com/kjk/notionapi
 
 require (
 	github.com/google/uuid v1.1.1
