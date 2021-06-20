@@ -52,13 +52,11 @@ function ppjson(s) {
 let apiLog = [];
 
 function logApiRR(method, url, status, reqBody, rspBody) {
+  let s = `${method} ${status} ${url}`;
   if (!isApiRequest(url)) {
+    apiLog.push(s);
     return;
   }
-  if (method === "GET") {
-    method = "GET ";
-  }
-  let s = `${method} ${status} ${url}`;
   apiLog.push(s);
   s = ppjson(reqBody);
   apiLog.push(s);
@@ -92,12 +90,20 @@ async function traceNotion(url) {
   await page.setRequestInterception(true);
 
   // those we don't want to log because they are not important
-  function isSilenced(url) {
+  function skipLogging(url) {
     const silenced = [
       "/api/v3/ping",
       "/appcache.html",
       "/loading-spinner.svg",
-      "/api/v3/getUserAnalyticsSettings"
+      "/api/v3/getUserAnalyticsSettings",
+      "//analytics.pgncs.notion.so/analytics.js",
+      "//api.pgncs.notion.so/",
+      "//msgstore.www.notion.so/",
+      "//www.notion.so/inter-ui-",
+      "//www.notion.so/print.",
+      "//www.notion.so/app-",
+      "//www.notion.so/vendors~main-",
+      "//www.notion.so/postRender-",
     ];
     for (let s of silenced) {
       if (url.includes(s)) {
@@ -109,12 +115,14 @@ async function traceNotion(url) {
 
   function isBlacklisted(url) {
     const blacklisted = [
-      "amplitude.com/",
-      "fullstory.com/",
-      "intercom.io/",
-      "segment.io/",
-      "segment.com/",
-      "loggly.com/"
+      "//amplitude.com/",
+      "//fullstory.com/",
+      ".intercom.io/",
+      "//segment.io/",
+      "//segment.com/",
+      ".loggly.com/",
+      "//js.intercomcdn.com",
+      //"//analytics.pgncs.notion.so/analytics.js",
     ];
     for (let s of blacklisted) {
       if (url.includes(s)) {
@@ -145,14 +153,20 @@ async function traceNotion(url) {
   async function onResponse(response) {
     const request = response.request();
     let url = request.url();
-    if (isSilenced(url)) {
+    if (skipLogging(url)) {
       return;
     }
     let method = request.method();
     const postData = request.postData();
 
     // some urls are data urls and very long
-    url = trimStr(url, 72);
+    if (url.includes("data:")) {
+      url = trimStr(url, 72);
+    } else if (url.includes("msgstore.www.notion.so/")) {
+      url = trimStr(url, 72);
+    } else {
+      // don't trim other urls, especially notion.so/image
+    }
     const status = response.status();
     try {
       const d = await response.text();
@@ -161,10 +175,10 @@ async function traceNotion(url) {
         // make the length same as POST
         method = "GET ";
       }
-      console.log(`${method} ${url} ${status} size: ${dataLen}`);
+      console.log(`${method} ${status} ${url} size: ${dataLen}`);
       logApiRR(method, url, status, postData, d);
     } catch (ex) {
-      console.log(`${method} ${url} ${status} ex: ${ex} FAIL !!!`);
+      console.log(`${method} ${status} ${url} ex: ${ex} FAIL !!!`);
     }
   }
 
