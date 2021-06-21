@@ -101,7 +101,6 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 		}
 	}
 	uri := notionHost + apiURL
-	body := bytes.NewBuffer(js)
 	log(c, "POST %s\n", uri)
 	if len(js) > 0 {
 		logJSON(c, js)
@@ -114,6 +113,7 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	nRepeats := 0
 	timeouts := []time.Duration{time.Second * 3, time.Second * 5, time.Second * 10}
 repeatRequest:
+	body := bytes.NewBuffer(js)
 	req, err := http.NewRequest("POST", uri, body)
 	if err != nil {
 		return nil, err
