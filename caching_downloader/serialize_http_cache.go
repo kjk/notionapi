@@ -49,6 +49,7 @@ func serializeHTTPCache(c *caching_http_client.Cache) ([]byte, error) {
 	}
 	buf := bytes.NewBuffer(nil)
 	w := siser.NewWriter(buf)
+	w.NoTimestamp = true
 	var r siser.Record
 	for _, rr := range c.CachedRequests {
 		r.Reset()
@@ -72,6 +73,7 @@ func deserializeHTTPCache(d []byte) (*caching_http_client.Cache, error) {
 	res := &caching_http_client.Cache{}
 	br := bufio.NewReader(bytes.NewBuffer(d))
 	r := siser.NewReader(br)
+	r.NoTimestamp = true
 	var err error
 	for r.ReadNextRecord() {
 		if r.Name != recCacheName {
