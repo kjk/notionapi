@@ -84,7 +84,7 @@ func (c *Client) rateLimitRequest() {
 			minDelay = time.Millisecond * 333
 		}
 		since := time.Since(c.lastRequestTime)
-		if since > minDelay {
+		if minDelay > since {
 			time.Sleep(minDelay - since)
 		}
 	}
