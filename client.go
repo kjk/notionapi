@@ -86,6 +86,10 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 		logJSON(c, js)
 	}
 
+	nRepeats := 0
+	// try to back-off exponentially
+	timeouts := []time.Duration{time.Second, time.Second * 3, time.Second * 5}
+repeatRequest:
 	req, err := http.NewRequest("POST", uri, body)
 	if err != nil {
 		return nil, err
@@ -102,9 +106,20 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	rsp, err = httpClient.Do(req)
 
 	if err != nil {
-		log(c, "http.DefaultClient.Do() failed with %s\n", err)
+		log(c, "httpClient.Do() failed with %s\n", err)
 		return nil, err
 	}
+
+	if rsp.StatusCode == http.StatusTooManyRequests {
+		closeNoError(rsp.Body)
+		if nRepeats < 3 {
+			log(c, "retrying '%s' because httpClient.Do() returned %d (%s)\n", uri, rsp.StatusCode, rsp.Status)
+			time.Sleep(timeouts[nRepeats])
+			nRepeats++
+			goto repeatRequest
+		}
+	}
+
 	defer closeNoError(rsp.Body)
 
 	if rsp.StatusCode != 200 {
