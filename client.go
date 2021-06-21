@@ -31,6 +31,13 @@ type Client struct {
 	Logger io.Writer
 	// DebugLog enables debug logging
 	DebugLog bool
+	// MinRequestDelay is for controlling rate limiting. it's 333 ms by default
+	// because https://developers.notion.com/reference/errors#rate-limits
+	// says rate limit is, on average, 3 requests per second
+	MinRequestDelay time.Duration
+	// simplest rate limiting: track last request time and wait at least
+	// MinRequestDelay between requests
+	lastRequestTime time.Time
 }
 
 func (c *Client) getHTTPClient() *http.Client {
@@ -70,6 +77,20 @@ func closeNoError(c io.Closer) {
 	_ = c.Close()
 }
 
+func (c *Client) rateLimitRequest() {
+	if !c.lastRequestTime.IsZero() {
+		minDelay := c.MinRequestDelay
+		if minDelay == 0 {
+			minDelay = time.Millisecond * 333
+		}
+		since := time.Since(c.lastRequestTime)
+		if since > minDelay {
+			time.Sleep(minDelay - since)
+		}
+	}
+	c.lastRequestTime = time.Now()
+}
+
 func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
 	var js []byte
 	var err error
@@ -86,8 +107,11 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 		logJSON(c, js)
 	}
 
-	nRepeats := 0
+	c.rateLimitRequest()
+
 	// try to back-off exponentially
+	// note: backing off doesn't seem to work i.e. I get 429 from subsequent requests as well
+	nRepeats := 0
 	timeouts := []time.Duration{time.Second * 3, time.Second * 5, time.Second * 10}
 repeatRequest:
 	req, err := http.NewRequest("POST", uri, body)
