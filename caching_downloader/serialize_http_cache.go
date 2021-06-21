@@ -54,10 +54,10 @@ func serializeHTTPCache(c *caching_http_client.Cache) ([]byte, error) {
 		r.Reset()
 		body := ppJSON(rr.Body)
 		response := ppJSON(rr.Response)
-		r.Append("Method", rr.Method)
-		r.Append("URL", rr.URL)
-		r.Append("Body", string(body))
-		r.Append("Response", string(response))
+		r.Write("Method", rr.Method)
+		r.Write("URL", rr.URL)
+		r.Write("Body", string(body))
+		r.Write("Response", string(response))
 		r.Name = recCacheName
 		_, err := w.WriteRecord(&r)
 		if err != nil {

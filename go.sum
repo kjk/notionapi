@@ -13,6 +13,8 @@ github.com/kjk/caching_http_client v0.0.0-20190810075619-06ff809674f7 h1:QpTfahF
 github.com/kjk/caching_http_client v0.0.0-20190810075619-06ff809674f7/go.mod h1:uZMXWOA3unK8KYdy6aBIel64MMqZwsRFRKIvgSadLAU=
 github.com/kjk/siser v0.0.0-20190801014033-b3367920d7f2 h1:vrqsThWMeIUgprELZhUEw0wFu/LJANlftGo6US4vIDg=
 github.com/kjk/siser v0.0.0-20190801014033-b3367920d7f2/go.mod h1:5VyY+9nF1wpSfWAIM/mIrd0fZCiA/6IK6CSf3PnjfMA=
+github.com/kjk/siser v0.0.0-20210621233355-17e67ed4384f h1:X3X0zk+W4FIR4LvlT4BQbHMXM3rj2Ba6P4nZ8MkVPqM=
+github.com/kjk/siser v0.0.0-20210621233355-17e67ed4384f/go.mod h1:k2Pzb2Ix2MoXVfVLt3SeCEhwammA4PTgLxjDBhIUHoA=
 github.com/mattn/go-isatty v0.0.8 h1:HLtExJ+uU2HOZ+wI0Tt5DtUDrx8yhUqDcp7fYERX4CE=
 github.com/mattn/go-isatty v0.0.8/go.mod h1:Iq45c/XA43vh69/j3iqttzPXn0bhXyGjM0Hdxcsrc5s=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
