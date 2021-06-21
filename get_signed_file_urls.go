@@ -38,10 +38,11 @@ func maybeProxyImageURL(uri string, blockID string, parentTable string) string {
 	return uri
 }
 
-func (c *Client) downloadFile(uri string) (*DownloadFileResponse, error) {
+// DownloadURL downloads a given url with possibly authenticated client
+func (c *Client) DownloadURL(uri string) (*DownloadFileResponse, error) {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		//fmt.Printf("DownloadFile: NewRequest() for '%s' failed with '%s'\n", uri, err)
+		//fmt.Printf("DownloadURL: NewRequest() for '%s' failed with '%s'\n", uri, err)
 		return nil, err
 	}
 	if c.AuthToken != "" {
@@ -77,10 +78,10 @@ func (c *Client) DownloadFile(uri string, blockID string, parentTable string) (*
 	//fmt.Printf("DownloadFile: '%s'\n", uri)
 	// first try downloading proxied url
 	uri2 := maybeProxyImageURL(uri, blockID, parentTable)
-	res, err := c.downloadFile(uri2)
+	res, err := c.DownloadURL(uri2)
 	if err != nil && uri2 != uri {
 		// otherwise just try your luck with original URL
-		res, err = c.downloadFile(uri)
+		res, err = c.DownloadURL(uri)
 	}
 	return res, err
 }
