@@ -111,8 +111,8 @@ repeatRequest:
 	}
 
 	if rsp.StatusCode == http.StatusTooManyRequests {
-		closeNoError(rsp.Body)
 		if nRepeats < 3 {
+			closeNoError(rsp.Body)
 			log(c, "retrying '%s' because httpClient.Do() returned %d (%s)\n", uri, rsp.StatusCode, rsp.Status)
 			time.Sleep(timeouts[nRepeats])
 			nRepeats++
