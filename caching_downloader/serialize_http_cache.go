@@ -14,6 +14,25 @@ const (
 	recCacheName = "httpcache-v1"
 )
 
+/*
+var prettyOpts = pretty.Options{
+	Width:  80,
+	Prefix: "",
+	Indent: "  ",
+	// sorting keys is slower but creates consistent output
+	SortKeys: true,
+}
+
+// pretty-print if valid JSON. If not, return unchanged
+// TODO: validate that ppJSON2 is faster than ppJSON
+func ppJSON2(js []byte) []byte {
+	if !json.Valid(js) {
+		return js
+	}
+	return pretty.PrettyOptions(js, &prettyOpts)
+}
+*/
+
 // pretty-print if valid JSON. If not, return unchanged
 func ppJSON(js []byte) []byte {
 	var m map[string]interface{}

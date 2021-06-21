@@ -6,6 +6,7 @@ require (
 	github.com/kjk/siser v0.0.0-20210621233355-17e67ed4384f
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.3.0
+	github.com/tidwall/pretty v1.2.0 // indirect
 	golang.org/x/sys v0.0.0-20191228213918-04cbcbbfeed8 // indirect
 )
 
