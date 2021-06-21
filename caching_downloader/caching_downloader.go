@@ -311,6 +311,11 @@ func (d *Downloader) downloadPageRetry(pageID string) (*notionapi.Page, *caching
 		if strings.Contains(err.Error(), "status code of 401") {
 			return nil, nil, err
 		}
+		// hacky: "too many requests" is handled in doNotionAPI() so this would
+		// be redundant and wouldn't work
+		if strings.Contains(err.Error(), "status code of 429") {
+			return nil, nil, err
+		}
 		time.Sleep(timeout)
 		timeout *= 2
 	}
