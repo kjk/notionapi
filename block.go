@@ -78,10 +78,10 @@ const (
 	// BlockTweet is embedded gist block
 	BlockTweet = "tweet"
 	// BlockVideo is youtube video embed
-	BlockVideo = "video"
-	BlockCopyIndicator = "copy_indicator"
+	BlockVideo            = "video"
+	BlockCopyIndicator    = "copy_indicator"
 	BlockLinkToCollection = "link_to_collection"
-	BlockMiro = "miro"
+	BlockMiro             = "miro"
 )
 
 // FormatBookmark describes format for BlockBookmark
@@ -318,6 +318,7 @@ type Block struct {
 	// not always available
 	Permissions *[]Permission          `json:"permissions,omitempty"`
 	Properties  map[string]interface{} `json:"properties,omitempty"`
+	SpaceID     string                 `json:"space_id"`
 	// type of the block e.g. TypeText, TypePage etc.
 	Type string `json:"type"`
 	// blocks are versioned
@@ -545,7 +546,7 @@ func parseProperties(block *Block) error {
 	}
 
 	if block.Source != "" && block.IsImage() {
-		block.ImageURL = maybeProxyImageURL(block.Source)
+		block.ImageURL = maybeProxyImageURL(block.Source, block.ID, block.ParentTable)
 	}
 
 	// for BlockCode

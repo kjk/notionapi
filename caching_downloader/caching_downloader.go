@@ -448,8 +448,9 @@ func GetCacheFileNameFromURL(uri string) string {
 	return filepath.Join("files", name)
 }
 
-// DownloadFile downloads a file, caching in the cache
-func (d *Downloader) DownloadFile(uri string, blockID string) (*notionapi.DownloadFileResponse, error) {
+// DownloadFile downloads a file refered by block with a given blockID and a parent table
+// we cache the file
+func (d *Downloader) DownloadFile(uri string, blockID string, parentTable string) (*notionapi.DownloadFileResponse, error) {
 	//fmt.Printf("Downloader.DownloadFile('%s'\n", uri)
 	cacheFileName := GetCacheFileNameFromURL(uri)
 	var data []byte
@@ -476,7 +477,7 @@ func (d *Downloader) DownloadFile(uri string, blockID string) (*notionapi.Downlo
 	}
 
 	timeStart := time.Now()
-	res, err := d.Client.DownloadFile(uri, blockID)
+	res, err := d.Client.DownloadFile(uri, blockID, parentTable)
 	if err != nil {
 		d.emitError("Downloader.DownloadFile(): failed to download %s, error: %s", uri, err)
 		return nil, err

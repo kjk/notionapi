@@ -193,6 +193,10 @@ func main() {
 	must(os.MkdirAll(cacheDir, 0755))
 
 	if false {
+		flgPreviewHTML = "da0b358c21ab4ac6b5c0f7154b2ecadc"
+	}
+
+	if false {
 		testDownloadFile()
 		return
 	}

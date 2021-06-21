@@ -31,7 +31,7 @@ type GetUploadFileUrlResponse struct {
 }
 
 func (r *GetUploadFileUrlResponse) Parse() {
-	r.FileID = strings.Split(r.URL[len(s3URLPrefix):], "/")[0]
+	r.FileID = strings.Split(r.URL[len(s3FileURLPrefix):], "/")[0]
 }
 
 // getUploadFileURL executes a raw API call: POST /api/v3/getUploadFileUrl

@@ -270,7 +270,7 @@ type Converter struct {
 
 	// if true, generates stand-alone HTML with inline CSS
 	// otherwise it's just the inner part going inside the body
-	FullHTML bool
+	FullHTML  bool
 	CustomCSS string
 
 	// we need this to properly render ordered and numbered lists
@@ -1248,7 +1248,7 @@ func getImageStyle(block *notionapi.Block) string {
 func (c *Converter) RenderImage(block *notionapi.Block) {
 	c.Printf(`<figure id="%s" class="image">`, block.ID)
 	{
-		uri := getFileOrSourceURL(block)
+		uri := block.ImageURL
 		style := getImageStyle(block)
 		c.Printf(`<a href="%s">`, uri)
 		c.Printf(`<img %ssrc="%s"/>`, style, uri)
