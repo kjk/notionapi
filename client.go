@@ -88,7 +88,7 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 
 	nRepeats := 0
 	// try to back-off exponentially
-	timeouts := []time.Duration{time.Second, time.Second * 3, time.Second * 5}
+	timeouts := []time.Duration{time.Second * 3, time.Second * 5, time.Second * 10}
 repeatRequest:
 	req, err := http.NewRequest("POST", uri, body)
 	if err != nil {
