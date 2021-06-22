@@ -31,9 +31,8 @@ type RequestsCache struct {
 	dir string
 	// allEntries      []*RequestCacheEntry
 	pageIDToEntries map[string][]*RequestCacheEntry
-	currPageID      NotionID
-	// if true, we write to cache but not read
-	disableRead bool
+	// we cache requests on a per-page basis
+	currPageID *NotionID
 }
 
 func recGetKey(r *siser.Record, key string, pErr *error) string {
@@ -137,6 +136,7 @@ func readRequestsCacheFile(dir string) (*RequestsCache, error) {
 	fmt.Printf("readRequestsCache() loaded %d files in %s\n", nFiles, time.Since(timeStart))
 	return c, nil
 }
+
 func (c *Client) tryReadFromCache(method string, uri string, body []byte) ([]byte, bool) {
 	// no dir, no cache
 	if c.CacheDir == "" {
@@ -170,6 +170,44 @@ func (c *Client) tryReadFromCache(method string, uri string, body []byte) ([]byt
 	return nil, false
 }
 
+func appendToFile(path string, d []byte) error {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write(d)
+	return err
+}
+
 func (c *Client) cacheRequest(method string, uri string, body []byte, response []byte) {
-	// TODO: write me
+	if c.CacheDir == "" {
+		return
+	}
+	// this is not in the context of any page so we don't cache it
+	if c.cache.currPageID == nil {
+		return
+	}
+	rr := &RequestCacheEntry{
+		Method:   method,
+		URL:      uri,
+		Body:     body,
+		Response: response,
+	}
+	d, err := serializeCacheEntry(rr)
+	if err != nil {
+		return
+	}
+
+	// append to a file for this page
+	fileName := c.cache.currPageID.NoDashID + ".txt"
+	path := filepath.Join(c.CacheDir, fileName)
+	err = appendToFile(path, d)
+	if err != nil {
+		// judgement call: delete file if failed to append
+		// as it might be corrupted
+		// could instead try appendAtomically()
+		os.Remove(path)
+		return
+	}
 }
