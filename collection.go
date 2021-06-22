@@ -216,12 +216,12 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 	collection := tv.Collection
 
 	if cv.Format == nil {
-		log(c, "buildTableView: page: '%s', missing CollectionView.Format in collection view with id '%s'\n", ToNoDashID(tv.Page.ID), cv.ID)
+		c.logf("buildTableView: page: '%s', missing CollectionView.Format in collection view with id '%s'\n", ToNoDashID(tv.Page.ID), cv.ID)
 		return nil
 	}
 
 	if collection == nil {
-		log(c, "buildTableView: page: '%s', colleciton is nil, collection view id: '%s'\n", ToNoDashID(tv.Page.ID), cv.ID)
+		c.logf("buildTableView: page: '%s', colleciton is nil, collection view id: '%s'\n", ToNoDashID(tv.Page.ID), cv.ID)
 		// TODO: maybe should return nil if this is missing in data returned
 		// by Notion. If it's a bug in our interpretation, we should fix
 		// that instead
@@ -229,7 +229,7 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 	}
 
 	if collection.Schema == nil {
-		log(c, "buildTableView: page: '%s', missing collection.Schema, collection view id: '%s', collection id: '%s'\n", ToNoDashID(tv.Page.ID), cv.ID, collection.ID)
+		c.logf("buildTableView: page: '%s', missing collection.Schema, collection view id: '%s', collection id: '%s'\n", ToNoDashID(tv.Page.ID), cv.ID, collection.ID)
 		// TODO: maybe should return nil if this is missing in data returned
 		// by Notion. If it's a bug in our interpretation, we should fix
 		// that instead

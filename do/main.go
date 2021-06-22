@@ -127,6 +127,8 @@ func bench() {
 	u.RunCmdMust(cmd)
 }
 
+var toText = notionapi.TextSpansToString
+
 func main() {
 	u.CdUpDir("notionapi")
 	logf("currDirAbs: '%s'\n", u.CurrDirAbsMust())
@@ -234,7 +236,8 @@ func main() {
 				logf("Client.DownloadPage('%s') failed with '%s'\n", pageID, err)
 				return
 			}
-			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, page.Root().GetTitle(), time.Since(timeStart))
+			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, toText(page.Root().GetTitle()), time.Since(timeStart))
+			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsNotFromCache, client.RequestsWrittenToCache)
 		}
 		// try with full cache
 		{
@@ -246,7 +249,8 @@ func main() {
 				logf("Client.DownloadPage('%s') failed with '%s'\n", pageID, err)
 				return
 			}
-			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, page.Root().GetTitle(), time.Since(timeStart))
+			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, toText(page.Root().GetTitle()), time.Since(timeStart))
+			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsNotFromCache, client.RequestsWrittenToCache)
 		}
 		return
 	}

@@ -121,7 +121,7 @@ func (c *Client) SetNewRecordOp(userID string, parent *Block, recordType string)
 // UploadFile Uploads a file to notion's asset hosting(aws s3)
 func (c *Client) UploadFile(file *os.File) (fileID, fileURL string, err error) {
 	contentType, err := GetFileContentType(file)
-	log(c, "contentType: %s", contentType)
+	c.logf("contentType: %s", contentType)
 
 	if err != nil {
 		err = fmt.Errorf("couldn't figure out the content-type of the file: %s", err)
