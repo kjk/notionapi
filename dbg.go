@@ -3,6 +3,8 @@ package notionapi
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/tidwall/pretty"
 )
 
 func dbg(client *Client, format string, args ...interface{}) {
@@ -19,18 +21,21 @@ func log(client *Client, format string, args ...interface{}) {
 	fmt.Fprintf(client.Logger, format, args...)
 }
 
+var prettyOpts = pretty.Options{
+	Width:  80,
+	Prefix: "",
+	Indent: "  ",
+	// sorting keys only slightly slower
+	SortKeys: true,
+}
+
 // pretty-print if valid JSON. If not, return unchanged
+// about 4x faster than naive version using json.Unmarshal() + json.Marshal()
 func ppJSON(js []byte) []byte {
-	var m map[string]interface{}
-	err := json.Unmarshal(js, &m)
-	if err != nil {
+	if !json.Valid(js) {
 		return js
 	}
-	d, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		return js
-	}
-	return d
+	return pretty.PrettyOptions(js, &prettyOpts)
 }
 
 // log JSON after pretty printing it

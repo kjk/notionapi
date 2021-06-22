@@ -8,45 +8,29 @@ import (
 
 	"github.com/kjk/caching_http_client"
 	"github.com/kjk/siser"
+	"github.com/tidwall/pretty"
 )
 
 const (
 	recCacheName = "httpcache-v1"
 )
 
-/*
 var prettyOpts = pretty.Options{
 	Width:  80,
 	Prefix: "",
 	Indent: "  ",
-	// sorting keys is slower but creates consistent output
+	// sorting keys only slightly slower
 	SortKeys: true,
 }
 
 // pretty-print if valid JSON. If not, return unchanged
-// TODO: validate that ppJSON2 is faster than ppJSON
-func ppJSON2(js []byte) []byte {
+// about 4x faster than naive version using json.Unmarshal() + json.Marshal()
+func ppJSON(js []byte) []byte {
 	if !json.Valid(js) {
 		return js
 	}
 	return pretty.PrettyOptions(js, &prettyOpts)
 }
-*/
-
-// pretty-print if valid JSON. If not, return unchanged
-func ppJSON(js []byte) []byte {
-	var m map[string]interface{}
-	err := json.Unmarshal(js, &m)
-	if err != nil {
-		return js
-	}
-	d, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		return js
-	}
-	return d
-}
-
 func recGetKey(r *siser.Record, key string, pErr *error) string {
 	if *pErr != nil {
 		return ""
