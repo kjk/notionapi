@@ -210,7 +210,45 @@ func main() {
 		// simple page with an image
 		pageID := "da0b358c21ab4ac6b5c0f7154b2ecadc"
 		client := makeNotionClient()
-		client.DownloadPage(pageID)
+		client.DebugLog = true
+		if false {
+			timeStart := time.Now()
+			page, err := client.DownloadPage(pageID)
+			if err != nil {
+				logf("Client.DownloadPage('%s') failed with '%s'\n", pageID, err)
+				return
+			}
+			logf("Client.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, page.Root().GetTitle(), time.Since(timeStart))
+		}
+		// try with empty cache
+		cacheDir, err := filepath.Abs("cached_notion")
+		must(err)
+		os.RemoveAll(cacheDir)
+		logf("cache dir: '%s'\n", cacheDir)
+		{
+			client, err := notionapi.NewCachingClient(cacheDir, client)
+			must(err)
+			timeStart := time.Now()
+			page, err := client.DownloadPage(pageID)
+			if err != nil {
+				logf("Client.DownloadPage('%s') failed with '%s'\n", pageID, err)
+				return
+			}
+			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, page.Root().GetTitle(), time.Since(timeStart))
+		}
+		// try with full cache
+		{
+			client, err := notionapi.NewCachingClient(cacheDir, client)
+			must(err)
+			timeStart := time.Now()
+			page, err := client.DownloadPage(pageID)
+			if err != nil {
+				logf("Client.DownloadPage('%s') failed with '%s'\n", pageID, err)
+				return
+			}
+			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, page.Root().GetTitle(), time.Since(timeStart))
+		}
+		return
 	}
 
 	if false {

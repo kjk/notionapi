@@ -59,10 +59,7 @@ type Client struct {
 	// MinRequestDelay between requests
 	lastRequestTime time.Time
 
-	CacheDir string
-	// if true, won't read from cache but will write to it
-	DisableCacheRead bool
-	cache            *RequestsCache
+	httpPostOverride func(uri string, body []byte) ([]byte, error)
 }
 
 func (c *Client) getHTTPClient() *http.Client {
@@ -106,7 +103,7 @@ func (c *Client) rateLimitRequest() {
 	if !c.lastRequestTime.IsZero() {
 		minDelay := c.MinRequestDelay
 		if minDelay == 0 {
-			minDelay = time.Millisecond * 333
+			minDelay = time.Millisecond * 360
 		}
 		since := time.Since(c.lastRequestTime)
 		if minDelay > since {
@@ -116,7 +113,14 @@ func (c *Client) rateLimitRequest() {
 	c.lastRequestTime = time.Now()
 }
 
-func doPost(c *Client, uri string, body []byte) ([]byte, error) {
+func (c *Client) doPost(uri string, body []byte) ([]byte, error) {
+	if c.httpPostOverride != nil {
+		return c.httpPostOverride(uri, body)
+	}
+	return c.doPostInternal(uri, body)
+}
+
+func (c *Client) doPostInternal(uri string, body []byte) ([]byte, error) {
 	c.rateLimitRequest()
 
 	// try to back-off exponentially
@@ -170,20 +174,6 @@ repeatRequest:
 	return d, nil
 }
 
-func doPostMaybeCached(c *Client, uri string, body []byte) ([]byte, error) {
-	d, ok := c.tryReadFromCache("POST", uri, body)
-	if ok {
-		return d, nil
-	}
-	d, err := doPost(c, uri, body)
-	if err != nil {
-		return nil, err
-	}
-
-	c.cacheRequest("POST", uri, body, d)
-	return d, nil
-}
-
 func (c *Client) doNotionAPI(apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
 	var body []byte
 	var err error
@@ -199,8 +189,7 @@ func (c *Client) doNotionAPI(apiURL string, requestData interface{}, result inte
 		logJSON(c, body)
 	}
 
-	// TODO: maybe a way to not cache if fails to unmarshal
-	d, err := doPostMaybeCached(c, uri, body)
+	d, err := c.doPost(uri, body)
 	if err != nil {
 		return nil, err
 	}

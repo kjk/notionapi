@@ -3,10 +3,12 @@ package notionapi
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -33,6 +35,17 @@ type RequestsCache struct {
 	pageIDToEntries map[string][]*RequestCacheEntry
 	// we cache requests on a per-page basis
 	currPageID *NotionID
+}
+
+type CachingClient struct {
+	CacheDir         string
+	client           *Client
+	DisableCacheRead bool // TODO: rename DisableReadsFromCache
+	cache            *RequestsCache
+
+	RequestsFromCache      int
+	RequestsNotFromCache   int
+	RequestsWrittenToCache int
 }
 
 func recGetKey(r *siser.Record, key string, pErr *error) string {
@@ -92,7 +105,15 @@ func deserializeCacheEntry(d []byte) ([]*RequestCacheEntry, error) {
 	return res, nil
 }
 
-func readRequestsCacheFile(dir string) (*RequestsCache, error) {
+func (c *CachingClient) logf(format string, args ...interface{}) {
+	c.client.logf(format, args...)
+}
+
+func (c *CachingClient) vlogf(format string, args ...interface{}) {
+	c.client.vlogf(format, args...)
+}
+
+func (cc *CachingClient) readRequestsCacheFile(dir string) (*RequestsCache, error) {
 	c := &RequestsCache{
 		dir:             dir,
 		pageIDToEntries: map[string][]*RequestCacheEntry{},
@@ -133,23 +154,32 @@ func readRequestsCacheFile(dir string) (*RequestsCache, error) {
 		}
 		c.pageIDToEntries[nid.NoDashID] = entries
 	}
-	fmt.Printf("readRequestsCache() loaded %d files in %s\n", nFiles, time.Since(timeStart))
+	cc.vlogf("readRequestsCache() loaded %d files in %s\n", nFiles, time.Since(timeStart))
 	return c, nil
 }
 
-func (c *Client) tryReadFromCache(method string, uri string, body []byte) ([]byte, bool) {
-	// no dir, no cache
-	if c.CacheDir == "" {
-		return nil, false
+func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
+	if cacheDir == "" {
+		return nil, errors.New("must provide cacheDir")
 	}
-	var err error
-	if c.cache == nil {
-		// lazily allocate cache
-		c.cache, err = readRequestsCacheFile(c.CacheDir)
-		if err != nil {
-			return nil, false
-		}
+	if client == nil {
+		return nil, errors.New("must provide client")
 	}
+	res := &CachingClient{
+		CacheDir: cacheDir,
+		client:   client,
+	}
+	// TODO: ignore error?
+	cache, err := res.readRequestsCacheFile(cacheDir)
+	if err != nil {
+		return nil, err
+	}
+	res.cache = cache
+	client.httpPostOverride = res.doPostMaybeCached
+	return res, nil
+}
+
+func (c *CachingClient) tryReadFromCache(method string, uri string, body []byte) ([]byte, bool) {
 	if c.DisableCacheRead {
 		return nil, false
 	}
@@ -170,20 +200,7 @@ func (c *Client) tryReadFromCache(method string, uri string, body []byte) ([]byt
 	return nil, false
 }
 
-func appendToFile(path string, d []byte) error {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.Write(d)
-	return err
-}
-
-func (c *Client) cacheRequest(method string, uri string, body []byte, response []byte) {
-	if c.CacheDir == "" {
-		return
-	}
+func (c *CachingClient) cacheRequest(method string, uri string, body []byte, response []byte) {
 	// this is not in the context of any page so we don't cache it
 	if c.cache.currPageID == nil {
 		return
@@ -210,4 +227,69 @@ func (c *Client) cacheRequest(method string, uri string, body []byte, response [
 		os.Remove(path)
 		return
 	}
+}
+
+func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, error) {
+	d, ok := c.tryReadFromCache("POST", uri, body)
+	if ok {
+		c.RequestsFromCache++
+		return d, nil
+	}
+	d, err := c.client.doPostInternal(uri, body)
+	if err != nil {
+		return nil, err
+	}
+	c.RequestsNotFromCache++
+
+	c.cacheRequest("POST", uri, body, d)
+	return d, nil
+}
+
+func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
+	c.cache.currPageID = NewNotionID(pageID)
+	if c.cache.currPageID == nil {
+		return nil, fmt.Errorf("'%s' is not a valid notion id", pageID)
+	}
+	return c.client.DownloadPage(pageID)
+}
+
+func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownload func(*Page) error) ([]*Page, error) {
+	toVisit := []string{startPageID}
+	downloaded := map[string]*Page{}
+	for len(toVisit) > 0 {
+		pageID := ToNoDashID(toVisit[0])
+		toVisit = toVisit[1:]
+		if downloaded[pageID] != nil {
+			continue
+		}
+
+		page, err := c.DownloadPage(pageID)
+		if err != nil {
+			return nil, err
+		}
+		downloaded[pageID] = page
+		if afterDownload != nil {
+			err = afterDownload(page)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		subPages := page.GetSubPages()
+		toVisit = append(toVisit, subPages...)
+	}
+	n := len(downloaded)
+	if n == 0 {
+		return nil, nil
+	}
+	var ids []string
+	for id := range downloaded {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	pages := make([]*Page, n)
+	for i, id := range ids {
+		pages[i] = downloaded[id]
+	}
+	return pages, nil
 }
