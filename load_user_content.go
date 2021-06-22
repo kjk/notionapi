@@ -19,11 +19,11 @@ type LoadUserResponse struct {
 func (c *Client) LoadUserContent() (*LoadUserResponse, error) {
 	req := struct{}{}
 
-	apiURL := "/api/v3/loadUserContent"
 	var rsp struct {
 		RecordMap map[string]map[string]*LoadUserResponse `json:"recordMap"`
 	}
-	rawJSON, err := doNotionAPI(c, apiURL, req, &rsp)
+	apiURL := "/api/v3/loadUserContent"
+	rawJSON, err := c.doNotionAPI(apiURL, req, &rsp)
 	if err != nil {
 		return nil, err
 	}

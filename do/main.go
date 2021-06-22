@@ -206,8 +206,16 @@ func main() {
 		return
 	}
 
+	if true {
+		// simple page with an image
+		pageID := "da0b358c21ab4ac6b5c0f7154b2ecadc"
+		client := makeNotionClient()
+		client.DownloadPage(pageID)
+	}
+
 	if false {
-		flgToHTML = "97c2435193d245688bb5da7f84edfe45"
+		// simple page with an image
+		flgToHTML = "da0b358c21ab4ac6b5c0f7154b2ecadc"
 	}
 
 	if false {

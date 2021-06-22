@@ -139,10 +139,10 @@ func (c *Client) GetRecordValues(records []RecordRequest) (*GetRecordValuesRespo
 		Requests: records,
 	}
 
-	apiURL := "/api/v3/getRecordValues"
 	var rsp GetRecordValuesResponse
 	var err error
-	if rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp); err != nil {
+	apiURL := "/api/v3/getRecordValues"
+	if rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp); err != nil {
 		return nil, err
 	}
 

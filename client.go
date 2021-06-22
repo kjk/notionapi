@@ -184,7 +184,7 @@ func doPostMaybeCached(c *Client, uri string, body []byte) ([]byte, error) {
 	return d, nil
 }
 
-func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
+func (c *Client) doNotionAPI(apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
 	var body []byte
 	var err error
 	if requestData != nil {

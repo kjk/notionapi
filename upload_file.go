@@ -36,7 +36,6 @@ func (r *GetUploadFileUrlResponse) Parse() {
 
 // getUploadFileURL executes a raw API call: POST /api/v3/getUploadFileUrl
 func (c *Client) getUploadFileURL(name, contentType string) (*GetUploadFileUrlResponse, error) {
-	const apiURL = "/api/v3/getUploadFileUrl"
 
 	req := &getUploadFileUrlRequest{
 		Bucket:      "secure",
@@ -46,7 +45,8 @@ func (c *Client) getUploadFileURL(name, contentType string) (*GetUploadFileUrlRe
 
 	var rsp GetUploadFileUrlResponse
 	var err error
-	rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp)
+	const apiURL = "/api/v3/getUploadFileUrl"
+	rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp)
 	if err != nil {
 		return nil, err
 	}

@@ -83,10 +83,10 @@ func (c *Client) RequestPageExportURL(id string, exportType string, recursive bo
 		},
 	}
 
-	apiURL := "/api/v3/enqueueTask"
 	var rsp enqueueTaskResponse
 	var err error
-	rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp)
+	apiURL := "/api/v3/enqueueTask"
+	rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp)
 	if err != nil {
 		return "", err
 	}
@@ -101,7 +101,7 @@ func (c *Client) RequestPageExportURL(id string, exportType string, recursive bo
 		var err error
 		var rsp getTasksExportPageResponse
 		apiURL = "/api/v3/getTasks"
-		_, err = doNotionAPI(c, apiURL, req, &rsp)
+		_, err = c.doNotionAPI(apiURL, req, &rsp)
 		if err != nil {
 			return "", err
 		}

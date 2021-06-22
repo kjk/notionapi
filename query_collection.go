@@ -73,10 +73,10 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, q json.R
 		LoadContentCover: true,
 	}
 
-	apiURL := "/api/v3/queryCollection"
 	var rsp QueryCollectionResponse
 	var err error
-	rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp)
+	apiURL := "/api/v3/queryCollection"
+	rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (c *Client) QueryCollection(collectionID, collectionViewID string, q json.R
 	if actualTotal > startLimit {
 		rsp = QueryCollectionResponse{}
 		req.Loader.Limit = actualTotal
-		rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp)
+		rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp)
 		if err != nil {
 			return nil, fmt.Errorf("Client.QueryCollection() 2nd fetch failed: %s", err)
 		}

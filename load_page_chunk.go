@@ -43,7 +43,6 @@ type RecordMap struct {
 func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPageChunkResponse, error) { // emulating notion's website api usage: 50 items on first request,
 	// 30 on subsequent requests
 	limit := 30
-	apiURL := "/api/v3/loadPageChunk"
 	if cur == nil {
 		cur = &cursor{
 			// to mimic browser api which sends empty array for this argment
@@ -60,7 +59,8 @@ func (c *Client) LoadPageChunk(pageID string, chunkNo int, cur *cursor) (*LoadPa
 	}
 	var rsp LoadPageChunkResponse
 	var err error
-	if rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp); err != nil {
+	apiURL := "/api/v3/loadPageChunk"
+	if rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp); err != nil {
 		return nil, err
 	}
 	if err = ParseRecordMap(rsp.RecordMap); err != nil {

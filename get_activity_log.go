@@ -19,7 +19,6 @@ type GetActivityLogResponse struct {
 // GetActivityLog executes a raw API call /api/v3/getActivityLog.
 // If startingAfterId is "", starts at the most recent log entry.
 func (c *Client) GetActivityLog(spaceID string, startingAfterID string, limit int) (*GetActivityLogResponse, error) {
-	apiURL := "/api/v3/getActivityLog"
 	req := &getActivityLogRequest{
 		SpaceID:         spaceID,
 		StartingAfterID: startingAfterID,
@@ -27,7 +26,8 @@ func (c *Client) GetActivityLog(spaceID string, startingAfterID string, limit in
 	}
 	var rsp GetActivityLogResponse
 	var err error
-	if rsp.RawJSON, err = doNotionAPI(c, apiURL, req, &rsp); err != nil {
+	apiURL := "/api/v3/getActivityLog"
+	if rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp); err != nil {
 		return nil, err
 	}
 	if err = ParseRecordMap(rsp.RecordMap); err != nil {
