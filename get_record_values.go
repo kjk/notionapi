@@ -105,14 +105,14 @@ func parseRecord(table string, r *Record) error {
 			fmt.Printf("collection_view json:\n%s\n\n", s)
 		}
 	}
-	if err := json.Unmarshal(r.Value, pRawJSON); err != nil {
+	if err := jsonit.Unmarshal(r.Value, pRawJSON); err != nil {
 		return err
 	}
 	id := (*pRawJSON)["id"]
 	if id != nil {
 		r.ID = id.(string)
 	}
-	if err := json.Unmarshal(r.Value, &obj); err != nil {
+	if err := jsonit.Unmarshal(r.Value, &obj); err != nil {
 		return err
 	}
 	return nil

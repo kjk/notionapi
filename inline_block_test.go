@@ -1,7 +1,6 @@
 package notionapi
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -240,7 +239,7 @@ const title7 = `{
 
 func parseTextSpans(t *testing.T, s string) []*TextSpan {
 	var m map[string]interface{}
-	err := json.Unmarshal([]byte(s), &m)
+	err := jsonit.Unmarshal([]byte(s), &m)
 	assert.NoError(t, err)
 	blocks, err := ParseTextSpans(m["title"])
 	assert.NoError(t, err)

@@ -1,7 +1,6 @@
 package notionapi
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -41,7 +40,7 @@ const (
 
 func TestGetRecordValues1(t *testing.T) {
 	var res GetRecordValuesResponse
-	err := json.Unmarshal([]byte(getRecordValuesJSON1), &res)
+	err := jsonit.Unmarshal([]byte(getRecordValuesJSON1), &res)
 	require.NoError(t, err)
 	require.NotNil(t, res.Results)
 	require.Equal(t, 1, len(res.Results))

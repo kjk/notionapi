@@ -25,12 +25,13 @@ var prettyOpts = pretty.Options{
 
 // pretty-print if valid JSON. If not, return unchanged
 // about 4x faster than naive version using json.Unmarshal() + json.Marshal()
-func ppJSON(js []byte) []byte {
+func PrettyPrintJS(js []byte) []byte {
 	if !json.Valid(js) {
 		return js
 	}
 	return pretty.PrettyOptions(js, &prettyOpts)
 }
+
 func recGetKey(r *siser.Record, key string, pErr *error) string {
 	if *pErr != nil {
 		return ""
@@ -56,8 +57,8 @@ func serializeHTTPCache(c *caching_http_client.Cache) ([]byte, error) {
 	var r siser.Record
 	for _, rr := range c.CachedRequests {
 		r.Reset()
-		body := ppJSON(rr.Body)
-		response := ppJSON(rr.Response)
+		body := PrettyPrintJS(rr.Body)
+		response := PrettyPrintJS(rr.Response)
 		r.Write("Method", rr.Method)
 		r.Write("URL", rr.URL)
 		r.Write("Body", string(body))

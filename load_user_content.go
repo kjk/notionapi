@@ -1,8 +1,6 @@
 package notionapi
 
-import (
-	"encoding/json"
-)
+import "encoding/json"
 
 type LoadUserResponse struct {
 	ID    string `json:"id"`
@@ -52,7 +50,7 @@ func (c *Client) LoadUserContent() (*LoadUserResponse, error) {
 			if obj == nil {
 				continue
 			}
-			if err := json.Unmarshal(value.Value, &obj); err != nil {
+			if err := jsonit.Unmarshal(value.Value, &obj); err != nil {
 				return nil, err
 			}
 		}

@@ -95,7 +95,7 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	var js []byte
 	var err error
 	if requestData != nil {
-		js, err = json.Marshal(requestData)
+		js, err = jsonit.Marshal(requestData)
 		if err != nil {
 			return nil, err
 		}
@@ -148,7 +148,7 @@ repeatRequest:
 
 	if rsp.StatusCode != 200 {
 		d, _ := ioutil.ReadAll(rsp.Body)
-		log(c, "Error: status code %s\nBody:\n%s\n", rsp.Status, ppJSON(d))
+		log(c, "Error: status code %s\nBody:\n%s\n", rsp.Status, PrettyPrintJS(d))
 		return nil, fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
 	}
 	d, err := ioutil.ReadAll(rsp.Body)

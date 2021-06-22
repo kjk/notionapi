@@ -1,7 +1,6 @@
 package notionapi
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -93,7 +92,7 @@ func AttrGetDate(attr TextAttr) *Date {
 	panicIfAttrNot(attr, "AttrGetDate", AttrDate)
 	js := []byte(attr[1])
 	var d *Date
-	err := json.Unmarshal(js, &d)
+	err := jsonit.Unmarshal(js, &d)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -118,7 +117,7 @@ func parseTextSpanAttribute(b *TextSpan, a []interface{}) error {
 		if !ok {
 			return fmt.Errorf("got unexpected type %T (expected map[string]interface{}", a[1])
 		}
-		js, err := json.MarshalIndent(v, "", "  ")
+		js, err := jsonit.MarshalIndent(v, "", "  ")
 		if err != nil {
 			return err
 		}

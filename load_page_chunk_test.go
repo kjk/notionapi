@@ -1,7 +1,6 @@
 package notionapi
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -129,7 +128,7 @@ const (
 
 func TestLoadPageChunk1(t *testing.T) {
 	var res LoadPageChunkResponse
-	err := json.Unmarshal([]byte(loadPageJSON1), &res)
+	err := jsonit.Unmarshal([]byte(loadPageJSON1), &res)
 	require.NoError(t, err)
 	blocks := res.RecordMap.Blocks
 	require.Equal(t, 3, len(blocks))
