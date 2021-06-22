@@ -2,7 +2,6 @@ package notionapi
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +17,27 @@ const (
 	userAgent  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3483.0 Safari/537.36"
 	acceptLang = "en-US,en;q=0.9"
 )
+
+type NotionID struct {
+	DashID   string
+	NoDashID string
+}
+
+func NewNotionID(maybeID string) *NotionID {
+	if IsValidDashID(maybeID) {
+		return &NotionID{
+			DashID:   maybeID,
+			NoDashID: ToNoDashID(maybeID),
+		}
+	}
+	if IsValidNoDashID(maybeID) {
+		return &NotionID{
+			DashID:   ToDashID(maybeID),
+			NoDashID: maybeID,
+		}
+	}
+	return nil
+}
 
 // Client is client for invoking Notion API
 type Client struct {
@@ -38,6 +58,11 @@ type Client struct {
 	// simplest rate limiting: track last request time and wait at least
 	// MinRequestDelay between requests
 	lastRequestTime time.Time
+
+	CacheDir string
+	// if true, won't read from cache but will write to it
+	DisableCacheRead bool
+	cache            *RequestsCache
 }
 
 func (c *Client) getHTTPClient() *http.Client {
@@ -91,21 +116,7 @@ func (c *Client) rateLimitRequest() {
 	c.lastRequestTime = time.Now()
 }
 
-func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
-	var js []byte
-	var err error
-	if requestData != nil {
-		js, err = jsonit.Marshal(requestData)
-		if err != nil {
-			return nil, err
-		}
-	}
-	uri := notionHost + apiURL
-	log(c, "POST %s\n", uri)
-	if len(js) > 0 {
-		logJSON(c, js)
-	}
-
+func doPost(c *Client, uri string, body []byte) ([]byte, error) {
 	c.rateLimitRequest()
 
 	// try to back-off exponentially
@@ -113,8 +124,8 @@ func doNotionAPI(c *Client, apiURL string, requestData interface{}, result inter
 	nRepeats := 0
 	timeouts := []time.Duration{time.Second * 3, time.Second * 5, time.Second * 10}
 repeatRequest:
-	body := bytes.NewBuffer(js)
-	req, err := http.NewRequest("POST", uri, body)
+	br := bytes.NewBuffer(body)
+	req, err := http.NewRequest("POST", uri, br)
 	if err != nil {
 		return nil, err
 	}
@@ -156,14 +167,52 @@ repeatRequest:
 		log(c, "Error: ioutil.ReadAll() failed with %s\n", err)
 		return nil, err
 	}
-	logJSON(c, d)
-	err = json.Unmarshal(d, result)
+	return d, nil
+}
+
+func doPostMaybeCached(c *Client, uri string, body []byte) ([]byte, error) {
+	d, ok := c.tryReadFromCache("POST", uri, body)
+	if ok {
+		return d, nil
+	}
+	d, err := doPost(c, uri, body)
+	if err != nil {
+		return nil, err
+	}
+
+	c.cacheRequest("POST", uri, body, d)
+	return d, nil
+}
+
+func doNotionAPI(c *Client, apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
+	var body []byte
+	var err error
+	if requestData != nil {
+		body, err = jsonit.MarshalIndent(requestData, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+	}
+	uri := notionHost + apiURL
+	log(c, "POST %s\n", uri)
+	if len(body) > 0 {
+		logJSON(c, body)
+	}
+
+	// TODO: maybe a way to not cache if fails to unmarshal
+	d, err := doPostMaybeCached(c, uri, body)
+	if err != nil {
+		return nil, err
+	}
+	//logJSON(c, d)
+
+	err = jsonit.Unmarshal(d, result)
 	if err != nil {
 		log(c, "Error: json.Unmarshal() failed with %s\n. Body:\n%s\n", err, string(d))
 		return nil, err
 	}
 	var m map[string]interface{}
-	err = json.Unmarshal(d, &m)
+	err = jsonit.Unmarshal(d, &m)
 	if err != nil {
 		return nil, err
 	}
