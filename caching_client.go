@@ -511,6 +511,7 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	} else {
 		c.FromCacheCount++
 		ev := &EventDidReadFromCache{
+			Page:     page,
 			PageID:   ToDashID(pageID),
 			Duration: time.Since(timeStart),
 		}
