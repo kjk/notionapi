@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kjk/notionapi/caching_downloader"
-
 	"github.com/kjk/notionapi"
 )
 
@@ -64,25 +62,21 @@ var (
 
 func eventObserver(ev interface{}) {
 	switch v := ev.(type) {
-	case *caching_downloader.EventError:
+	case *notionapi.EventError:
 		logf(v.Error)
-	case *caching_downloader.EventDidDownload:
+	case *notionapi.EventDidDownload:
 		s := fmt.Sprintf("downloaded in %s", v.Duration)
 		eventsPerID[v.PageID] = s
-	case *caching_downloader.EventDidReadFromCache:
+	case *notionapi.EventDidReadFromCache:
 		s := fmt.Sprintf("from cache in %s", v.Duration)
 		eventsPerID[v.PageID] = s
-	case *caching_downloader.EventGotVersions:
+	case *notionapi.EventGotVersions:
 		logf("downloaded info about %d versions in %s\n", v.Count, v.Duration)
 	}
 }
 
 func downloadPage(client *notionapi.Client, pageID string) (*notionapi.Page, error) {
-	cache, err := caching_downloader.NewDirectoryCache(cacheDir)
-	if err != nil {
-		return nil, err
-	}
-	d := caching_downloader.New(cache, client)
+	d, err := notionapi.NewCachingClient(cacheDir, client)
 	if err != nil {
 		return nil, err
 	}

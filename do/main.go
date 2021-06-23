@@ -208,7 +208,7 @@ func main() {
 		return
 	}
 
-	if true {
+	if false {
 		// simple page with an image
 		pageID := "da0b358c21ab4ac6b5c0f7154b2ecadc"
 		client := makeNotionClient()
