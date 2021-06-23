@@ -3,6 +3,7 @@ package notionapi
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -95,6 +96,11 @@ type CachingClient struct {
 	// if doesn't exist, we haven't yet queried the server for the
 	// version
 	IdToPageLatestVersion map[string]int64
+
+	DownloadedCount      int
+	FromCacheCount       int
+	DownloadedFilesCount int
+	FilesFromCacheCount  int
 
 	RequestsFromCache      int
 	RequestsNotFromCache   int
@@ -474,6 +480,7 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 
 	c.checkVersionsOfCachedPages()
 
+	timeStart := time.Now()
 	// over-write httpPost only for the duration of client.DownloadPage()
 	// that way we don't permanently change the client
 	prevOverride := c.client.httpPostOverride
@@ -489,9 +496,22 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	var err error
 	if page == nil {
 		page, err = c.client.DownloadPage(pageID)
-	}
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+		c.DownloadedCount++
+		ev := &EventDidDownload{
+			PageID:   ToDashID(pageID),
+			Duration: time.Since(timeStart),
+		}
+		c.emitEvent(ev)
+	} else {
+		c.FromCacheCount++
+		ev := &EventDidReadFromCache{
+			PageID:   ToDashID(pageID),
+			Duration: time.Since(timeStart),
+		}
+		c.emitEvent(ev)
 	}
 	c.IdToPage[pageID] = page
 	if c.IdToPageLatestVersion == nil {
@@ -549,4 +569,76 @@ func (c *CachingClient) GetPageIDs() []string {
 		res = append(res, id)
 	}
 	return res
+}
+
+// Sha1OfURL returns sha1 of url
+func Sha1OfURL(uri string) string {
+	// TODO: could benefit from normalizing url, e.g. with
+	// https://github.com/PuerkitoBio/purell
+	h := sha1.New()
+	h.Write([]byte(uri))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// GetCacheFileNameFromURL returns name of the file in cache
+// for this URL. The name is files/${sha1OfURL}.${ext}
+// It's a consistent, one-way transform
+func GetCacheFileNameFromURL(uri string) string {
+	parts := strings.Split(uri, "/")
+	name := parts[len(parts)-1]
+	ext := filepath.Ext(name)
+	ext = strings.ToLower(ext)
+	name = Sha1OfURL(uri) + ext
+	return filepath.Join("files", name)
+}
+
+// DownloadFile downloads a file refered by block with a given blockID and a parent table
+// we cache the file
+func (c *CachingClient) DownloadFile(uri string, blockID string, parentTable string) (*DownloadFileResponse, error) {
+	//fmt.Printf("Downloader.DownloadFile('%s'\n", uri)
+	cacheFileName := GetCacheFileNameFromURL(uri)
+	path := filepath.Join(c.CacheDir, cacheFileName)
+	// ensure dif for file exists
+	dir := filepath.Dir(path)
+	_ = os.MkdirAll(dir, 0755)
+
+	var data []byte
+	var err error
+	if !c.NoReadCache {
+		timeStart := time.Now()
+
+		data, err = ioutil.ReadFile(cacheFileName)
+		if err != nil {
+			os.Remove(cacheFileName)
+		} else {
+			res := &DownloadFileResponse{
+				URL:           uri,
+				Data:          data,
+				CacheFileName: cacheFileName,
+			}
+			ev := &EventDidReadFromCache{
+				FileURL:  uri,
+				Duration: time.Since(timeStart),
+			}
+			c.emitEvent(ev)
+			c.FilesFromCacheCount++
+			return res, nil
+		}
+	}
+
+	timeStart := time.Now()
+	res, err := c.client.DownloadFile(uri, blockID, parentTable)
+	if err != nil {
+		c.emitError("Downloader.DownloadFile(): failed to download %s, error: %s", uri, err)
+		return nil, err
+	}
+	ev := &EventDidDownload{
+		FileURL:  uri,
+		Duration: time.Since(timeStart),
+	}
+	c.emitEvent(ev)
+	_ = ioutil.WriteFile(path, res.Data, 0644)
+	res.CacheFileName = cacheFileName
+	c.DownloadedFilesCount++
+	return res, nil
 }
