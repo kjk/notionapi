@@ -486,15 +486,17 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	}()
 	c.client.httpPostOverride = c.doPostMaybeCached
 	page := c.getPageFromCache(pageID)
-	if page != nil {
-		return page, nil
+	var err error
+	if page == nil {
+		page, err = c.client.DownloadPage(pageID)
 	}
-
-	page, err := c.client.DownloadPage(pageID)
 	if err != nil {
 		return nil, err
 	}
 	c.IdToPage[pageID] = page
+	if c.IdToPageLatestVersion == nil {
+		c.IdToPageLatestVersion = map[string]int64{}
+	}
 	c.IdToPageLatestVersion[pageID] = page.Root().Version
 	return page, nil
 }
