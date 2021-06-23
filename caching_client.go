@@ -84,7 +84,7 @@ type CachingClient struct {
 	currPageRequests []*RequestCacheEntry
 
 	// stores pages deserialized just from cache
-	idToPageFromCache map[string]*Page
+	IdToPage map[string]*Page
 
 	// if true, we'll re-download a page if a newer version is
 	// on the server
@@ -94,9 +94,7 @@ type CachingClient struct {
 	// of the page available on the server.
 	// if doesn't exist, we haven't yet queried the server for the
 	// version
-	idToPageLatestVersion map[string]int64
-
-	didCheckVersionsOfCachedPages bool
+	IdToPageLatestVersion map[string]int64
 
 	RequestsFromCache      int
 	RequestsNotFromCache   int
@@ -241,6 +239,7 @@ func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
 	res := &CachingClient{
 		CacheDir: cacheDir,
 		client:   client,
+		IdToPage: map[string]*Page{},
 	}
 	// TODO: ignore error?
 	err := res.readRequestsCacheFile(cacheDir)
@@ -392,7 +391,7 @@ func (c *CachingClient) updateVersionsForPages(ids []string) error {
 		id := ids[i]
 		ver := versions[i]
 		id = ToNoDashID(id)
-		c.idToPageLatestVersion[id] = ver
+		c.IdToPageLatestVersion[id] = ver
 	}
 	return nil
 }
@@ -403,15 +402,15 @@ func (c *CachingClient) checkVersionsOfCachedPages() error {
 	if !c.RedownloadNewerVersions {
 		return nil
 	}
-	if c.didCheckVersionsOfCachedPages {
+	if c.IdToPageLatestVersion != nil {
 		return nil
 	}
+	c.IdToPageLatestVersion = map[string]int64{}
 	ids := c.GetPageIDs()
 	err := c.updateVersionsForPages(ids)
 	if err != nil {
 		return err
 	}
-	c.didCheckVersionsOfCachedPages = true
 	return nil
 }
 
@@ -425,14 +424,14 @@ func (c *CachingClient) canReturnCachedPage(p *Page) bool {
 		return true
 	}
 	pageID := ToNoDashID(p.ID)
-	if _, ok := c.idToPageLatestVersion[pageID]; !ok {
+	if _, ok := c.IdToPageLatestVersion[pageID]; !ok {
 		// we don't know what the latest version is, so download it
 		err := c.updateVersionsForPages([]string{pageID})
 		if err != nil {
 			return false
 		}
 	}
-	newestVer := c.idToPageLatestVersion[pageID]
+	newestVer := c.IdToPageLatestVersion[pageID]
 	pageVer := p.Root().Version
 	return pageVer >= newestVer
 }
@@ -452,7 +451,7 @@ func (c *CachingClient) getPageFromCache(pageID string) *Page {
 		return nil
 	}
 	c.checkVersionsOfCachedPages()
-	p := c.idToPageFromCache[pageID]
+	p := c.IdToPage[pageID]
 	if c.canReturnCachedPage(p) {
 		return p
 	}
@@ -491,7 +490,13 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		return page, nil
 	}
 
-	return c.client.DownloadPage(pageID)
+	page, err := c.client.DownloadPage(pageID)
+	if err != nil {
+		return nil, err
+	}
+	c.IdToPage[pageID] = page
+	c.IdToPageLatestVersion[pageID] = page.Root().Version
+	return page, nil
 }
 
 func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownload func(*Page) error) ([]*Page, error) {
