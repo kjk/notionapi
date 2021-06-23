@@ -227,6 +227,7 @@ func (c *CachingClient) cacheRequest(method string, uri string, body []byte, res
 		os.Remove(path)
 		return
 	}
+	c.RequestsWrittenToCache++
 }
 
 func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, error) {
@@ -292,4 +293,13 @@ func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownlo
 		pages[i] = downloaded[id]
 	}
 	return pages, nil
+}
+
+// GetPageIDs returns ids of pages in the cache
+func (c *CachingClient) GetPageIDs() []string {
+	var res []string
+	for id := range c.cache.pageIDToEntries {
+		res = append(res, id)
+	}
+	return res
 }
