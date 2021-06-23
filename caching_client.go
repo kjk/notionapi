@@ -33,7 +33,8 @@ type RequestCacheEntry struct {
 // EventDidDownload is for logging. Emitted when page
 // or file is downloaded
 type EventDidDownload struct {
-	// if page, PageID is set
+	// if page, Page and PageID is set
+	Page   *Page
 	PageID string
 	// if file, URL is set
 	FileURL string
@@ -49,7 +50,8 @@ type EventError struct {
 // EventDidReadFromCache is for logging. Emitted when page
 // or file is read from cache.
 type EventDidReadFromCache struct {
-	// if page, PageID is set
+	// if page, Page and PageID is set
+	Page   *Page
 	PageID string
 	// if file, URL is set
 	FileURL string
@@ -501,6 +503,7 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		}
 		c.DownloadedCount++
 		ev := &EventDidDownload{
+			Page:     page,
 			PageID:   ToDashID(pageID),
 			Duration: time.Since(timeStart),
 		}
