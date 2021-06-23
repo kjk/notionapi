@@ -3,7 +3,6 @@ package notionapi
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 )
 
@@ -112,14 +111,16 @@ func ToDashID(id string) string {
 	return res
 }
 
-func appendToFile(path string, d []byte) error {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		return err
+func normalizeIDS(ids []string) {
+	for i, id := range ids {
+		ids[i] = ToNoDashID(id)
 	}
-	defer f.Close()
-	_, err = f.Write(d)
-	return err
+}
+
+func isIDEqual(id1, id2 string) bool {
+	id1 = ToNoDashID(id1)
+	id2 = ToNoDashID(id2)
+	return id1 == id2
 }
 
 func isSafeChar(r rune) bool {

@@ -29,23 +29,75 @@ type RequestCacheEntry struct {
 	Response []byte
 }
 
-type RequestsCache struct {
-	dir string
-	// allEntries      []*RequestCacheEntry
+// EventDidDownload is for logging. Emitted when page
+// or file is downloaded
+type EventDidDownload struct {
+	// if page, PageID is set
+	PageID string
+	// if file, URL is set
+	FileURL string
+	// how long did it take to download
+	Duration time.Duration
+}
+
+// EventError is for logging. Emitted when there's error to log
+type EventError struct {
+	Error string
+}
+
+// EventDidReadFromCache is for logging. Emitted when page
+// or file is read from cache.
+type EventDidReadFromCache struct {
+	// if page, PageID is set
+	PageID string
+	// if file, URL is set
+	FileURL string
+	// how long did it take to download
+	Duration time.Duration
+}
+
+// EventGotVersions is for logging. Emitted
+type EventGotVersions struct {
+	Count    int
+	Duration time.Duration
+}
+
+// CachingClient implements optimized (cached) downloading of pages.
+// Cache of pages is stored in CacheDir. We return pages from cache.
+// If RedownloadNewerVersions is true, we'll re-download latest version
+// of the page (as opposed to returning possibly outdated version
+// from cache). We do it more efficiently than just blindly re-downloading.
+type CachingClient struct {
+	CacheDir string
+	client   *Client
+	// if true, we'll re-download a page if a newer version is
+	// on the server
+	RedownloadNewerVersions bool
+	// NoReadCache disables reading from cache i.e. downloaded pages
+	// will be written to cache but not read from it
+	NoReadCache bool
+
 	pageIDToEntries map[string][]*RequestCacheEntry
 	// we cache requests on a per-page basis
 	currPageID *NotionID
-}
 
-type CachingClient struct {
-	CacheDir         string
-	client           *Client
-	DisableCacheRead bool // TODO: rename DisableReadsFromCache
-	cache            *RequestsCache
+	currPageRequests []*RequestCacheEntry
+
+	// maps id of the page (in the no-dash format) to a cached Page
+	IdToPage map[string]*Page
+	// maps id of the page (in the no-dash format) to latest version
+	// of the page available on the server.
+	// if doesn't exist, we haven't yet queried the server for the
+	// version
+	IdToPageLatestVersion map[string]int64
+
+	didCheckVersionsOfCachedPages bool
 
 	RequestsFromCache      int
 	RequestsNotFromCache   int
 	RequestsWrittenToCache int
+
+	EventObserver func(interface{})
 }
 
 func recGetKey(r *siser.Record, key string, pErr *error) string {
@@ -105,27 +157,26 @@ func deserializeCacheEntry(d []byte) ([]*RequestCacheEntry, error) {
 	return res, nil
 }
 
+/*
 func (c *CachingClient) logf(format string, args ...interface{}) {
 	c.client.logf(format, args...)
 }
+*/
 
 func (c *CachingClient) vlogf(format string, args ...interface{}) {
 	c.client.vlogf(format, args...)
 }
 
-func (cc *CachingClient) readRequestsCacheFile(dir string) (*RequestsCache, error) {
-	c := &RequestsCache{
-		dir:             dir,
-		pageIDToEntries: map[string][]*RequestCacheEntry{},
-	}
+func (c *CachingClient) readRequestsCacheFile(dir string) error {
+	c.pageIDToEntries = map[string][]*RequestCacheEntry{}
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	timeStart := time.Now()
 	entries, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	nFiles := 0
 
@@ -146,16 +197,16 @@ func (cc *CachingClient) readRequestsCacheFile(dir string) (*RequestsCache, erro
 		path := filepath.Join(dir, name)
 		d, err := ioutil.ReadFile(path)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		entries, err := deserializeCacheEntry(d)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		c.pageIDToEntries[nid.NoDashID] = entries
 	}
-	cc.vlogf("readRequestsCache() loaded %d files in %s\n", nFiles, time.Since(timeStart))
-	return c, nil
+	c.vlogf("readRequestsCache() loaded %d files in %s\n", nFiles, time.Since(timeStart))
+	return nil
 }
 
 func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
@@ -170,21 +221,19 @@ func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
 		client:   client,
 	}
 	// TODO: ignore error?
-	cache, err := res.readRequestsCacheFile(cacheDir)
+	err := res.readRequestsCacheFile(cacheDir)
 	if err != nil {
 		return nil, err
 	}
-	res.cache = cache
-	client.httpPostOverride = res.doPostMaybeCached
 	return res, nil
 }
 
 func (c *CachingClient) tryReadFromCache(method string, uri string, body []byte) ([]byte, bool) {
-	if c.DisableCacheRead {
+	if c.NoReadCache {
 		return nil, false
 	}
-	pageID := c.cache.currPageID.NoDashID
-	pageRequests := c.cache.pageIDToEntries[pageID]
+	pageID := c.currPageID.NoDashID
+	pageRequests := c.pageIDToEntries[pageID]
 	for _, r := range pageRequests {
 		if r.Method != method {
 			continue
@@ -200,9 +249,40 @@ func (c *CachingClient) tryReadFromCache(method string, uri string, body []byte)
 	return nil, false
 }
 
+func (c *CachingClient) writeCacheForCurrPage() error {
+	var buf []byte
+
+	if len(c.currPageRequests) == 0 {
+		return nil
+	}
+	for _, rr := range c.currPageRequests {
+		d, err := serializeCacheEntry(rr)
+		if err != nil {
+			return err
+		}
+		buf = append(buf, d...)
+	}
+
+	// append to a file for this page
+	fileName := c.currPageID.NoDashID + ".txt"
+	path := filepath.Join(c.CacheDir, fileName)
+	err := ioutil.WriteFile(path, buf, 0644)
+	if err != nil {
+		// judgement call: delete file if failed to append
+		// as it might be corrupted
+		// could instead try appendAtomically()
+		os.Remove(path)
+		return err
+	}
+	c.RequestsWrittenToCache += len(c.currPageRequests)
+	c.currPageRequests = nil
+	return nil
+}
+
 func (c *CachingClient) cacheRequest(method string, uri string, body []byte, response []byte) {
+	//panicIf(c.cache.currPageID == nil)
 	// this is not in the context of any page so we don't cache it
-	if c.cache.currPageID == nil {
+	if c.currPageID == nil {
 		return
 	}
 	rr := &RequestCacheEntry{
@@ -211,23 +291,7 @@ func (c *CachingClient) cacheRequest(method string, uri string, body []byte, res
 		Body:     body,
 		Response: response,
 	}
-	d, err := serializeCacheEntry(rr)
-	if err != nil {
-		return
-	}
-
-	// append to a file for this page
-	fileName := c.cache.currPageID.NoDashID + ".txt"
-	path := filepath.Join(c.CacheDir, fileName)
-	err = appendToFile(path, d)
-	if err != nil {
-		// judgement call: delete file if failed to append
-		// as it might be corrupted
-		// could instead try appendAtomically()
-		os.Remove(path)
-		return
-	}
-	c.RequestsWrittenToCache++
+	c.currPageRequests = append(c.currPageRequests, rr)
 }
 
 func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, error) {
@@ -246,11 +310,174 @@ func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, erro
 	return d, nil
 }
 
+// GetClientCopy returns a copy of client
+func (c *CachingClient) GetClientCopy() *Client {
+	var clientCopy = *c.client
+	return &clientCopy
+}
+
+// TODO: maybe split into chunks
+func (d *CachingClient) getVersionsForPages(ids []string) ([]int64, error) {
+	// using new client because we don't want caching of http requests here
+	normalizeIDS(ids)
+	c := d.GetClientCopy()
+	c.httpPostOverride = nil // make sure not trying to cache
+	recVals, err := c.GetBlockRecords(ids)
+	if err != nil {
+		return nil, err
+	}
+	results := recVals.Results
+	if len(results) != len(ids) {
+		return nil, fmt.Errorf("getVersionsForPages(): got %d results, expected %d", len(results), len(ids))
+	}
+	var versions []int64
+	for i, rec := range results {
+		// res.Value might be nil when a page is not publicly visible or was deleted
+		b := rec.Block
+		if b == nil {
+			versions = append(versions, 0)
+			continue
+		}
+		id := b.ID
+		if !isIDEqual(ids[i], id) {
+			panic(fmt.Sprintf("got result in the wrong order, ids[i]: %s, id: %s", ids[0], id))
+		}
+		versions = append(versions, b.Version)
+	}
+	return versions, nil
+}
+
+func (d *CachingClient) emitEvent(ev interface{}) {
+	if d.EventObserver == nil {
+		return
+	}
+	d.EventObserver(ev)
+}
+
+func (d *CachingClient) emitError(format string, args ...interface{}) {
+	s := format
+	if len(args) > 0 {
+		s = fmt.Sprintf(format, args...)
+	}
+	ev := &EventError{
+		Error: s,
+	}
+	d.emitEvent(ev)
+}
+
+func (d *CachingClient) updateVersionsForPages(ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	sort.Strings(ids)
+	timeStart := time.Now()
+	versions, err := d.getVersionsForPages(ids)
+	if err != nil {
+		return fmt.Errorf("d.updateVersionsForPages() for %d pages failed with '%s'", len(ids), err)
+	}
+	if len(ids) != len(versions) {
+		return fmt.Errorf("d.updateVersionsForPages() asked for %d pages but got %d results", len(ids), len(versions))
+	}
+
+	ev := &EventGotVersions{
+		Count:    len(ids),
+		Duration: time.Since(timeStart),
+	}
+	d.emitEvent(ev)
+
+	for i := 0; i < len(ids); i++ {
+		id := ids[i]
+		ver := versions[i]
+		id = ToNoDashID(id)
+		d.IdToPageLatestVersion[id] = ver
+	}
+	return nil
+}
+
+// optimization for RedownloadNewerVersions case: check latest
+// versions of all cached pages
+func (d *CachingClient) checkVersionsOfCachedPages() error {
+	if !d.RedownloadNewerVersions {
+		return nil
+	}
+	if d.didCheckVersionsOfCachedPages {
+		return nil
+	}
+	ids := d.GetPageIDs()
+	err := d.updateVersionsForPages(ids)
+	if err != nil {
+		return err
+	}
+	d.didCheckVersionsOfCachedPages = true
+	return nil
+}
+
+// see if this page from in-mmemory cache could be a result based on
+// RedownloadNewerVersions
+func (d *CachingClient) canReturnCachedPage(p *Page) bool {
+	if p == nil {
+		return false
+	}
+	if !d.RedownloadNewerVersions {
+		return true
+	}
+	pageID := ToNoDashID(p.ID)
+	if _, ok := d.IdToPageLatestVersion[pageID]; !ok {
+		// we don't know what the latest version is, so download it
+		err := d.updateVersionsForPages([]string{pageID})
+		if err != nil {
+			return false
+		}
+	}
+	newestVer := d.IdToPageLatestVersion[pageID]
+	pageVer := p.Root().Version
+	return pageVer >= newestVer
+}
+
+func (d *CachingClient) useReadCache() bool {
+	return !d.NoReadCache
+}
+
+func (d *CachingClient) getPageFromCache(pageID string) *Page {
+	if !d.useReadCache() {
+		return nil
+	}
+	// TODO: fix me
+	/*
+		d.checkVersionsOfCachedPages()
+		p := d.IdToPage[pageID]
+		if d.canReturnCachedPage(p) {
+			return p
+		}
+		p, err := d.ReadPageFromCache(pageID)
+		if err != nil {
+			return nil
+		}
+		if d.canReturnCachedPage(p) {
+			return p
+		}
+	*/
+	return nil
+}
+
 func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
-	c.cache.currPageID = NewNotionID(pageID)
-	if c.cache.currPageID == nil {
+	c.currPageRequests = nil
+	c.currPageID = NewNotionID(pageID)
+	if c.currPageID == nil {
 		return nil, fmt.Errorf("'%s' is not a valid notion id", pageID)
 	}
+
+	// over-write httpPost only for the duration of client.DownloadPage()
+	// that way we don't permanently change the client
+	prevOverride := c.client.httpPostOverride
+	defer func() {
+		// write out cached requests
+		// TODO: what happens if only part of requests were from the cache?
+		c.writeCacheForCurrPage()
+		c.client.httpPostOverride = prevOverride
+		c.currPageID = nil
+	}()
+	c.client.httpPostOverride = c.doPostMaybeCached
 	return c.client.DownloadPage(pageID)
 }
 
@@ -298,7 +525,7 @@ func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownlo
 // GetPageIDs returns ids of pages in the cache
 func (c *CachingClient) GetPageIDs() []string {
 	var res []string
-	for id := range c.cache.pageIDToEntries {
+	for id := range c.pageIDToEntries {
 		res = append(res, id)
 	}
 	return res
