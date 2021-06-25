@@ -363,8 +363,8 @@ func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, erro
 	return d, nil
 }
 
-func (c *CachingClient) getClientCopy() *Client {
-	var clientCopy = *c.client
+func dupClient(c *Client) *Client {
+	var clientCopy = *c
 	return &clientCopy
 }
 
@@ -372,7 +372,7 @@ func (c *CachingClient) getVersionsForPages(ids []string) ([]int64, error) {
 	timeStart := time.Now()
 	normalizeIDS(ids)
 	// using new client to ensure no caching of http requests
-	client := c.getClientCopy()
+	client := dupClient(c.client)
 	client.httpPostOverride = nil
 	recVals, err := client.GetBlockRecords(ids)
 	if err != nil {
@@ -478,7 +478,7 @@ func (c *CachingClient) ReadPageFromCache(pageID string) (*Page, error) {
 	return c.client.DownloadPage(pageID)
 }
 
-func (c *CachingClient) getPageFromCache(pageID string) *Page {
+func (c *CachingClient) getPageFromCacheIfNotStale(pageID string) *Page {
 	if c.NoReadCache {
 		return nil
 	}
@@ -505,8 +505,6 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		return nil, fmt.Errorf("'%s' is not a valid notion id", pageID)
 	}
 
-	c.checkVersionsOfCachedPages()
-
 	timeStart := time.Now()
 	// over-write httpPost only for the duration of client.DownloadPage()
 	// that way we don't permanently change the client
@@ -519,10 +517,12 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		c.currPageID = nil
 	}()
 	c.client.httpPostOverride = c.doPostMaybeCached
-	page := c.getPageFromCache(pageID)
+	page := c.getPageFromCacheIfNotStale(pageID)
 	var err error
 	if page == nil {
-		page, err = c.client.DownloadPage(pageID)
+		client := dupClient(c.client)
+		client.httpPostOverride = nil
+		page, err = client.DownloadPage(pageID)
 		if err != nil {
 			return nil, err
 		}
