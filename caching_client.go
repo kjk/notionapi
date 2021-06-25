@@ -25,7 +25,7 @@ type RequestCacheEntry struct {
 	// request info
 	Method string
 	URL    string
-	Body   []byte
+	Body   string
 	// response
 	Response []byte
 }
@@ -84,7 +84,8 @@ type CachingClient struct {
 	// we cache requests on a per-page basis
 	currPageID *NotionID
 
-	currPageRequests []*RequestCacheEntry
+	currPageRequests      []*RequestCacheEntry
+	needSerializeRequests bool
 
 	// stores pages deserialized just from cache
 	IdToPage map[string]*Page
@@ -134,7 +135,7 @@ func serializeCacheEntry(rr *RequestCacheEntry) ([]byte, error) {
 	r.Reset()
 	r.Write("Method", rr.Method)
 	r.Write("URL", rr.URL)
-	r.Write("Body", string(rr.Body))
+	r.Write("Body", rr.Body)
 	response := PrettyPrintJS(rr.Response)
 	r.Write("Response", string(response))
 	r.Name = recCacheName
@@ -158,7 +159,7 @@ func deserializeCacheEntry(d []byte) ([]*RequestCacheEntry, error) {
 		rr := &RequestCacheEntry{}
 		rr.Method = recGetKey(r.Record, "Method", &err)
 		rr.URL = recGetKey(r.Record, "URL", &err)
-		rr.Body = recGetKeyBytes(r.Record, "Body", &err)
+		rr.Body = recGetKey(r.Record, "Body", &err)
 		rr.Response = recGetKeyBytes(r.Record, "Response", &err)
 		res = append(res, rr)
 	}
@@ -257,23 +258,20 @@ func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
 	return res, nil
 }
 
-func (c *CachingClient) tryReadFromCache(method string, uri string, body []byte) ([]byte, bool) {
+func (c *CachingClient) findCachedRequest(method string, uri string, body string) (*RequestCacheEntry, bool) {
 	if c.NoReadCache {
 		return nil, false
 	}
 	pageID := c.currPageID.NoDashID
 	pageRequests := c.pageIDToEntries[pageID]
 	for _, r := range pageRequests {
-		if r.Method != method {
+		if r.Method != method || r.URL != uri {
 			continue
 		}
-		if r.URL != uri {
+		if r.Body != body {
 			continue
 		}
-		if !bytes.Equal(r.Body, body) {
-			continue
-		}
-		return r.Response, true
+		return r, true
 	}
 	return nil, false
 }
@@ -281,7 +279,7 @@ func (c *CachingClient) tryReadFromCache(method string, uri string, body []byte)
 func (c *CachingClient) writeCacheForCurrPage() error {
 	var buf []byte
 
-	if len(c.currPageRequests) == 0 {
+	if !c.needSerializeRequests {
 		return nil
 	}
 	for _, rr := range c.currPageRequests {
@@ -307,14 +305,18 @@ func (c *CachingClient) writeCacheForCurrPage() error {
 	c.RequestsWrittenToCache += len(c.currPageRequests)
 	c.vlogf("CachingClient.writeCacheForCurrPage(): wrote %d cached requests to '%s'\n", len(c.currPageRequests), fileName)
 	c.currPageRequests = nil
+	c.needSerializeRequests = false
 	return nil
 }
 
 func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, error) {
-	d, ok := c.tryReadFromCache("POST", uri, body)
+	r, ok := c.findCachedRequest("POST", uri, string(body))
 	if ok {
+		// remember requests from cache as well so that when just a single request
+		// is different, we don't loose past requests on re-serialization
+		c.currPageRequests = append(c.currPageRequests, r)
 		c.RequestsFromCache++
-		return d, nil
+		return r.Response, nil
 	}
 	if c.NoNetwork {
 		return nil, fmt.Errorf("'%s' failed because network calls disabled", uri)
@@ -326,13 +328,14 @@ func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, erro
 	c.RequestsNotFromCache++
 
 	if c.currPageID != nil {
-		rr := &RequestCacheEntry{
+		r := &RequestCacheEntry{
 			Method:   "POST",
 			URL:      uri,
-			Body:     body,
+			Body:     string(body),
 			Response: d,
 		}
-		c.currPageRequests = append(c.currPageRequests, rr)
+		c.currPageRequests = append(c.currPageRequests, r)
+		c.needSerializeRequests = true
 	}
 
 	return d, nil
@@ -475,6 +478,7 @@ func (c *CachingClient) getPageFromCache(pageID string) *Page {
 
 func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	c.currPageRequests = nil
+	c.needSerializeRequests = false
 	c.currPageID = NewNotionID(pageID)
 	if c.currPageID == nil {
 		return nil, fmt.Errorf("'%s' is not a valid notion id", pageID)
