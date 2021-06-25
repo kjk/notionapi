@@ -598,6 +598,7 @@ func (c *CachingClient) GetPageIDs() []string {
 	for id := range c.pageIDToEntries {
 		res = append(res, id)
 	}
+	sort.Strings(res)
 	return res
 }
 
