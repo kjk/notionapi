@@ -26,6 +26,8 @@ type RequestCacheEntry struct {
 	Method string
 	URL    string
 	Body   string
+
+	bodyPP string // cached pretty printed version
 	// response
 	Response []byte
 }
@@ -270,14 +272,28 @@ func (c *CachingClient) findCachedRequest(method string, uri string, body string
 	}
 	pageID := c.currPageID.NoDashID
 	pageRequests := c.pageIDToEntries[pageID]
+	bodyPP := ""
 	for _, r := range pageRequests {
 		if r.Method != method || r.URL != uri {
 			continue
 		}
-		if r.Body != body {
-			continue
+		if r.Body == body {
+			return r, true
 		}
-		return r, true
+		// sometimes (e.g. query param to queryCollection) in request body we use raw values
+		// that came from the response. the request might not match when response came
+		// from cache (pretty-printed) vs. from network (not pretty-printed)
+		// for that reason we also try to match cannonical (pretty-printed) version
+		// of request body (should be rare)
+		if bodyPP == "" {
+			bodyPP = string(PrettyPrintJS([]byte(body)))
+		}
+		if r.bodyPP == "" {
+			r.bodyPP = string(PrettyPrintJS([]byte(r.bodyPP)))
+		}
+		if r.bodyPP == bodyPP {
+			return r, true
+		}
 	}
 	return nil, false
 }
