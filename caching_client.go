@@ -82,7 +82,8 @@ type CachingClient struct {
 	NoPrettyPrintResponse bool
 
 	// if true, will not make network requests
-	NoNetwork bool
+	NoNetwork    bool
+	forceNetwork bool
 
 	pageIDToEntries map[string][]*RequestCacheEntry
 	// we cache requests on a per-page basis
@@ -332,16 +333,18 @@ func (c *CachingClient) writeCacheForCurrPage() error {
 }
 
 func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, error) {
-	r, ok := c.findCachedRequest("POST", uri, string(body))
-	if ok {
-		// remember requests from cache as well so that when just a single request
-		// is different, we don't loose past requests on re-serialization
-		c.currPageRequests = append(c.currPageRequests, r)
-		c.RequestsFromCache++
-		return r.Response, nil
-	}
-	if c.NoNetwork {
-		return nil, fmt.Errorf("'%s' failed because network calls disabled", uri)
+	if !c.forceNetwork {
+		r, ok := c.findCachedRequest("POST", uri, string(body))
+		if ok {
+			// remember requests from cache as well so that when just a single request
+			// is different, we don't loose past requests on re-serialization
+			c.currPageRequests = append(c.currPageRequests, r)
+			c.RequestsFromCache++
+			return r.Response, nil
+		}
+		if c.NoNetwork {
+			return nil, fmt.Errorf("'%s' failed because network calls disabled", uri)
+		}
 	}
 	d, err := c.client.doPostInternal(uri, body)
 	if err != nil {
@@ -520,9 +523,11 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	page := c.getPageFromCacheIfNotStale(pageID)
 	var err error
 	if page == nil {
-		client := dupClient(c.client)
-		client.httpPostOverride = nil
-		page, err = client.DownloadPage(pageID)
+		// force going to the network because we now we didn't get
+		// the page from cache
+		c.forceNetwork = true
+		page, err = c.client.DownloadPage(pageID)
+		c.forceNetwork = false
 		if err != nil {
 			return nil, err
 		}
