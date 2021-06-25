@@ -76,8 +76,8 @@ type CachingClient struct {
 	// NoReadCache disables reading from cache i.e. downloaded pages
 	// will be written to cache but not read from it
 	NoReadCache bool
-	// if true, will pretty-print json responses saved in the cache
-	PrettyPrintResponse bool
+	// disable pretty-printing of json responses saved in the cache
+	NoPrettyPrintResponse bool
 
 	// if true, will not make network requests
 	NoNetwork bool
@@ -289,7 +289,7 @@ func (c *CachingClient) writeCacheForCurrPage() error {
 		return nil
 	}
 	for _, rr := range c.currPageRequests {
-		d, err := serializeCacheEntry(rr, c.PrettyPrintResponse)
+		d, err := serializeCacheEntry(rr, !c.NoPrettyPrintResponse)
 		if err != nil {
 			return err
 		}
