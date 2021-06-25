@@ -404,7 +404,6 @@ func (c *CachingClient) updateVersionsForPages(ids []string) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	sort.Strings(ids)
 	timeStart := time.Now()
 	versions, err := c.getVersionsForPages(ids)
 	if err != nil {
