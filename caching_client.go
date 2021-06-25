@@ -76,6 +76,8 @@ type CachingClient struct {
 	// NoReadCache disables reading from cache i.e. downloaded pages
 	// will be written to cache but not read from it
 	NoReadCache bool
+	// if true, will pretty-print json responses saved in the cache
+	PrettyPrintResponse bool
 
 	// if true, will not make network requests
 	NoNetwork bool
@@ -127,7 +129,7 @@ func recGetKeyBytes(r *siser.Record, key string, pErr *error) []byte {
 	return []byte(recGetKey(r, key, pErr))
 }
 
-func serializeCacheEntry(rr *RequestCacheEntry) ([]byte, error) {
+func serializeCacheEntry(rr *RequestCacheEntry, prettyPrint bool) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	w := siser.NewWriter(buf)
 	w.NoTimestamp = true
@@ -136,8 +138,12 @@ func serializeCacheEntry(rr *RequestCacheEntry) ([]byte, error) {
 	r.Write("Method", rr.Method)
 	r.Write("URL", rr.URL)
 	r.Write("Body", rr.Body)
-	response := PrettyPrintJS(rr.Response)
-	r.Write("Response", string(response))
+	if prettyPrint {
+		response := PrettyPrintJS(rr.Response)
+		r.Write("Response", string(response))
+	} else {
+		r.Write("Response", string(rr.Response))
+	}
 	r.Name = recCacheName
 	_, err := w.WriteRecord(&r)
 	if err != nil {
@@ -283,7 +289,7 @@ func (c *CachingClient) writeCacheForCurrPage() error {
 		return nil
 	}
 	for _, rr := range c.currPageRequests {
-		d, err := serializeCacheEntry(rr)
+		d, err := serializeCacheEntry(rr, c.PrettyPrintResponse)
 		if err != nil {
 			return err
 		}
