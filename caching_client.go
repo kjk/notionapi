@@ -74,7 +74,7 @@ type EventGotVersions struct {
 // from cache). We do it more efficiently than just blindly re-downloading.
 type CachingClient struct {
 	CacheDir string
-	client   *Client
+	Client   *Client
 	// NoReadCache disables reading from cache i.e. downloaded pages
 	// will be written to cache but not read from it
 	NoReadCache bool
@@ -202,7 +202,7 @@ func (c *CachingClient) emitError(format string, args ...interface{}) {
 }
 
 func (c *CachingClient) vlogf(format string, args ...interface{}) {
-	c.client.vlogf(format, args...)
+	c.Client.vlogf(format, args...)
 }
 
 func (c *CachingClient) readRequestsCacheFile(dir string) error {
@@ -256,7 +256,7 @@ func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
 	}
 	res := &CachingClient{
 		CacheDir: cacheDir,
-		client:   client,
+		Client:   client,
 		IdToPage: map[string]*Page{},
 	}
 	// TODO: ignore error?
@@ -346,7 +346,7 @@ func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, erro
 			return nil, fmt.Errorf("'%s' failed because network calls disabled", uri)
 		}
 	}
-	d, err := c.client.doPostInternal(uri, body)
+	d, err := c.Client.doPostInternal(uri, body)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +375,7 @@ func (c *CachingClient) getVersionsForPages(ids []string) ([]int64, error) {
 	timeStart := time.Now()
 	normalizeIDS(ids)
 	// using new client to ensure no caching of http requests
-	client := dupClient(c.client)
+	client := dupClient(c.Client)
 	client.httpPostOverride = nil
 	recVals, err := client.GetBlockRecords(ids)
 	if err != nil {
@@ -478,7 +478,7 @@ func (c *CachingClient) ReadPageFromCache(pageID string) (*Page, error) {
 		c.NoNetwork = prevNoNetwork
 	}()
 	c.NoNetwork = true
-	return c.client.DownloadPage(pageID)
+	return c.Client.DownloadPage(pageID)
 }
 
 func (c *CachingClient) getPageFromCacheIfNotStale(pageID string) *Page {
@@ -511,22 +511,22 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	timeStart := time.Now()
 	// over-write httpPost only for the duration of client.DownloadPage()
 	// that way we don't permanently change the client
-	prevOverride := c.client.httpPostOverride
+	prevOverride := c.Client.httpPostOverride
 	defer func() {
 		// write out cached requests
 		// TODO: what happens if only part of requests were from the cache?
 		c.writeCacheForCurrPage()
-		c.client.httpPostOverride = prevOverride
+		c.Client.httpPostOverride = prevOverride
 		c.currPageID = nil
 	}()
-	c.client.httpPostOverride = c.doPostMaybeCached
+	c.Client.httpPostOverride = c.doPostMaybeCached
 	page := c.getPageFromCacheIfNotStale(pageID)
 	var err error
 	if page == nil {
 		// force going to the network because we now we didn't get
 		// the page from cache
 		c.forceNetwork = true
-		page, err = c.client.DownloadPage(pageID)
+		page, err = c.Client.DownloadPage(pageID)
 		c.forceNetwork = false
 		if err != nil {
 			return nil, err
@@ -662,7 +662,7 @@ func (c *CachingClient) DownloadFile(uri string, blockID string, parentTable str
 	}
 
 	timeStart := time.Now()
-	res, err := c.client.DownloadFile(uri, blockID, parentTable)
+	res, err := c.Client.DownloadFile(uri, blockID, parentTable)
 	if err != nil {
 		c.emitError("Downloader.DownloadFile(): failed to download %s, error: %s", uri, err)
 		return nil, err
