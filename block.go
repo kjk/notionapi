@@ -546,7 +546,7 @@ func parseProperties(block *Block) error {
 	}
 
 	if block.Source != "" && block.IsImage() {
-		block.ImageURL = maybeProxyImageURL(block.Source, block.ID, block.ParentTable)
+		block.ImageURL = maybeProxyImageURL(block.Source, block)
 	}
 
 	// for BlockCode
@@ -608,7 +608,7 @@ func (b *Block) FormatPage() *FormatPage {
 
 func (b *Block) FormatImage() *FormatImage {
 	// TODO: no longer does
-	// format.ImageURL = maybeProxyImageURL(format.DisplaySource)
+	// format.ImageURL = maybeProxyImageURL(format.DisplaySource, b)
 	var format FormatImage
 	if ok := b.unmarshalFormat(BlockImage, &format); !ok {
 		return nil

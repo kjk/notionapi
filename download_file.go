@@ -30,10 +30,13 @@ type DownloadFileResponse struct {
 // from: /images/page-cover/met_vincent_van_gogh_cradle.jpg
 // =>
 // https://www.notion.so/image/https%3A%2F%2Fwww.notion.so%2Fimages%2Fpage-cover%2Fmet_vincent_van_gogh_cradle.jpg?width=3290
-func maybeProxyImageURL(uri string, blockID string, parentTable string) string {
+func maybeProxyImageURL(uri string, block *Block) string {
+
 	if !strings.Contains(uri, s3FileURLPrefix) {
 		return uri
 	}
+	blockID := block.ID
+	parentTable := block.ParentTable
 	uri = notionImageProxy + url.PathEscape(uri) + "?table=" + parentTable + "&id=" + blockID
 	return uri
 }
@@ -74,10 +77,13 @@ func (c *Client) DownloadURL(uri string) (*DownloadFileResponse, error) {
 // DownloadFile downloads a file stored in Notion referenced
 // by a block with a given id and of a given block with a given
 // parent table (data present in Block)
-func (c *Client) DownloadFile(uri string, blockID string, parentTable string) (*DownloadFileResponse, error) {
+func (c *Client) DownloadFile(uri string, block *Block) (*DownloadFileResponse, error) {
 	//fmt.Printf("DownloadFile: '%s'\n", uri)
 	// first try downloading proxied url
-	uri2 := maybeProxyImageURL(uri, blockID, parentTable)
+	uri2 := uri
+	if block != nil {
+		uri2 = maybeProxyImageURL(uri, block)
+	}
 	res, err := c.DownloadURL(uri2)
 	if err != nil && uri2 != uri {
 		// otherwise just try your luck with original URL

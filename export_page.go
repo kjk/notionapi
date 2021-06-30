@@ -123,7 +123,7 @@ func (c *Client) ExportPages(id string, exportType string, recursive bool) ([]by
 		return nil, err
 	}
 
-	dlRsp, err := c.DownloadFile(exportURL, id, "table")
+	dlRsp, err := c.DownloadFile(exportURL, nil)
 	if err != nil {
 		return nil, err
 	}

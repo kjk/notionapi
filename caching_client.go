@@ -629,7 +629,7 @@ func GetCacheFileNameFromURL(uri string) string {
 
 // DownloadFile downloads a file refered by block with a given blockID and a parent table
 // we cache the file
-func (c *CachingClient) DownloadFile(uri string, blockID string, parentTable string) (*DownloadFileResponse, error) {
+func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileResponse, error) {
 	//fmt.Printf("Downloader.DownloadFile('%s'\n", uri)
 	cacheFileName := GetCacheFileNameFromURL(uri)
 	path := filepath.Join(c.CacheDir, cacheFileName)
@@ -662,7 +662,7 @@ func (c *CachingClient) DownloadFile(uri string, blockID string, parentTable str
 	}
 
 	timeStart := time.Now()
-	res, err := c.Client.DownloadFile(uri, blockID, parentTable)
+	res, err := c.Client.DownloadFile(uri, block)
 	if err != nil {
 		c.emitError("Downloader.DownloadFile(): failed to download %s, error: %s", uri, err)
 		return nil, err

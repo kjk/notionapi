@@ -24,7 +24,7 @@ func testDownloadFile() {
 		AuthToken: getToken(),
 	}
 	uri := "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/60550647-d8af-4321-b268-cbb1bab09210/SumatraPDF-dll_iITXbPm55F.png"
-	rsp, err := client.DownloadFile(uri, "5cc81055-1b81-4f31-9df3-390152d272cf", "table")
+	rsp, err := client.DownloadFile(uri, "5cc81055-1b81-4f31-9df3-390152d272cf", nil)
 	if err != nil {
 		fmt.Printf("c.DownloadFile() failed with '%s'\n", err)
 		return
@@ -52,7 +52,7 @@ func testDownloadImage() {
 		fmt.Printf("block.Source: %s\n", block.Source)
 		exp := "https://i.imgur.com/NT9NcB6.png"
 		assert(block.Source == exp, "expected %s, got %s", exp, block.Source)
-		rsp, err := client.DownloadFile(block.Source, block.ID, block.ParentTable)
+		rsp, err := client.DownloadFile(block.Source, block)
 		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.Source)
 		fmt.Printf("Downloaded image %s of size %d\n", block.Source, len(rsp.Data))
 		ct := rsp.Header.Get("Content-Type")
@@ -68,7 +68,7 @@ func testDownloadImage() {
 		fmt.Printf("block.Source: %s\n", block.Source)
 		exp := "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e5661303-82e1-43e4-be8e-662d1598cd53/untitled"
 		assert(block.Source == exp, "expected '%s', got '%s'", exp, block.Source)
-		rsp, err := client.DownloadFile(block.Source, block.ID, block.ParentTable)
+		rsp, err := client.DownloadFile(block.Source, block)
 		assert(err == nil, "client.DownloadFile(%s) failed with %s", err, block.Source)
 		fmt.Printf("Downloaded image %s of size %d\n", block.Source, len(rsp.Data))
 		ct := rsp.Header.Get("Content-Type")
