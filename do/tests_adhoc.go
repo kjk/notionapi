@@ -23,8 +23,13 @@ func testDownloadFile() {
 		DebugLog:  flgVerbose,
 		AuthToken: getToken(),
 	}
+	// just enough data for DownloadFile
+	b := &notionapi.Block{
+		ID:          "5cc81055-1b81-4f31-9df3-390152d272cf",
+		ParentTable: "table",
+	}
 	uri := "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/60550647-d8af-4321-b268-cbb1bab09210/SumatraPDF-dll_iITXbPm55F.png"
-	rsp, err := client.DownloadFile(uri, "5cc81055-1b81-4f31-9df3-390152d272cf", nil)
+	rsp, err := client.DownloadFile(uri, b)
 	if err != nil {
 		fmt.Printf("c.DownloadFile() failed with '%s'\n", err)
 		return
