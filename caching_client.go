@@ -523,6 +523,9 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	page := c.getPageFromCacheIfNotStale(pageID)
 	var err error
 	if page == nil {
+		// clear because those are from reading from cache and we don't
+		// want them re-serialized (in addition to requests from network)
+		c.currPageRequests = nil
 		// force going to the network because we now we didn't get
 		// the page from cache
 		c.forceNetwork = true
