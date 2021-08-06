@@ -329,11 +329,15 @@ func (c *Converter) indentStr(n int) string {
 }
 
 func (c *Converter) Printf(format string, args ...interface{}) {
+	c.Buf.WriteString(c.indentStr(c.indent))
+	c.NoIndentPrintf(format, args...)
+}
+
+func (c *Converter) NoIndentPrintf(format string, args ...interface{}) {
 	s := format
 	if len(args) > 0 {
 		s = fmt.Sprintf(format, args...)
 	}
-	c.Buf.WriteString(c.indentStr(c.indent))
 	c.Buf.WriteString(s)
 }
 
@@ -474,7 +478,7 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 			text = ""
 		}
 	}
-	c.Printf(start + EscapeHTML(text) + end)
+	c.NoIndentPrintf(start + EscapeHTML(text) + end)
 }
 
 // RenderInlines renders inline blocks
@@ -499,9 +503,6 @@ func (c *Converter) GetInlineContent(blocks []*notionapi.TextSpan) string {
 
 // RenderCode renders BlockCode
 func (c *Converter) RenderCode(block *notionapi.Block) {
-	c.indent++
-	defer c.decIndent()
-
 	cls := "code"
 	if !c.NotionCompat {
 		lang := strings.ToLower(strings.TrimSpace(block.CodeLanguage))
@@ -511,10 +512,8 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	}
 	c.Printf(`<pre id="%s" class="%s">`, block.ID, cls)
 	{
-		c.indent++
 		code := EscapeHTML(block.Code)
-		c.Printf(`<code>%s</code>`, code)
-		c.decIndent()
+		c.NoIndentPrintf(`<code>%s</code>`, code)
 	}
 	c.Printf("</pre>")
 }
@@ -857,12 +856,16 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 		c.Printf(`<ol id="%s" class="%s" start="%d">`, block.ID, cls, c.ListNo)
 	}
 	{
+		c.indent++
 		c.Printf(`<li>`)
 		{
+			c.indent++
 			c.RenderInlines(block.InlineContent)
 			c.RenderChildren(block)
+			c.indent--
 		}
 		c.Printf(`</li>`)
+		c.indent--
 	}
 	isNextSame := c.IsNextBlockOfType(notionapi.BlockNumberedList)
 	if c.NotionCompat || !isNextSame {
@@ -872,6 +875,9 @@ func (c *Converter) RenderNumberedList(block *notionapi.Block) {
 
 // RenderBulletedList renders BlockBulletedList
 func (c *Converter) RenderBulletedList(block *notionapi.Block) {
+	c.indent++
+	defer c.decIndent()
+
 	isPrevSame := c.IsPrevBlockOfType(notionapi.BlockBulletedList)
 	cls := GetBlockColorClass(block) + " bulleted-list"
 	cls = CleanAttributeValue(cls)
@@ -880,12 +886,14 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 		c.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
 	}
 	{
+		c.indent++
 		c.Printf(`<li>`)
 		{
 			c.RenderInlines(block.InlineContent)
 			c.RenderChildren(block)
 		}
 		c.Printf(`</li>`)
+		c.indent--
 	}
 	isNextSame := c.IsNextBlockOfType(notionapi.BlockBulletedList)
 	if c.NotionCompat || !isNextSame {
@@ -895,6 +903,9 @@ func (c *Converter) RenderBulletedList(block *notionapi.Block) {
 
 // RenderHeaderLevel renders BlockHeader, SubHeader and SubSubHeader
 func (c *Converter) RenderHeaderLevel(block *notionapi.Block, level int) {
+	c.indent++
+	defer c.decIndent()
+
 	cls := GetBlockColorClass(block)
 	c.Printf(`<h%d id="%s" class="%s">`, level, block.ID, cls)
 	c.RenderInlines(block.InlineContent)
@@ -1109,6 +1120,8 @@ func (c *Converter) RenderCaption(block *notionapi.Block) {
 	if caption == nil {
 		return
 	}
+	c.indent++
+	defer c.decIndent()
 	c.Printf(`<figcaption>`)
 	c.RenderInlines(caption)
 	c.Printf(`</figcaption>`)
@@ -1116,20 +1129,26 @@ func (c *Converter) RenderCaption(block *notionapi.Block) {
 
 // RenderBookmark renders BlockBookmark
 func (c *Converter) RenderBookmark(block *notionapi.Block) {
+	c.indent++
+	defer c.decIndent()
 	c.Printf(`<figure id="%s">`, block.ID)
 	{
+		c.indent++
 		cls := GetBlockColorClass(block) + " bookmark source"
 		cls = CleanAttributeValue(cls)
 		c.Printf(`<div class="%s">`, cls)
 		{
+			c.indent++
 			uri := block.Link
 			text := block.Title
 			c.A(uri, text, "")
 			c.Printf(`<br/>`)
 			c.A(uri, uri, "bookmark-href")
+			c.indent--
 		}
 		c.Printf(`</div>`)
 		c.RenderCaption(block)
+		c.indent--
 	}
 	c.Printf(`</figure>`)
 }
