@@ -82,6 +82,7 @@ const (
 	BlockCopyIndicator    = "copy_indicator"
 	BlockLinkToCollection = "link_to_collection"
 	BlockMiro             = "miro"
+	BlockAlias            = "alias"
 )
 
 // FormatBookmark describes format for BlockBookmark
@@ -159,6 +160,17 @@ type FormatEmbed struct {
 	BlockPreserveScale bool    `json:"block_preserve_scale"`
 	BlockWidth         float64 `json:"block_width"`
 	DisplaySource      string  `json:"display_source"`
+}
+
+type AliasPointer struct {
+	ID      string `json:"id"`
+	SpaceID string `json:"spaceId"`
+	Table   string `json:"table"`
+}
+
+// FormatAlias describes format for BlockAlias
+type FormatAlias struct {
+	Alias *AliasPointer `json:"alias_pointer"`
 }
 
 type FormatFigma struct {
@@ -635,6 +647,14 @@ func (b *Block) FormatText() *FormatText {
 func (b *Block) FormatVideo() *FormatVideo {
 	var format FormatVideo
 	if ok := b.unmarshalFormat(BlockVideo, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+func (b *Block) FormatAlias() *FormatAlias {
+	var format FormatAlias
+	if ok := b.unmarshalFormat(BlockAlias, &format); !ok {
 		return nil
 	}
 	return &format

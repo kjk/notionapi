@@ -285,6 +285,7 @@ type Converter struct {
 
 	didImportKatexCSS bool
 	bufs              []*bytes.Buffer
+	indent            int
 }
 
 // NewConverter returns customizable HTML renderer
@@ -317,16 +318,34 @@ func (c *Converter) PopBuffer() *bytes.Buffer {
 	return res
 }
 
+const spaces = "\n                  "
+
+func (c *Converter) indentStr(n int) string {
+	n = n*2 + 1
+	if n > len(spaces) {
+		n = len(spaces)
+	}
+	return spaces[:n]
+}
+
 func (c *Converter) Printf(format string, args ...interface{}) {
 	s := format
 	if len(args) > 0 {
 		s = fmt.Sprintf(format, args...)
 	}
+	c.Buf.WriteString(c.indentStr(c.indent))
 	c.Buf.WriteString(s)
+}
+
+func (c *Converter) decIndent() {
+	c.indent--
 }
 
 // A writes <a></a> element to output
 func (c *Converter) A(uri, text, cls string) {
+	c.indent++
+	defer c.decIndent()
+
 	// TODO: Notion seems to encode url but it's probably not correct
 	// (it encodes "&" as "&amp;")
 	// at best should only encoede as url
@@ -480,6 +499,9 @@ func (c *Converter) GetInlineContent(blocks []*notionapi.TextSpan) string {
 
 // RenderCode renders BlockCode
 func (c *Converter) RenderCode(block *notionapi.Block) {
+	c.indent++
+	defer c.decIndent()
+
 	cls := "code"
 	if !c.NotionCompat {
 		lang := strings.ToLower(strings.TrimSpace(block.CodeLanguage))
@@ -489,8 +511,10 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	}
 	c.Printf(`<pre id="%s" class="%s">`, block.ID, cls)
 	{
+		c.indent++
 		code := EscapeHTML(block.Code)
 		c.Printf(`<code>%s</code>`, code)
+		c.decIndent()
 	}
 	c.Printf("</pre>")
 }
@@ -518,6 +542,9 @@ func isURL(uri string) bool {
 func (c *Converter) renderPageHeader(block *notionapi.Block) {
 	c.Printf(`<header>`)
 	{
+		c.indent++
+		defer c.decIndent()
+
 		formatPage := block.FormatPage()
 		// formatPage == nil happened in bf5d1c1f793a443ca4085cc99186d32f
 		pageCover, _ := block.PropAsString("format.page_cover")
@@ -536,18 +563,23 @@ func (c *Converter) renderPageHeader(block *notionapi.Block) {
 				clsCover = "page-header-icon-with-cover"
 			}
 			c.Printf(`<div class="page-header-icon %s">`, clsCover)
+			c.indent++
+
 			if isURL(pageIcon) {
 				fileName := getDownloadedFileName(pageIcon, block)
 				c.Printf(`<img class="icon" src="%s"/>`, fileName)
 			} else {
 				c.Printf(`<span class="icon">%s</span>`, pageIcon)
 			}
+			c.decIndent()
 			c.Printf(`</div>`)
 		}
 
 		c.Printf(`<h1 class="page-title">`)
 		{
+			c.indent++
 			c.RenderInlines(block.InlineContent)
+			c.decIndent()
 		}
 		c.Printf(`</h1>`)
 	}
@@ -560,8 +592,11 @@ func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 	col := c.Page.CollectionByID(colID)
 	icon := col.Icon
 	name := col.GetName()
+	c.indent++
+	defer c.decIndent()
 	c.Printf(`<figure id="%s" class="link-to-page">`, block.ID)
 	{
+		c.indent++
 		filePath := filePathForCollection(c.Page, col)
 		c.Printf(`<a href="%s">`, filePath)
 		{
@@ -570,6 +605,7 @@ func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 		}
 		// TODO: should name be inlines?
 		c.Printf(`%s</a>`, name)
+		c.decIndent()
 	}
 	c.Printf(`</figure>`)
 }
@@ -578,8 +614,11 @@ func (c *Converter) renderLinkToPageNotion(block *notionapi.Block) {
 	uri := filePathForPage(block)
 	cls := GetBlockColorClass(block) + " link-to-page"
 	cls = CleanAttributeValue(cls)
+	c.indent++
+	defer c.decIndent()
 	c.Printf(`<figure id="%s" class="%s">`, block.ID, cls)
 	{
+		c.indent++
 		c.Printf(`<a href="%s">`, uri)
 		pageIcon, ok := block.PropAsString("format.page_icon")
 		if ok {
@@ -593,6 +632,7 @@ func (c *Converter) renderLinkToPageNotion(block *notionapi.Block) {
 		// TODO: possibly r.RenderInlines(block.InlineContent)
 		c.Printf(EscapeHTML(block.Title))
 		c.Printf(`</a>`)
+		defer c.decIndent()
 	}
 	c.Printf(`</figure>`)
 }
@@ -606,9 +646,11 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 	uri := filePathForPage(block)
 	cls := GetBlockColorClass(block) + " link-to-page"
 	cls = CleanAttributeValue(cls)
+	c.indent++
+	defer c.decIndent()
 	c.Printf(`<div id="%s" class="%s">`, block.ID, cls)
 	{
-
+		c.indent++
 		c.Printf(`<a href="%s">`, uri)
 		pageIcon, ok := block.PropAsString("format.page_icon")
 		if ok {
@@ -622,6 +664,7 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 		// TODO: possibly r.RenderInlines(block.InlineContent)
 		c.Printf(EscapeHTML(block.Title))
 		c.Printf(`</a>`)
+		defer c.decIndent()
 	}
 	c.Printf(`</div>`)
 }
@@ -630,8 +673,10 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 	if c.FullHTML {
 		c.Printf(`<html>`)
 		{
+			c.indent++
 			c.Printf(`<head>`)
 			{
+				c.indent++
 				c.Printf(`<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>`)
 				c.Printf(`<title>%s</title>`, EscapeHTML(block.Title))
 
@@ -640,10 +685,13 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 					styleValue = CSS
 				}
 				c.Printf("<style>%s\t\n</style>", styleValue)
+				c.decIndent()
 			}
 			c.Printf(`</head>`)
+			c.decIndent()
 		}
 		c.Printf(`<body>`)
+		c.indent++
 	}
 
 	clsFont := "sans"
@@ -654,25 +702,35 @@ func (c *Converter) renderRootPage(block *notionapi.Block) {
 		}
 	}
 	c.Printf(`<article id="%s" class="page %s">`, block.ID, clsFont)
+	c.indent++
 	c.renderPageHeader(block)
 	{
+		c.indent++
 		c.Printf(`<div class="page-body">`)
 		c.RenderChildren(block)
 		c.Printf(`</div>`)
+		c.decIndent()
 	}
+	c.decIndent()
 	c.Printf(`</article>`)
 
 	if c.FullHTML {
-		c.Printf(`</body></html>`)
+		c.decIndent()
+		c.Printf(`</body>`)
+		c.Printf(`</html>`)
 	}
 }
 
 func (c *Converter) renderSubPage(block *notionapi.Block) {
+	c.indent++
 	c.renderLinkToPage(block)
+	c.decIndent()
 }
 
 // RenderPage renders BlockPage
 func (c *Converter) RenderPage(block *notionapi.Block) {
+	c.indent++
+	defer c.decIndent()
 	if c.Page.IsRoot(block) {
 		c.renderRootPage(block)
 		return
@@ -697,6 +755,9 @@ func GetBlockColorClass(block *notionapi.Block) string {
 
 // RenderText renders BlockText
 func (c *Converter) RenderText(block *notionapi.Block) {
+	c.indent++
+	defer c.decIndent()
+
 	cls := GetBlockColorClass(block)
 	if c.NotionCompat {
 		c.Printf(`<p id="%s" class="%s">`, block.ID, cls)
@@ -741,6 +802,9 @@ func equationToHTML(katexPath string, equation string) (string, error) {
 
 // RenderEquation renders BlockEquation
 func (c *Converter) RenderEquation(block *notionapi.Block) {
+	c.indent++
+	defer c.decIndent()
+
 	if !c.UseKatexToRenderEquation {
 		c.Printf(`<figure id="%s" class="equation">`, block.ID)
 		c.RenderInlines(block.InlineContent)
@@ -775,6 +839,9 @@ func (c *Converter) RenderEquation(block *notionapi.Block) {
 
 // RenderNumberedList renders BlockNumberedList
 func (c *Converter) RenderNumberedList(block *notionapi.Block) {
+	c.indent++
+	defer c.decIndent()
+
 	isPrevSame := c.IsPrevBlockOfType(notionapi.BlockNumberedList)
 	if isPrevSame {
 		c.ListNo++
@@ -1301,6 +1368,14 @@ func (c *Converter) findParentPageID(page *notionapi.Page, id string) string {
 	}
 }
 
+func (c *Converter) RenderAlias(block *notionapi.Block) {
+	c.Printf(`<div class="alias">`)
+	//TODO: implement me
+	//alias := block.FormatAlias()
+	//c.Printf(`<span>id: %s</span>`, alias.Alias.ID)
+	c.Printf(`</div>`)
+}
+
 // RenderBreadcrumb renders BlockBreadcrumb
 func (c *Converter) RenderBreadcrumb(block *notionapi.Block) {
 	if c.NotionCompat {
@@ -1670,6 +1745,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderTableOfContents
 	case notionapi.BlockBreadcrumb:
 		return c.RenderBreadcrumb
+	case notionapi.BlockAlias:
+		return c.RenderAlias
 	case notionapi.BlockFactory:
 		return nil
 	default:
