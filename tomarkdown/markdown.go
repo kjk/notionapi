@@ -721,6 +721,10 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		// TODO: NYI
 	case notionapi.BlockBreadcrumb:
 		// TODO: NYI
+	case notionapi.BlockAlias:
+		// TODO: NYI
+	case notionapi.BlockTransclusionReference:
+		// TODO: NYI
 	case notionapi.BlockFactory:
 		return nil
 	default:

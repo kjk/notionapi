@@ -3,11 +3,9 @@ package main
 import (
 	"bytes"
 
-	"github.com/kjk/caching_http_client"
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml"
 	"github.com/kjk/notionapi/tomarkdown"
-	"github.com/kjk/u"
 )
 
 func pageToHTML(page *notionapi.Page) []byte {
@@ -22,6 +20,7 @@ func pageToMarkdown(page *notionapi.Page) []byte {
 	return d
 }
 
+// TODO: fix up for the new CachingClient
 func testCachingDownloads(pageID string) {
 	// Test that caching downloader works:
 	// - download page using empty cache
@@ -30,13 +29,10 @@ func testCachingDownloads(pageID string) {
 	// - format as html and md
 	// - compare they are identical
 	logf("testCachingDownloads: '%s'\n", pageID)
-	cache := caching_http_client.NewCache()
-	cachingClient := caching_http_client.New(cache)
 	client := &notionapi.Client{
 		DebugLog: flgVerbose,
 		//Logger:     os.Stdout,
-		AuthToken:  getToken(),
-		HTTPClient: cachingClient,
+		AuthToken: getToken(),
 	}
 
 	pageID = notionapi.ToNoDashID(pageID)
@@ -45,16 +41,12 @@ func testCachingDownloads(pageID string) {
 	html := pageToHTML(page1)
 	md := pageToMarkdown(page1)
 
-	nRequests := cache.RequestsFromCache
-	cache.RequestsFromCache = 0
-	cache.RequestsNotFromCache = 0
-
 	// this should satisfy downloads using a cache
 	page2, err := client.DownloadPage(pageID)
 	must(err)
 
 	// verify we made the same amount of requests
-	u.PanicIf(nRequests != cache.RequestsNotFromCache, "nRequests: %d, cache.RequestsNotFromCache: %d", nRequests, cache.RequestsNotFromCache)
+	//u.PanicIf(nRequests != cache.RequestsNotFromCache, "nRequests: %d, cache.RequestsNotFromCache: %d", nRequests, cache.RequestsNotFromCache)
 
 	html2 := pageToHTML(page2)
 	md_2 := pageToMarkdown(page2)

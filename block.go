@@ -78,11 +78,12 @@ const (
 	// BlockTweet is embedded gist block
 	BlockTweet = "tweet"
 	// BlockVideo is youtube video embed
-	BlockVideo            = "video"
-	BlockCopyIndicator    = "copy_indicator"
-	BlockLinkToCollection = "link_to_collection"
-	BlockMiro             = "miro"
-	BlockAlias            = "alias"
+	BlockVideo                 = "video"
+	BlockCopyIndicator         = "copy_indicator"
+	BlockLinkToCollection      = "link_to_collection"
+	BlockMiro                  = "miro"
+	BlockAlias                 = "alias"
+	BlockTransclusionReference = "transclusion_reference"
 )
 
 // FormatBookmark describes format for BlockBookmark

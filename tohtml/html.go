@@ -1368,9 +1368,13 @@ func (c *Converter) findParentPageID(page *notionapi.Page, id string) string {
 	}
 }
 
+func (c *Converter) RenderTransclusionReference(block *notionapi.Block) {
+	// TODO: implement me
+}
+
 func (c *Converter) RenderAlias(block *notionapi.Block) {
 	c.Printf(`<div class="alias">`)
-	//TODO: implement me
+	// TODO: implement me
 	//alias := block.FormatAlias()
 	//c.Printf(`<span>id: %s</span>`, alias.Alias.ID)
 	c.Printf(`</div>`)
@@ -1747,6 +1751,8 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderBreadcrumb
 	case notionapi.BlockAlias:
 		return c.RenderAlias
+	case notionapi.BlockTransclusionReference:
+		return c.RenderTransclusionReference
 	case notionapi.BlockFactory:
 		return nil
 	default:
