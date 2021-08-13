@@ -81,7 +81,10 @@ func downloadPage(client *notionapi.Client, pageID string) (*notionapi.Page, err
 		return nil, err
 	}
 	d.EventObserver = eventObserver
-	d.NoReadCache = flgNoCache
+	d.Policy = notionapi.PolicyDownloadNewer
+	if flgNoCache {
+		d.Policy = notionapi.PolicyDownloadAlways
+	}
 	return d.DownloadPage(pageID)
 }
 

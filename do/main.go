@@ -121,12 +121,6 @@ func traceNotionAPI() {
 	must(err)
 }
 
-func bench() {
-	cmd := exec.Command("go", "test", "-bench=.")
-	cmd.Dir = "caching_downloader"
-	u.RunCmdMust(cmd)
-}
-
 var toText = notionapi.TextSpansToString
 
 func main() {
@@ -237,7 +231,7 @@ func main() {
 				return
 			}
 			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, toText(page.Root().GetTitle()), time.Since(timeStart))
-			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsNotFromCache, client.RequestsWrittenToCache)
+			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsFromNotionServer, client.RequestsWrittenToCache)
 		}
 		// try with full cache
 		{
@@ -250,7 +244,7 @@ func main() {
 				return
 			}
 			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, toText(page.Root().GetTitle()), time.Since(timeStart))
-			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsNotFromCache, client.RequestsWrittenToCache)
+			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsFromNotionServer, client.RequestsWrittenToCache)
 		}
 		return
 	}
@@ -290,7 +284,8 @@ func main() {
 	}
 
 	if flgBench {
-		bench()
+		cmd := exec.Command("go", "test", "-bench=.")
+		u.RunCmdMust(cmd)
 		return
 	}
 

@@ -20,7 +20,7 @@ func testDownloadFromCache(t *testing.T, pageID string) *Page {
 	p, err := cclient.DownloadPage(pageID)
 	require.NoError(t, err)
 	require.True(t, cclient.RequestsFromCache > 0)
-	require.Equal(t, 0, cclient.RequestsNotFromCache)
+	require.Equal(t, 0, cclient.RequestsFromNotionServer)
 	return p
 }
 
