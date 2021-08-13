@@ -82,8 +82,6 @@ type CachingClient struct {
 	currPageRequests      []*RequestCacheEntry
 	needSerializeRequests bool
 	didCheckVersions      bool
-
-	redoCacheSearch bool
 }
 
 func (c *CachingClient) vlogf(format string, args ...interface{}) {
@@ -282,12 +280,7 @@ func (c *CachingClient) findCachedRequest(method string, uri string, body string
 			return r, true
 		}
 	}
-	c.Client.vlogf("CachingClient.findCachedRequest: no cache response for page '%s', url: '%s' in %d cached requests with body:\n%s\nbodyPP:\n%s\n", pageID, uri, len(pageRequests), body, bodyPP)
-	// TODO: only for ad-hoc testing of busted caching
-	if c.redoCacheSearch {
-		c.redoCacheSearch = false
-		return c.findCachedRequest(method, uri, body)
-	}
+	c.Client.vlogf("CachingClient.findCachedRequest: no cache response for page '%s', url: '%s' in %d cached requests with body:\n%s\n", pageID, uri, len(pageRequests), bodyPP)
 	return nil, false
 }
 
