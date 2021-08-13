@@ -365,6 +365,12 @@ func (c *CachingClient) updateVersions() error {
 	if len(ids) == 0 {
 		return nil
 	}
+
+	// when we're getting new versions, we have to disable
+	// all caching
+	c.Client.httpPostOverride = c.doPostNoCache
+	defer updateClientForCachingPolicy(c)
+
 	timeStart := time.Now()
 	versions, err := c.getVersionsForPages(ids)
 	if err != nil {
@@ -385,6 +391,17 @@ func (c *CachingClient) updateVersions() error {
 	return nil
 }
 
+func updateClientForCachingPolicy(c *CachingClient) {
+	switch c.Policy {
+	case PolicyCacheOnly:
+		c.Client.httpPostOverride = c.doPostCacheOnly
+	case PolicyDownloadNewer:
+		c.Client.httpPostOverride = c.doPostMaybeCached
+	case PolicyDownloadAlways:
+		c.Client.httpPostOverride = c.doPostNoCache
+	}
+}
+
 func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	c.currPageRequests = nil
 	c.needSerializeRequests = false
@@ -398,6 +415,7 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		return nil, err
 	}
 
+	updateClientForCachingPolicy(c)
 	timeStart := time.Now()
 
 	// over-write httpPost only for the duration of client.DownloadPage()
@@ -410,14 +428,6 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		c.Client.httpPostOverride = prevOverride
 		c.currPageID = nil
 	}()
-	switch c.Policy {
-	case PolicyCacheOnly:
-		c.Client.httpPostOverride = c.doPostCacheOnly
-	case PolicyDownloadNewer:
-		c.Client.httpPostOverride = c.doPostMaybeCached
-	case PolicyDownloadAlways:
-		c.Client.httpPostOverride = c.doPostNoCache
-	}
 
 	fromServer := c.RequestsFromNotionServer
 	page, err := c.Client.DownloadPage(pageID)

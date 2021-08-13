@@ -15,12 +15,13 @@ and copy data/cache/${pageID}.txt to testdata/
 
 func testDownloadFromCache(t *testing.T, pageID string) *Page {
 	client := &Client{}
-	cclient, err := NewCachingClient("caching_client_testdata", client)
+	cc, err := NewCachingClient("caching_client_testdata", client)
+	cc.Policy = PolicyCacheOnly
 	require.NoError(t, err)
-	p, err := cclient.DownloadPage(pageID)
+	p, err := cc.DownloadPage(pageID)
 	require.NoError(t, err)
-	require.True(t, cclient.RequestsFromCache > 0)
-	require.Equal(t, 0, cclient.RequestsFromNotionServer)
+	require.True(t, cc.RequestsFromCache > 0)
+	require.Equal(t, 0, cc.RequestsFromNotionServer)
 	return p
 }
 
