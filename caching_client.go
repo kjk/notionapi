@@ -82,6 +82,8 @@ type CachingClient struct {
 	currPageRequests      []*RequestCacheEntry
 	needSerializeRequests bool
 	didCheckVersions      bool
+
+	redoCacheSearch bool
 }
 
 func (c *CachingClient) vlogf(format string, args ...interface{}) {
@@ -191,7 +193,7 @@ func (c *CachingClient) readRequestsCacheFile(dir string) error {
 		}
 		c.pageIDToEntries[nid.NoDashID] = entries
 	}
-	c.vlogf("CachingClient.readRequestsCache(): loaded %d files in %s\n", nFiles, time.Since(timeStart))
+	c.vlogf("CachingClient.readRequestsCache: loaded %d files in %s\n", nFiles, time.Since(timeStart))
 	return nil
 }
 
@@ -215,6 +217,39 @@ func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+func (c *CachingClient) writeCacheForCurrPage() error {
+	var buf []byte
+
+	if !c.needSerializeRequests {
+		return nil
+	}
+	for _, rr := range c.currPageRequests {
+		d, err := serializeCacheEntry(rr, !c.NoPrettyPrintResponse)
+		if err != nil {
+			return err
+		}
+		buf = append(buf, d...)
+	}
+
+	// append to a file for this page
+	fileName := c.currPageID.NoDashID + ".txt"
+	path := filepath.Join(c.CacheDir, fileName)
+	err := ioutil.WriteFile(path, buf, 0644)
+	if err != nil {
+		// judgement call: delete file if failed to append
+		// as it might be corrupted
+		// could instead try appendAtomically()
+		c.logf("CachingClient.writeCacheForCurrPage: ioutil.WriteFile(%s) failed with '%s'\n", fileName, err)
+		os.Remove(path)
+		return err
+	}
+	c.RequestsWrittenToCache += len(c.currPageRequests)
+	c.vlogf("CachingClient.writeCacheForCurrPage: wrote %d cached requests to '%s'\n", len(c.currPageRequests), fileName)
+	c.currPageRequests = nil
+	c.needSerializeRequests = false
+	return nil
 }
 
 func (c *CachingClient) findCachedRequest(method string, uri string, body string) (*RequestCacheEntry, bool) {
@@ -247,40 +282,13 @@ func (c *CachingClient) findCachedRequest(method string, uri string, body string
 			return r, true
 		}
 	}
+	c.Client.vlogf("CachingClient.findCachedRequest: no cache response for page '%s', url: '%s' in %d cached requests with body:\n%s\nbodyPP:\n%s\n", pageID, uri, len(pageRequests), body, bodyPP)
+	// TODO: only for ad-hoc testing of busted caching
+	if c.redoCacheSearch {
+		c.redoCacheSearch = false
+		return c.findCachedRequest(method, uri, body)
+	}
 	return nil, false
-}
-
-func (c *CachingClient) writeCacheForCurrPage() error {
-	var buf []byte
-
-	if !c.needSerializeRequests {
-		return nil
-	}
-	for _, rr := range c.currPageRequests {
-		d, err := serializeCacheEntry(rr, !c.NoPrettyPrintResponse)
-		if err != nil {
-			return err
-		}
-		buf = append(buf, d...)
-	}
-
-	// append to a file for this page
-	fileName := c.currPageID.NoDashID + ".txt"
-	path := filepath.Join(c.CacheDir, fileName)
-	err := ioutil.WriteFile(path, buf, 0644)
-	if err != nil {
-		// judgement call: delete file if failed to append
-		// as it might be corrupted
-		// could instead try appendAtomically()
-		c.logf("CachingClient.writeCacheForCurrPage(): ioutil.WriteFile(%s) failed with '%s'\n", fileName, err)
-		os.Remove(path)
-		return err
-	}
-	c.RequestsWrittenToCache += len(c.currPageRequests)
-	c.vlogf("CachingClient.writeCacheForCurrPage(): wrote %d cached requests to '%s'\n", len(c.currPageRequests), fileName)
-	c.currPageRequests = nil
-	c.needSerializeRequests = false
-	return nil
 }
 
 func (c *CachingClient) doPostCacheOnly(uri string, body []byte) ([]byte, error) {
@@ -288,7 +296,6 @@ func (c *CachingClient) doPostCacheOnly(uri string, body []byte) ([]byte, error)
 	if ok {
 		return r.Response, nil
 	}
-	c.Client.logf("doPostCacheOnly: no cache response for '%s' with body:\n%s\n", uri, string(body))
 	return nil, fmt.Errorf("no cache response for '%s' of size %d", uri, len(body))
 }
 
@@ -349,7 +356,7 @@ func (c *CachingClient) getVersionsForPages(ids []string) ([]int64, error) {
 		}
 		versions = append(versions, b.Version)
 	}
-	c.vlogf("CachingClient.getVersionsForPages(): got info about %d pages in %s\n", len(ids), time.Since(timeStart))
+	c.vlogf("CachingClient.getVersionsForPages: got info about %d pages in %s\n", len(ids), time.Since(timeStart))
 	return versions, nil
 }
 
