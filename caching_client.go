@@ -43,41 +43,6 @@ type RequestCacheEntry struct {
 	Response []byte
 }
 
-// EventDidDownload is for logging. Emitted when page
-// or file is downloaded
-type EventDidDownload struct {
-	// if page, Page and PageID is set
-	Page   *Page
-	PageID string
-	// if file, URL is set
-	FileURL string
-	// how long did it take to download
-	Duration time.Duration
-}
-
-// EventError is for logging. Emitted when there's error to log
-type EventError struct {
-	Error string
-}
-
-// EventDidReadFromCache is for logging. Emitted when page
-// or file is read from cache.
-type EventDidReadFromCache struct {
-	// if page, Page and PageID is set
-	Page   *Page
-	PageID string
-	// if file, URL is set
-	FileURL string
-	// how long did it take to download
-	Duration time.Duration
-}
-
-// EventGotVersions is for logging. Emitted
-type EventGotVersions struct {
-	Count    int
-	Duration time.Duration
-}
-
 // CachingClient implements optimized (cached) downloading of pages.
 // Cache of pages is stored in CacheDir. We return pages from cache.
 // If RedownloadNewerVersions is true, we'll re-download latest version
@@ -91,14 +56,6 @@ type CachingClient struct {
 
 	// disable pretty-printing of json responses saved in the cache
 	NoPrettyPrintResponse bool
-
-	pageIDToEntries map[string][]*RequestCacheEntry
-	// we cache requests on a per-page basis
-	currPageID *NotionID
-
-	currPageRequests      []*RequestCacheEntry
-	needSerializeRequests bool
-	didCheckVersions      bool
 
 	// stores pages deserialized just from cache
 	IdToPage map[string]*Page
@@ -118,7 +75,21 @@ type CachingClient struct {
 	RequestsFromNotionServer int
 	RequestsWrittenToCache   int
 
-	EventObserver func(interface{})
+	pageIDToEntries map[string][]*RequestCacheEntry
+	// we cache requests on a per-page basis
+	currPageID *NotionID
+
+	currPageRequests      []*RequestCacheEntry
+	needSerializeRequests bool
+	didCheckVersions      bool
+}
+
+func (c *CachingClient) vlogf(format string, args ...interface{}) {
+	c.Client.vlogf(format, args...)
+}
+
+func (c *CachingClient) logf(format string, args ...interface{}) {
+	c.Client.logf(format, args...)
 }
 
 func recGetKey(r *siser.Record, key string, pErr *error) string {
@@ -182,27 +153,6 @@ func deserializeCacheEntry(d []byte) ([]*RequestCacheEntry, error) {
 	return res, nil
 }
 
-func (c *CachingClient) emitEvent(ev interface{}) {
-	if c.EventObserver != nil {
-		c.EventObserver(ev)
-	}
-}
-
-func (c *CachingClient) emitError(format string, args ...interface{}) {
-	s := format
-	if len(args) > 0 {
-		s = fmt.Sprintf(format, args...)
-	}
-	ev := &EventError{
-		Error: s,
-	}
-	c.emitEvent(ev)
-}
-
-func (c *CachingClient) vlogf(format string, args ...interface{}) {
-	c.Client.vlogf(format, args...)
-}
-
 func (c *CachingClient) readRequestsCacheFile(dir string) error {
 	timeStart := time.Now()
 	c.pageIDToEntries = map[string][]*RequestCacheEntry{}
@@ -241,7 +191,7 @@ func (c *CachingClient) readRequestsCacheFile(dir string) error {
 		}
 		c.pageIDToEntries[nid.NoDashID] = entries
 	}
-	c.vlogf("readRequestsCache() loaded %d files in %s\n", nFiles, time.Since(timeStart))
+	c.vlogf("CachingClient.readRequestsCache(): loaded %d files in %s\n", nFiles, time.Since(timeStart))
 	return nil
 }
 
@@ -322,7 +272,7 @@ func (c *CachingClient) writeCacheForCurrPage() error {
 		// judgement call: delete file if failed to append
 		// as it might be corrupted
 		// could instead try appendAtomically()
-		c.emitError("CachingClient.writeCacheForCurrPage(): ioutil.WriteFile(%s) failed with '%s'\n", fileName, err)
+		c.logf("CachingClient.writeCacheForCurrPage(): ioutil.WriteFile(%s) failed with '%s'\n", fileName, err)
 		os.Remove(path)
 		return err
 	}
@@ -338,6 +288,7 @@ func (c *CachingClient) doPostCacheOnly(uri string, body []byte) ([]byte, error)
 	if ok {
 		return r.Response, nil
 	}
+	c.Client.logf("doPostCacheOnly: no cache response for '%s' with body:\n%s\n", uri, string(body))
 	return nil, fmt.Errorf("no cache response for '%s' of size %d", uri, len(body))
 }
 
@@ -423,11 +374,7 @@ func (c *CachingClient) updateVersions() error {
 		return fmt.Errorf("d.updateVersionsForPages() asked for %d pages but got %d results", len(ids), len(versions))
 	}
 
-	ev := &EventGotVersions{
-		Count:    len(ids),
-		Duration: time.Since(timeStart),
-	}
-	c.emitEvent(ev)
+	c.vlogf("CachingClient.updateVersion: got versions for %d pages in %s\n", len(ids), time.Since(timeStart))
 
 	for i := 0; i < len(ids); i++ {
 		id := ids[i]
@@ -479,20 +426,10 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	}
 	if fromServer != c.RequestsFromNotionServer {
 		c.DownloadedCount++
-		ev := &EventDidDownload{
-			Page:     page,
-			PageID:   ToDashID(pageID),
-			Duration: time.Since(timeStart),
-		}
-		c.emitEvent(ev)
+		c.logf("CachingClient.DownloadPage: downloaded page %s in %s\n", ToDashID(pageID), time.Since(timeStart))
 	} else {
 		c.FromCacheCount++
-		ev := &EventDidReadFromCache{
-			Page:     page,
-			PageID:   ToDashID(pageID),
-			Duration: time.Since(timeStart),
-		}
-		c.emitEvent(ev)
+		c.logf("CachingClient.DownloadPage: got page from cache %s in %s\n", ToDashID(pageID), time.Since(timeStart))
 	}
 	c.IdToPage[pageID] = page
 	c.IdToPageLatestVersion[pageID] = page.Root().Version
@@ -595,11 +532,7 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 				Data:          data,
 				CacheFileName: cacheFileName,
 			}
-			ev := &EventDidReadFromCache{
-				FileURL:  uri,
-				Duration: time.Since(timeStart),
-			}
-			c.emitEvent(ev)
+			c.vlogf("CachingClient.DownloadFile: got file from cache '%s' in %s\n", uri, time.Since(timeStart))
 			c.FilesFromCacheCount++
 			return res, nil
 		}
@@ -612,14 +545,10 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 	timeStart := time.Now()
 	res, err := c.Client.DownloadFile(uri, block)
 	if err != nil {
-		c.emitError("Downloader.DownloadFile(): failed to download %s, error: %s", uri, err)
+		c.logf("CachingClient.DownloadFile: failed to download %s, error: %s", uri, err)
 		return nil, err
 	}
-	ev := &EventDidDownload{
-		FileURL:  uri,
-		Duration: time.Since(timeStart),
-	}
-	c.emitEvent(ev)
+	c.vlogf("CachingClient.DownloadFile: downloaded file '%s' in %s\n", uri, time.Since(timeStart))
 	_ = ioutil.WriteFile(path, res.Data, 0644)
 	res.CacheFileName = cacheFileName
 	c.DownloadedFilesCount++
