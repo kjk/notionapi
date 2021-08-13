@@ -453,7 +453,7 @@ func (c *CachingClient) checkVersionsOfCachedPages() error {
 // RedownloadNewerVersions
 func (c *CachingClient) canReturnCachedPage(p *Page) bool {
 	if p == nil {
-		return false
+		return c.NoNetwork
 	}
 	if !c.RedownloadNewerVersions {
 		return true
