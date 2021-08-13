@@ -273,7 +273,7 @@ func (c *CachingClient) findCachedRequest(method string, uri string, body string
 				bodyPP = string(PrettyPrintJS([]byte(body)))
 			}
 			if r.bodyPP == "" {
-				r.bodyPP = string(PrettyPrintJS([]byte(r.bodyPP)))
+				r.bodyPP = string(PrettyPrintJS([]byte(r.Body)))
 			}
 			didFind = (bodyPP == r.bodyPP)
 		}
