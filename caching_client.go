@@ -341,14 +341,7 @@ func (c *CachingClient) doPostCacheOnly(uri string, body []byte) ([]byte, error)
 	return nil, fmt.Errorf("no cache response for '%s' of size %d", uri, len(body))
 }
 
-func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, error) {
-	r, ok := c.findCachedRequest("POST", uri, string(body))
-	if ok {
-		// remember requests from cache as well so that when just a single request
-		// is different, we don't loose past requests on re-serialization
-		c.currPageRequests = append(c.currPageRequests, r)
-		return r.Response, nil
-	}
+func (c *CachingClient) doPostNoCache(uri string, body []byte) ([]byte, error) {
 	d, err := c.Client.doPostInternal(uri, body)
 	if err != nil {
 		return nil, err
@@ -367,6 +360,17 @@ func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, erro
 	}
 
 	return d, nil
+}
+
+func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, error) {
+	r, ok := c.findCachedRequest("POST", uri, string(body))
+	if ok {
+		// remember requests from cache as well so that when just a single request
+		// is different, we don't loose past requests on re-serialization
+		c.currPageRequests = append(c.currPageRequests, r)
+		return r.Response, nil
+	}
+	return c.doPostNoCache(uri, body)
 }
 
 func (c *CachingClient) getVersionsForPages(ids []string) ([]int64, error) {
@@ -465,7 +469,7 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	case PolicyDownloadNewer:
 		c.Client.httpPostOverride = c.doPostMaybeCached
 	case PolicyDownloadAlways:
-		c.Client.httpPostOverride = nil
+		c.Client.httpPostOverride = c.doPostNoCache
 	}
 
 	fromServer := c.RequestsFromNotionServer
