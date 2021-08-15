@@ -369,7 +369,13 @@ func (c *CachingClient) updateVersions() error {
 	// when we're getting new versions, we have to disable
 	// all caching
 	c.Client.httpPostOverride = c.doPostNoCache
-	defer updateClientForCachingPolicy(c)
+	currPageID := c.currPageID
+	// we don't want those http requests saved in the cache
+	c.currPageID = nil
+	defer func() {
+		updateClientForCachingPolicy(c)
+		c.currPageID = currPageID
+	}()
 
 	timeStart := time.Now()
 	versions, err := c.getVersionsForPages(ids)
