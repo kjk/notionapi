@@ -407,10 +407,11 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		}
 	}
 
-	latestVer := cp.LatestVer
 	fromCache := cp.PageFromCache
-	if c.Policy == PolicyDownloadNewer {
-		if fromCache != nil && latestVer > 0 && fromCache.Root().Version >= latestVer {
+	if c.Policy == PolicyDownloadNewer && fromCache != nil {
+		latestVer := cp.LatestVer
+		fromCacheVer := fromCache.Root().Version
+		if fromCacheVer == latestVer {
 			return fromCache, nil
 		}
 	}
