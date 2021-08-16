@@ -452,7 +452,14 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	return page, nil
 }
 
-func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownload func(*Page) error) ([]*Page, error) {
+type DownloadInfo struct {
+	Page               *Page
+	RequestsFromCache  int
+	ReqeustsFromServer int
+	Duration           time.Duration
+}
+
+func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownload func(*DownloadInfo) error) ([]*Page, error) {
 	toVisit := []string{startPageID}
 	downloaded := map[string]*Page{}
 	for len(toVisit) > 0 {
@@ -461,14 +468,22 @@ func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownlo
 		if downloaded[pageID] != nil {
 			continue
 		}
-
+		nFromCache := c.RequestsFromCache
+		nFromServer := c.RequestsFromNotionServer
+		timeStart := time.Now()
 		page, err := c.DownloadPage(pageID)
 		if err != nil {
 			return nil, err
 		}
 		downloaded[pageID] = page
 		if afterDownload != nil {
-			err = afterDownload(page)
+			di := &DownloadInfo{
+				Page:               page,
+				RequestsFromCache:  c.RequestsFromCache - nFromCache,
+				ReqeustsFromServer: c.RequestsFromNotionServer - nFromServer,
+				Duration:           time.Since(timeStart),
+			}
+			err = afterDownload(di)
 			if err != nil {
 				return nil, err
 			}
