@@ -216,39 +216,6 @@ func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
 	return res, nil
 }
 
-func (c *CachingClient) writeCacheForCurrPage() error {
-	var buf []byte
-
-	if !c.needSerializeRequests {
-		return nil
-	}
-	for _, rr := range c.currPageRequests {
-		d, err := serializeCacheEntry(rr, !c.NoPrettyPrintResponse)
-		if err != nil {
-			return err
-		}
-		buf = append(buf, d...)
-	}
-
-	// append to a file for this page
-	fileName := c.currPageID.NoDashID + ".txt"
-	path := filepath.Join(c.CacheDir, fileName)
-	err := ioutil.WriteFile(path, buf, 0644)
-	if err != nil {
-		// judgement call: delete file if failed to append
-		// as it might be corrupted
-		// could instead try appendAtomically()
-		c.logf("CachingClient.writeCacheForCurrPage: ioutil.WriteFile(%s) failed with '%s'\n", fileName, err)
-		os.Remove(path)
-		return err
-	}
-	c.RequestsWrittenToCache += len(c.currPageRequests)
-	c.vlogf("CachingClient.writeCacheForCurrPage: wrote %d cached requests to '%s'\n", len(c.currPageRequests), fileName)
-	c.currPageRequests = nil
-	c.needSerializeRequests = false
-	return nil
-}
-
 func (c *CachingClient) findCachedRequest(method string, uri string, body string) (*RequestCacheEntry, bool) {
 	panicIf(c.Policy == PolicyDownloadAlways)
 	pageID := c.currPageID.NoDashID
@@ -379,20 +346,54 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	c.currPageID = currPageID
 	cp := c.getCachedPage(currPageID.NoDashID)
 
+	writeCacheForCurrPage := func(pageID *NotionID) error {
+		var buf []byte
+
+		if !c.needSerializeRequests {
+			return nil
+		}
+		for _, rr := range c.currPageRequests {
+			d, err := serializeCacheEntry(rr, !c.NoPrettyPrintResponse)
+			if err != nil {
+				return err
+			}
+			buf = append(buf, d...)
+		}
+
+		// append to a file for this page
+		fileName := pageID.NoDashID + ".txt"
+		path := filepath.Join(c.CacheDir, fileName)
+		err := ioutil.WriteFile(path, buf, 0644)
+		if err != nil {
+			// judgement call: delete file if failed to append
+			// as it might be corrupted
+			// could instead try appendAtomically()
+			c.logf("CachingClient.writeCacheForCurrPage: ioutil.WriteFile(%s) failed with '%s'\n", fileName, err)
+			os.Remove(path)
+			return err
+		}
+		c.RequestsWrittenToCache += len(c.currPageRequests)
+		c.vlogf("CachingClient.writeCacheForCurrPage: wrote %d cached requests to '%s'\n", len(c.currPageRequests), fileName)
+		c.currPageRequests = nil
+		c.needSerializeRequests = false
+		return nil
+	}
+
 	timeStart := time.Now()
 	fromServer := c.RequestsFromServer
 	defer func() {
-		c.currPageID = nil
 		if err != nil {
 			return
 		}
-		c.writeCacheForCurrPage()
+		_ = writeCacheForCurrPage(currPageID)
+		c.currPageID = nil
+		dur := time.Since(timeStart)
 		if fromServer != c.RequestsFromServer {
 			c.DownloadedCount++
-			c.logf("CachingClient.DownloadPage: downloaded page %s in %s\n", ToDashID(pageID), time.Since(timeStart))
+			c.logf("CachingClient.DownloadPage: downloaded page %s in %s\n", currPageID.DashID, dur)
 		} else {
 			c.FromCacheCount++
-			c.logf("CachingClient.DownloadPage: got page from cache %s in %s\n", ToDashID(pageID), time.Since(timeStart))
+			c.logf("CachingClient.DownloadPage: got page from cache %s in %s\n", currPageID.DashID, dur)
 		}
 	}()
 
