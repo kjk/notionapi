@@ -329,16 +329,16 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 	c.currPageRequests = nil
 	c.needSerializeRequests = false
 
-	updateVersions := func(c *CachingClient) error {
+	updateVersions := func(c *CachingClient) {
 		if c.didCheckVersions {
-			return nil
+			return
 		}
 		if c.Policy != PolicyDownloadNewer {
-			return nil
+			return
 		}
 		ids := c.GetPageIDs()
 		if len(ids) == 0 {
-			return nil
+			return
 		}
 		for i, id := range ids {
 			ids[i] = ToNoDashID(id)
@@ -349,47 +349,44 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		c.Client.httpPostOverride = c.doPostNoCache
 		recVals, err := c.Client.GetBlockRecords(ids)
 		if err != nil {
-			return err
+			return
 		}
 		results := recVals.Results
 		if len(results) != len(ids) {
-			return fmt.Errorf("updateVersions(): got %d results, expected %d", len(results), len(ids))
+			panic(fmt.Sprintf("updateVersions(): got %d results, expected %d", len(results), len(ids)))
 		}
 		c.vlogf("CachingClient.updateVersion: got versions for %d pages in %s\n", len(ids), time.Since(timeStart))
 
 		c.didCheckVersions = true
 		for i, rec := range results {
-			id := ids[i]
-			cp := c.getCachedPage(id)
-
-			// res.Value might be nil when a page is not publicly visible or was deleted
 			b := rec.Block
-			if b == nil {
-				continue
+			// rec.Block might be nil when a page is not publicly visible or was deleted
+			if b != nil {
+				id := ids[i]
+				if !isIDEqual(id, b.ID) {
+					panic(fmt.Sprintf("got result in the wrong order, ids[i]: %s, bid: %s", id, b.ID))
+				}
+				cp := c.getCachedPage(id)
+				cp.LatestVer = b.Version
 			}
-			bid := b.ID
-			if !isIDEqual(id, bid) {
-				panic(fmt.Sprintf("got result in the wrong order, ids[i]: %s, bid: %s", id, bid))
-			}
-			cp.LatestVer = b.Version
+
 		}
-		return nil
 	}
 
-	err := updateVersions(c)
-	if err != nil {
-		return nil, err
-	}
+	updateVersions(c)
 
+	var err error
 	c.currPageID = currPageID
 	cp := c.getCachedPage(currPageID.NoDashID)
 
 	timeStart := time.Now()
 	fromServer := c.RequestsFromServer
 	defer func() {
+		c.currPageID = nil
 		if err != nil {
 			return
 		}
+		c.writeCacheForCurrPage()
 		if fromServer != c.RequestsFromServer {
 			c.DownloadedCount++
 			c.logf("CachingClient.DownloadPage: downloaded page %s in %s\n", ToDashID(pageID), time.Since(timeStart))
@@ -419,14 +416,11 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 
 	c.Client.httpPostOverride = c.doPostNoCache
 
-	defer func() {
-		// write out cached requests
-		c.writeCacheForCurrPage()
-		c.currPageID = nil
-	}()
-
 	cp.PageFromServer, err = c.Client.DownloadPage(pageID)
 	if err != nil {
+		if c.Policy == PolicyDownloadNewer && cp.PageFromCache != nil {
+			return cp.PageFromCache, nil
+		}
 		return nil, err
 	}
 	cp.LatestVer = cp.PageFromServer.Root().Version
