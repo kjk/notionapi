@@ -418,8 +418,8 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 
 	cp.PageFromServer, err = c.Client.DownloadPage(pageID)
 	if err != nil {
-		if c.Policy == PolicyDownloadNewer && cp.PageFromCache != nil {
-			return cp.PageFromCache, nil
+		if c.Policy == PolicyDownloadNewer && fromCache != nil {
+			return fromCache, nil
 		}
 		return nil, err
 	}
