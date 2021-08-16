@@ -43,6 +43,12 @@ type RequestCacheEntry struct {
 	Response []byte
 }
 
+type CachedPage struct {
+	PageFromCache  *Page
+	PageFromServer *Page
+	LatestVer      int64
+}
+
 // CachingClient implements optimized (cached) downloading of pages.
 // Cache of pages is stored in CacheDir. We return pages from cache.
 // If RedownloadNewerVersions is true, we'll re-download latest version
@@ -57,23 +63,17 @@ type CachingClient struct {
 	// disable pretty-printing of json responses saved in the cache
 	NoPrettyPrintResponse bool
 
-	// stores pages deserialized just from cache
-	IdToPage map[string]*Page
-
-	// maps id of the page (in the no-dash format) to latest version
-	// of the page available on the server.
-	// if doesn't exist, we haven't yet queried the server for the
-	// version
-	IdToPageLatestVersion map[string]int64
+	// maps no-dash id to info about a page
+	IdToCachedPage map[string]*CachedPage
 
 	DownloadedCount      int
 	FromCacheCount       int
 	DownloadedFilesCount int
 	FilesFromCacheCount  int
 
-	RequestsFromCache        int
-	RequestsFromNotionServer int
-	RequestsWrittenToCache   int
+	RequestsFromCache      int
+	RequestsFromServer     int
+	RequestsWrittenToCache int
 
 	pageIDToEntries map[string][]*RequestCacheEntry
 	// we cache requests on a per-page basis
@@ -203,11 +203,10 @@ func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
 		return nil, errors.New("must provide client")
 	}
 	res := &CachingClient{
-		CacheDir:              cacheDir,
-		Client:                client,
-		IdToPage:              map[string]*Page{},
-		IdToPageLatestVersion: map[string]int64{},
-		Policy:                PolicyDownloadNewer,
+		CacheDir:       cacheDir,
+		Client:         client,
+		IdToCachedPage: map[string]*CachedPage{},
+		Policy:         PolicyDownloadNewer,
 	}
 	// TODO: ignore error?
 	err := res.readRequestsCacheFile(cacheDir)
@@ -297,7 +296,7 @@ func (c *CachingClient) doPostNoCache(uri string, body []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.RequestsFromNotionServer++
+	c.RequestsFromServer++
 
 	if c.currPageID != nil {
 		r := &RequestCacheEntry{
@@ -313,143 +312,125 @@ func (c *CachingClient) doPostNoCache(uri string, body []byte) ([]byte, error) {
 	return d, nil
 }
 
-func (c *CachingClient) doPostMaybeCached(uri string, body []byte) ([]byte, error) {
-	r, ok := c.findCachedRequest("POST", uri, string(body))
-	if ok {
-		// remember requests from cache as well so that when just a single request
-		// is different, we don't loose past requests on re-serialization
-		c.currPageRequests = append(c.currPageRequests, r)
-		return r.Response, nil
+func (c *CachingClient) getCachedPage(pageID string) *CachedPage {
+	cp := c.IdToCachedPage[pageID]
+	if cp == nil {
+		cp = &CachedPage{}
+		c.IdToCachedPage[pageID] = cp
 	}
-	return c.doPostNoCache(uri, body)
-}
-
-func (c *CachingClient) getVersionsForPages(ids []string) ([]int64, error) {
-	timeStart := time.Now()
-	normalizeIDS(ids)
-	recVals, err := c.Client.GetBlockRecords(ids)
-	if err != nil {
-		return nil, err
-	}
-	results := recVals.Results
-	if len(results) != len(ids) {
-		return nil, fmt.Errorf("getVersionsForPages(): got %d results, expected %d", len(results), len(ids))
-	}
-	var versions []int64
-	for i, rec := range results {
-		// res.Value might be nil when a page is not publicly visible or was deleted
-		b := rec.Block
-		if b == nil {
-			versions = append(versions, 0)
-			continue
-		}
-		id := b.ID
-		if !isIDEqual(ids[i], id) {
-			panic(fmt.Sprintf("got result in the wrong order, ids[i]: %s, id: %s", ids[0], id))
-		}
-		versions = append(versions, b.Version)
-	}
-	c.vlogf("CachingClient.getVersionsForPages: got info about %d pages in %s\n", len(ids), time.Since(timeStart))
-	return versions, nil
-}
-
-func (c *CachingClient) updateVersions() error {
-	if c.didCheckVersions {
-		return nil
-	}
-	if c.Policy == PolicyCacheOnly {
-		return nil
-	}
-	c.didCheckVersions = true
-	ids := c.GetPageIDs()
-	if len(ids) == 0 {
-		return nil
-	}
-
-	// when we're getting new versions, we have to disable
-	// all caching
-	c.Client.httpPostOverride = c.doPostNoCache
-	currPageID := c.currPageID
-	// we don't want those http requests saved in the cache
-	c.currPageID = nil
-	defer func() {
-		updateClientForCachingPolicy(c)
-		c.currPageID = currPageID
-	}()
-
-	timeStart := time.Now()
-	versions, err := c.getVersionsForPages(ids)
-	if err != nil {
-		return fmt.Errorf("d.updateVersionsForPages() for %d pages failed with '%s'", len(ids), err)
-	}
-	if len(ids) != len(versions) {
-		return fmt.Errorf("d.updateVersionsForPages() asked for %d pages but got %d results", len(ids), len(versions))
-	}
-
-	c.vlogf("CachingClient.updateVersion: got versions for %d pages in %s\n", len(ids), time.Since(timeStart))
-
-	for i := 0; i < len(ids); i++ {
-		id := ids[i]
-		ver := versions[i]
-		id = ToNoDashID(id)
-		c.IdToPageLatestVersion[id] = ver
-	}
-	return nil
-}
-
-func updateClientForCachingPolicy(c *CachingClient) {
-	switch c.Policy {
-	case PolicyCacheOnly:
-		c.Client.httpPostOverride = c.doPostCacheOnly
-	case PolicyDownloadNewer:
-		c.Client.httpPostOverride = c.doPostMaybeCached
-	case PolicyDownloadAlways:
-		c.Client.httpPostOverride = c.doPostNoCache
-	}
+	return cp
 }
 
 func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
-	c.currPageRequests = nil
-	c.needSerializeRequests = false
-	c.currPageID = NewNotionID(pageID)
-	if c.currPageID == nil {
+	currPageID := NewNotionID(pageID)
+	if currPageID == nil {
 		return nil, fmt.Errorf("'%s' is not a valid notion id", pageID)
 	}
+	c.currPageRequests = nil
+	c.needSerializeRequests = false
 
-	err := c.updateVersions()
+	updateVersions := func(c *CachingClient) error {
+		if c.didCheckVersions {
+			return nil
+		}
+		if c.Policy != PolicyDownloadNewer {
+			return nil
+		}
+		ids := c.GetPageIDs()
+		if len(ids) == 0 {
+			return nil
+		}
+		for i, id := range ids {
+			ids[i] = ToNoDashID(id)
+		}
+
+		timeStart := time.Now()
+		// when we're getting new versions, we have to disable all caching
+		c.Client.httpPostOverride = c.doPostNoCache
+		recVals, err := c.Client.GetBlockRecords(ids)
+		if err != nil {
+			return err
+		}
+		results := recVals.Results
+		if len(results) != len(ids) {
+			return fmt.Errorf("updateVersions(): got %d results, expected %d", len(results), len(ids))
+		}
+		c.vlogf("CachingClient.updateVersion: got versions for %d pages in %s\n", len(ids), time.Since(timeStart))
+
+		c.didCheckVersions = true
+		for i, rec := range results {
+			id := ids[i]
+			cp := c.getCachedPage(id)
+
+			// res.Value might be nil when a page is not publicly visible or was deleted
+			b := rec.Block
+			if b == nil {
+				continue
+			}
+			bid := b.ID
+			if !isIDEqual(id, bid) {
+				panic(fmt.Sprintf("got result in the wrong order, ids[i]: %s, bid: %s", id, bid))
+			}
+			cp.LatestVer = b.Version
+		}
+		return nil
+	}
+
+	err := updateVersions(c)
 	if err != nil {
 		return nil, err
 	}
 
-	updateClientForCachingPolicy(c)
-	timeStart := time.Now()
+	c.currPageID = currPageID
+	cp := c.getCachedPage(currPageID.NoDashID)
 
-	// over-write httpPost only for the duration of client.DownloadPage()
-	// that way we don't permanently change the client
-	prevOverride := c.Client.httpPostOverride
+	timeStart := time.Now()
+	fromServer := c.RequestsFromServer
+	defer func() {
+		if err != nil {
+			return
+		}
+		if fromServer != c.RequestsFromServer {
+			c.DownloadedCount++
+			c.logf("CachingClient.DownloadPage: downloaded page %s in %s\n", ToDashID(pageID), time.Since(timeStart))
+		} else {
+			c.FromCacheCount++
+			c.logf("CachingClient.DownloadPage: got page from cache %s in %s\n", ToDashID(pageID), time.Since(timeStart))
+		}
+	}()
+
+	if c.Policy == PolicyCacheOnly || c.Policy == PolicyDownloadNewer {
+		if cp.PageFromCache == nil {
+			c.Client.httpPostOverride = c.doPostCacheOnly
+			cp.PageFromCache, err = c.Client.DownloadPage(pageID)
+		}
+		if c.Policy == PolicyCacheOnly {
+			return cp.PageFromCache, err
+		}
+	}
+
+	latestVer := cp.LatestVer
+	fromCache := cp.PageFromCache
+	if c.Policy == PolicyDownloadNewer {
+		if fromCache != nil && latestVer > 0 && fromCache.Root().Version >= latestVer {
+			return fromCache, nil
+		}
+	}
+
+	c.Client.httpPostOverride = c.doPostNoCache
+
 	defer func() {
 		// write out cached requests
-		// TODO: what happens if only part of requests were from the cache?
 		c.writeCacheForCurrPage()
-		c.Client.httpPostOverride = prevOverride
 		c.currPageID = nil
 	}()
 
-	fromServer := c.RequestsFromNotionServer
-	page, err := c.Client.DownloadPage(pageID)
+	cp.PageFromServer, err = c.Client.DownloadPage(pageID)
 	if err != nil {
 		return nil, err
 	}
-	if fromServer != c.RequestsFromNotionServer {
-		c.DownloadedCount++
-		c.logf("CachingClient.DownloadPage: downloaded page %s in %s\n", ToDashID(pageID), time.Since(timeStart))
-	} else {
-		c.FromCacheCount++
-		c.logf("CachingClient.DownloadPage: got page from cache %s in %s\n", ToDashID(pageID), time.Since(timeStart))
-	}
-	c.IdToPage[pageID] = page
-	c.IdToPageLatestVersion[pageID] = page.Root().Version
-	return page, nil
+	cp.LatestVer = cp.PageFromServer.Root().Version
+	return cp.PageFromServer, nil
 }
 
 type DownloadInfo struct {
@@ -469,7 +450,7 @@ func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownlo
 			continue
 		}
 		nFromCache := c.RequestsFromCache
-		nFromServer := c.RequestsFromNotionServer
+		nFromServer := c.RequestsFromServer
 		timeStart := time.Now()
 		page, err := c.DownloadPage(pageID)
 		if err != nil {
@@ -480,7 +461,7 @@ func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownlo
 			di := &DownloadInfo{
 				Page:               page,
 				RequestsFromCache:  c.RequestsFromCache - nFromCache,
-				ReqeustsFromServer: c.RequestsFromNotionServer - nFromServer,
+				ReqeustsFromServer: c.RequestsFromServer - nFromServer,
 				Duration:           time.Since(timeStart),
 			}
 			err = afterDownload(di)

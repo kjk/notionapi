@@ -21,7 +21,7 @@ func testDownloadFromCache(t *testing.T, pageID string) *Page {
 	p, err := cc.DownloadPage(pageID)
 	require.NoError(t, err)
 	require.True(t, cc.RequestsFromCache > 0)
-	require.Equal(t, 0, cc.RequestsFromNotionServer)
+	require.Equal(t, 0, cc.RequestsFromServer)
 	return p
 }
 

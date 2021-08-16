@@ -231,7 +231,7 @@ func main() {
 				return
 			}
 			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, toText(page.Root().GetTitle()), time.Since(timeStart))
-			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsFromNotionServer, client.RequestsWrittenToCache)
+			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsFromServer, client.RequestsWrittenToCache)
 		}
 		// try with full cache
 		{
@@ -244,7 +244,7 @@ func main() {
 				return
 			}
 			logf("CachingClient.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, toText(page.Root().GetTitle()), time.Since(timeStart))
-			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsFromNotionServer, client.RequestsWrittenToCache)
+			logf("Cached requests: %d, non-cached requests: %d, requests written to cache: %d\n", client.RequestsFromCache, client.RequestsFromServer, client.RequestsWrittenToCache)
 		}
 		return
 	}

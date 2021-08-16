@@ -111,12 +111,6 @@ func ToDashID(id string) string {
 	return res
 }
 
-func normalizeIDS(ids []string) {
-	for i, id := range ids {
-		ids[i] = ToNoDashID(id)
-	}
-}
-
 func isIDEqual(id1, id2 string) bool {
 	id1 = ToNoDashID(id1)
 	id2 = ToNoDashID(id2)
