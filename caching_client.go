@@ -587,6 +587,7 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 	}
 
 	timeStart := time.Now()
+	c.Client.httpPostOverride = nil
 	res, err := c.Client.DownloadFile(uri, block)
 	if err != nil {
 		c.logf("CachingClient.DownloadFile: failed to download %s, error: %s", uri, err)
