@@ -344,7 +344,7 @@ func (c *CachingClient) PreLoadCache() {
 				pageRequests := c.pageIDToEntries[pageID]
 				mu.Lock()
 				r, ok := c.findCachedRequest(pageRequests, "POST", uri, string(body))
-				mu.Lock()
+				mu.Unlock()
 				if ok {
 					return r.Response, nil
 				}
