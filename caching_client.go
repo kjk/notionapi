@@ -58,7 +58,11 @@ type CachedPage struct {
 // from cache). We do it more efficiently than just blindly re-downloading.
 type CachingClient struct {
 	CacheDir string
-	Client   *Client
+
+	// you can set it to over-ride location of where we store cached files
+	// if not set, it'll be filepath.Join(CacheDir, "files")
+	CacheDirFiles string
+	Client        *Client
 
 	Policy CachingPolicy
 
@@ -219,6 +223,13 @@ func NewCachingClient(cacheDir string, client *Client) (*CachingClient, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+func (c *CachingClient) getFilesCacheDir() string {
+	if c.CacheDirFiles != "" {
+		return c.CacheDirFiles
+	}
+	return filepath.Join(c.CacheDir, "files")
 }
 
 func (c *CachingClient) findCachedRequest(method string, uri string, body string) (*RequestCacheEntry, bool) {
@@ -557,7 +568,7 @@ func sha1OfURL(uri string) string {
 // We don't always know the extension, so we need to
 // check all file names
 func (c *CachingClient) findDownloadedFileInCache(uri string) string {
-	dir := filepath.Join(c.CacheDir, "files")
+	dir := c.getFilesCacheDir()
 	if len(c.fileNamesInCache) == 0 {
 		files, err := os.ReadDir(dir)
 		if err != nil {
@@ -641,7 +652,7 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 	c.vlogf("CachingClient.DownloadFile: downloaded file '%s' in %s\n", uri, time.Since(timeStart))
 	ext := guessExt(uri, res.Header.Get("Content-Type"))
 	name := sha1OfURL(uri) + ext
-	path := filepath.Join(c.CacheDir, "files", name)
+	path := filepath.Join(c.getFilesCacheDir(), name)
 	dir := filepath.Dir(path)
 	_ = os.MkdirAll(dir, 0755)
 
