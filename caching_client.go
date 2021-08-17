@@ -316,7 +316,7 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 
 		timeStart := time.Now()
 		// when we're getting new versions, we have to disable all caching
-		c.Client.httpPostOverride = c.doPostNoCache
+		c.Client.httpPostOverride = nil
 		recVals, err := c.Client.GetBlockRecords(ids)
 		if err != nil {
 			return
@@ -437,6 +437,7 @@ type DownloadInfo struct {
 	RequestsFromCache  int
 	ReqeustsFromServer int
 	Duration           time.Duration
+	FromCache          bool
 }
 
 func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownload func(*DownloadInfo) error) ([]*Page, error) {
@@ -462,6 +463,7 @@ func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownlo
 				RequestsFromCache:  c.RequestsFromCache - nFromCache,
 				ReqeustsFromServer: c.RequestsFromServer - nFromServer,
 				Duration:           time.Since(timeStart),
+				FromCache:          c.RequestsFromServer == 0,
 			}
 			err = afterDownload(di)
 			if err != nil {
