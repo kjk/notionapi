@@ -337,17 +337,17 @@ func (c *CachingClient) PreLoadCache() {
 		sem <- true // enter semaphore
 		wg.Add(1)
 		go func(cp *CachedPage, nid *NotionID) {
-			c.Client.httpPostOverride = func(uri string, body []byte) ([]byte, error) {
+			client := *c.Client
+			client.httpPostOverride = func(uri string, body []byte) ([]byte, error) {
 				pageID := nid.NoDashID
 				pageRequests := c.pageIDToEntries[pageID]
 				r, ok := c.findCachedRequest(pageRequests, "POST", uri, string(body))
 				if ok {
 					return r.Response, nil
 				}
-				c.Client.vlogf("CachingClient.findCachedRequest: no cache response for page '%s', url: '%s' in %d cached requests\n", pageID, uri, len(pageRequests))
 				return nil, fmt.Errorf("no cache response for '%s' of size %d", uri, len(body))
 			}
-			cp.PageFromCache, err = c.Client.DownloadPage(nid.NoDashID)
+			cp.PageFromCache, err = client.DownloadPage(nid.NoDashID)
 			if cp.PageFromCache != nil {
 				_ = cp.PageFromCache.GetSubPages()
 			}
