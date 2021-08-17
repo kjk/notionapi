@@ -348,7 +348,10 @@ func (c *CachingClient) PreLoadCache() {
 				}
 				return nil, fmt.Errorf("no cache response for '%s' of size %d", uri, len(body))
 			}
-			cp.PageFromCache, err = client.DownloadPage(nid.NoDashID)
+			fromCache, _ := client.DownloadPage(nid.NoDashID)
+			mu.Lock()
+			cp.PageFromCache = fromCache
+			mu.Unlock()
 			<-sem // leave semaphore
 			wg.Done()
 		}(&client, cachedPage, id)
