@@ -332,16 +332,19 @@ func (c *CachingClient) PreLoadCache() {
 	nThreads := runtime.NumCPU() + 2
 	sem := make(chan bool, nThreads)
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 	for _, id := range ids {
 		cp := c.getCachedPage(id)
+		client := *c.Client
 		sem <- true // enter semaphore
 		wg.Add(1)
-		go func(cp *CachedPage, nid *NotionID) {
-			client := *c.Client
+		go func(client *Client, cp *CachedPage, nid *NotionID) {
 			client.httpPostOverride = func(uri string, body []byte) ([]byte, error) {
 				pageID := nid.NoDashID
 				pageRequests := c.pageIDToEntries[pageID]
+				mu.Lock()
 				r, ok := c.findCachedRequest(pageRequests, "POST", uri, string(body))
+				mu.Lock()
 				if ok {
 					return r.Response, nil
 				}
@@ -353,7 +356,7 @@ func (c *CachingClient) PreLoadCache() {
 			}
 			<-sem // leave semaphore
 			wg.Done()
-		}(cp, id)
+		}(&client, cp, id)
 	}
 	wg.Wait()
 }
