@@ -594,8 +594,8 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 	c.vlogf("CachingClient.DownloadFile: downloaded file '%s' in %s\n", uri, time.Since(timeStart))
 	ext := guessExt(uri, res.Header.Get("Content-Type"))
 	name := sha1OfURL(uri) + ext
-	path := filepath.Join(c.CacheDir, name)
-	dir := filepath.Dir(c.CacheDir)
+	path := filepath.Join(c.CacheDir, "files", name)
+	dir := filepath.Dir(path)
 	_ = os.MkdirAll(dir, 0755)
 
 	err = ioutil.WriteFile(path, res.Data, 0644)
