@@ -198,9 +198,6 @@ type FormatImage struct {
 	BlockPreserveScale bool    `json:"block_preserve_scale"`
 	BlockWidth         float64 `json:"block_width"`
 	DisplaySource      string  `json:"display_source,omitempty"`
-
-	// calculated by us
-	ImageURL string `json:"image_url,omitempty"`
 }
 
 type FormatMaps struct {
@@ -359,17 +356,14 @@ type Block struct {
 
 	// for BlockBookmark it's the url of the page
 	// for BlockGist it's the url for the gist
-	// fot BlockImage it's url of the image, but use ImageURL instead
-	// because Source is sometimes not accessible
+	// for BlockImage it's url of the image. Sometimes you need to use DownloadFile()
+	//   to get this image
 	// for BlockFile it's url of the file
 	// for BlockEmbed it's url of the embed
 	Source string `json:"-"`
 
 	// for BlockFile
 	FileSize string `json:"-"`
-
-	// for BlockImage it's an URL built from Source that is always accessible
-	ImageURL string `json:"-"`
 
 	// for BlockCode
 	Code         string `json:"-"`
@@ -558,10 +552,6 @@ func parseProperties(block *Block) error {
 		getProp(block, "source", &block.Source)
 	}
 
-	if block.Source != "" && block.IsImage() {
-		block.ImageURL = maybeProxyImageURL(block.Source, block)
-	}
-
 	// for BlockCode
 	getProp(block, "language", &block.CodeLanguage)
 
@@ -620,8 +610,6 @@ func (b *Block) FormatPage() *FormatPage {
 }
 
 func (b *Block) FormatImage() *FormatImage {
-	// TODO: no longer does
-	// format.ImageURL = maybeProxyImageURL(format.DisplaySource, b)
 	var format FormatImage
 	if ok := b.unmarshalFormat(BlockImage, &format); !ok {
 		return nil

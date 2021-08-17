@@ -1334,7 +1334,8 @@ func getImageStyle(block *notionapi.Block) string {
 func (c *Converter) RenderImage(block *notionapi.Block) {
 	c.Printf(`<figure id="%s" class="image">`, block.ID)
 	{
-		uri := block.ImageURL
+		// TODO: this might not work for images hosted on notion.so
+		uri := block.Source
 		style := getImageStyle(block)
 		c.Printf(`<a href="%s">`, uri)
 		c.Printf(`<img %ssrc="%s"/>`, style, uri)
