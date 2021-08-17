@@ -320,7 +320,7 @@ func (c *CachingClient) PreLoadCache() {
 	var ids []*NotionID
 	for _, fi := range files {
 		name := fi.Name()
-		if !strings.HasSuffix(name, ".txt'") {
+		if !strings.HasSuffix(name, ".txt") {
 			continue
 		}
 		id := strings.Split(name, ".")[0]
