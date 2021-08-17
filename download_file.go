@@ -9,11 +9,6 @@ import (
 	"strings"
 )
 
-const (
-	notionImageProxy = "https://www.notion.so/image/"
-	s3FileURLPrefix  = "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/"
-)
-
 // DownloadFileResponse is a result of DownloadFile()
 type DownloadFileResponse struct {
 	URL           string
@@ -56,11 +51,10 @@ func (c *Client) DownloadURL(uri string) (*DownloadFileResponse, error) {
 	return rsp, nil
 }
 
-/*
-	// TODO: not sure about this heuristic. Maybe turn it into a whitelist:
-	// if starts with notion.so or aws, then download and convert to local
-	// otherwise leave alone
-*/
+const (
+	notionImageProxy = "https://www.notion.so/image/"
+	s3FileURLPrefix  = "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/"
+)
 
 // sometimes image url in "source" is not accessible but can
 // be accessed when proxied via notion server as
@@ -90,13 +84,18 @@ func maybeProxyImageURL(uri string, block *Block) string {
 	if block == nil {
 		return uri
 	}
+	blockID := block.ID
+	parentTable := block.ParentTable
+
+	if strings.HasPrefix(uri, notionImageProxy) {
+		uri = uri + "?table=" + parentTable + "&id=" + blockID
+		return uri
+	}
 
 	if !strings.Contains(uri, s3FileURLPrefix) {
 		return uri
 	}
 
-	blockID := block.ID
-	parentTable := block.ParentTable
 	uri = notionImageProxy + url.PathEscape(uri) + "?table=" + parentTable + "&id=" + blockID
 	return uri
 }
