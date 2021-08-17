@@ -9,8 +9,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kjk/siser"
@@ -282,13 +284,55 @@ func (c *CachingClient) doPostNoCache(uri string, body []byte) ([]byte, error) {
 	return d, nil
 }
 
-func (c *CachingClient) getCachedPage(pageID string) *CachedPage {
-	cp := c.IdToCachedPage[pageID]
+func (c *CachingClient) getCachedPage(pageID *NotionID) *CachedPage {
+	cp := c.IdToCachedPage[pageID.NoDashID]
 	if cp == nil {
 		cp = &CachedPage{}
-		c.IdToCachedPage[pageID] = cp
+		c.IdToCachedPage[pageID.NoDashID] = cp
 	}
 	return cp
+}
+
+// PreLoadCache will preload all pages in the cache.
+// It does so concurrently (which is not allowed in general)
+// so should be faster
+func (c *CachingClient) PreLoadCache() {
+	if len(c.IdToCachedPage) > 0 {
+		return
+	}
+	files, err := os.ReadDir(c.CacheDir)
+	if err != nil {
+		// it's valid, the directoy doesn't have to exist
+		return
+	}
+
+	var ids []*NotionID
+	for _, fi := range files {
+		name := fi.Name()
+		if !strings.HasSuffix(name, ".txt'") {
+			continue
+		}
+		id := strings.Split(name, ".")[0]
+		nid := NewNotionID(id)
+		if nid != nil {
+			ids = append(ids, nid)
+		}
+	}
+	nThreads := runtime.NumCPU() + 2
+	sem := make(chan bool, nThreads)
+	var wg sync.WaitGroup
+	for _, id := range ids {
+		cp := c.getCachedPage(id)
+		sem <- true // enter semaphore
+		wg.Add(1)
+		go func(cp *CachedPage, nid *NotionID) {
+			c.Client.httpPostOverride = c.doPostCacheOnly
+			cp.PageFromCache, err = c.Client.DownloadPage(nid.NoDashID)
+			<-sem // leave semaphore
+			wg.Done()
+		}(cp, id)
+	}
+	wg.Wait()
 }
 
 func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
@@ -336,10 +380,9 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 				if !isIDEqual(id, b.ID) {
 					panic(fmt.Sprintf("got result in the wrong order, ids[i]: %s, bid: %s", id, b.ID))
 				}
-				cp := c.getCachedPage(id)
+				cp := c.getCachedPage(NewNotionID(id))
 				cp.LatestVer = b.Version
 			}
-
 		}
 	}
 
@@ -347,7 +390,7 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 
 	var err error
 	c.currPageID = currPageID
-	cp := c.getCachedPage(currPageID.NoDashID)
+	cp := c.getCachedPage(currPageID)
 
 	writeCacheForCurrPage := func(pageID *NotionID) error {
 		var buf []byte
