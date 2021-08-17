@@ -495,8 +495,7 @@ func (c *CachingClient) GetPageIDs() []string {
 	return res
 }
 
-// Sha1OfURL returns sha1 of url
-func Sha1OfURL(uri string) string {
+func sha1OfURL(uri string) string {
 	// TODO: could benefit from normalizing url, e.g. with
 	// https://github.com/PuerkitoBio/purell
 	h := sha1.New()
@@ -511,8 +510,23 @@ func GetCacheFileNameFromURL(uri string) string {
 	parts := strings.Split(uri, "/")
 	name := parts[len(parts)-1]
 	ext := filepath.Ext(name)
+	// some urls don't have good .ext
+	// https://images.unsplash.com/photo-1535819982781-87e951f67cce?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb
+	if len(ext) > 5 {
+		// heurstic to not use random strings as extension
+		ext = ""
+	}
+	if ext == "" {
+		// heuristics for unsplash
+		if strings.Contains(uri, "fmt=jpg") {
+			ext = ".jpg"
+		} else if strings.Contains(uri, "fmt=png") {
+			ext = ".png"
+		}
+	}
 	ext = strings.ToLower(ext)
-	name = Sha1OfURL(uri) + ext
+
+	name = sha1OfURL(uri) + ext
 	return filepath.Join("files", name)
 }
 
