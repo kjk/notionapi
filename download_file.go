@@ -22,25 +22,6 @@ type DownloadFileResponse struct {
 	Header        http.Header
 }
 
-// sometimes image url in "source" is not accessible but can
-// be accessed when proxied via notion server as
-// www.notion.so/image/${source}?table=${parentTable}&id=${blockID}
-// This also allows resizing via ?width=${n} arguments
-//
-// from: /images/page-cover/met_vincent_van_gogh_cradle.jpg
-// =>
-// https://www.notion.so/image/https%3A%2F%2Fwww.notion.so%2Fimages%2Fpage-cover%2Fmet_vincent_van_gogh_cradle.jpg?width=3290
-func maybeProxyImageURL(uri string, block *Block) string {
-
-	if !strings.Contains(uri, s3FileURLPrefix) {
-		return uri
-	}
-	blockID := block.ID
-	parentTable := block.ParentTable
-	uri = notionImageProxy + url.PathEscape(uri) + "?table=" + parentTable + "&id=" + blockID
-	return uri
-}
-
 // DownloadURL downloads a given url with possibly authenticated client
 func (c *Client) DownloadURL(uri string) (*DownloadFileResponse, error) {
 	req, err := http.NewRequest("GET", uri, nil)
@@ -74,16 +55,56 @@ func (c *Client) DownloadURL(uri string) (*DownloadFileResponse, error) {
 	return rsp, nil
 }
 
+/*
+	// TODO: not sure about this heuristic. Maybe turn it into a whitelist:
+	// if starts with notion.so or aws, then download and convert to local
+	// otherwise leave alone
+*/
+
+// sometimes image url in "source" is not accessible but can
+// be accessed when proxied via notion server as
+// www.notion.so/image/${source}?table=${parentTable}&id=${blockID}
+// This also allows resizing via ?width=${n} arguments
+func maybeProxyImageURL(uri string, block *Block) string {
+
+	if !strings.Contains(uri, s3FileURLPrefix) {
+		return uri
+	}
+
+	if strings.HasPrefix(uri, "https://cdn.dutchcowboys.nl/uploads") {
+		return uri
+	}
+	if strings.HasPrefix(uri, "https://images.unsplash.com") {
+		return uri
+	}
+
+	// TODO: not sure about this one anymore
+	if strings.HasPrefix(uri, "https://www.notion.so/images/") {
+		return uri
+	}
+
+	// from: /images/page-cover/met_vincent_van_gogh_cradle.jpg
+	// =>
+	// https://www.notion.so/image/https%3A%2F%2Fwww.notion.so%2Fimages%2Fpage-cover%2Fmet_vincent_van_gogh_cradle.jpg?width=3290
+	if strings.HasPrefix(uri, "/images/page-cover/") {
+		return "https://www.notion.so" + uri
+	}
+
+	if block == nil {
+		return uri
+	}
+	blockID := block.ID
+	parentTable := block.ParentTable
+	uri = notionImageProxy + url.PathEscape(uri) + "?table=" + parentTable + "&id=" + blockID
+	return uri
+}
+
 // DownloadFile downloads a file stored in Notion referenced
 // by a block with a given id and of a given block with a given
 // parent table (data present in Block)
 func (c *Client) DownloadFile(uri string, block *Block) (*DownloadFileResponse, error) {
-	//fmt.Printf("DownloadFile: '%s'\n", uri)
 	// first try downloading proxied url
-	uri2 := uri
-	if block != nil {
-		uri2 = maybeProxyImageURL(uri, block)
-	}
+	uri2 := maybeProxyImageURL(uri, block)
 	res, err := c.DownloadURL(uri2)
 	if err != nil && uri2 != uri {
 		// otherwise just try your luck with original URL
