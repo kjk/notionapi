@@ -20,6 +20,7 @@ type DownloadFileResponse struct {
 	CacheFilePath string
 	Data          []byte
 	Header        http.Header
+	FromCache     bool
 }
 
 // DownloadURL downloads a given url with possibly authenticated client

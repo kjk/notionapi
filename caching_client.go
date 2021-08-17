@@ -574,6 +574,7 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 				URL:           uri,
 				Data:          data,
 				CacheFilePath: path,
+				FromCache:     true,
 			}
 			c.vlogf("CachingClient.DownloadFile: got file from cache '%s' in %s\n", uri, time.Since(timeStart))
 			c.FilesFromCacheCount++
