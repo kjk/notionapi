@@ -232,10 +232,8 @@ func (c *CachingClient) getFilesCacheDir() string {
 	return filepath.Join(c.CacheDir, "files")
 }
 
-func (c *CachingClient) findCachedRequest(method string, uri string, body string) (*RequestCacheEntry, bool) {
+func (c *CachingClient) findCachedRequest(pageRequests []*RequestCacheEntry, method string, uri string, body string) (*RequestCacheEntry, bool) {
 	panicIf(c.Policy == PolicyDownloadAlways)
-	pageID := c.currPageID.NoDashID
-	pageRequests := c.pageIDToEntries[pageID]
 	bodyPP := ""
 	for _, r := range pageRequests {
 		if r.Method != method || r.URL != uri {
@@ -262,15 +260,17 @@ func (c *CachingClient) findCachedRequest(method string, uri string, body string
 			return r, true
 		}
 	}
-	c.Client.vlogf("CachingClient.findCachedRequest: no cache response for page '%s', url: '%s' in %d cached requests with body:\n%s\n", pageID, uri, len(pageRequests), bodyPP)
 	return nil, false
 }
 
 func (c *CachingClient) doPostCacheOnly(uri string, body []byte) ([]byte, error) {
-	r, ok := c.findCachedRequest("POST", uri, string(body))
+	pageID := c.currPageID.NoDashID
+	pageRequests := c.pageIDToEntries[pageID]
+	r, ok := c.findCachedRequest(pageRequests, "POST", uri, string(body))
 	if ok {
 		return r.Response, nil
 	}
+	c.Client.vlogf("CachingClient.findCachedRequest: no cache response for page '%s', url: '%s' in %d cached requests\n", pageID, uri, len(pageRequests))
 	return nil, fmt.Errorf("no cache response for '%s' of size %d", uri, len(body))
 }
 
@@ -337,7 +337,16 @@ func (c *CachingClient) PreLoadCache() {
 		sem <- true // enter semaphore
 		wg.Add(1)
 		go func(cp *CachedPage, nid *NotionID) {
-			c.Client.httpPostOverride = c.doPostCacheOnly
+			c.Client.httpPostOverride = func(uri string, body []byte) ([]byte, error) {
+				pageID := nid.NoDashID
+				pageRequests := c.pageIDToEntries[pageID]
+				r, ok := c.findCachedRequest(pageRequests, "POST", uri, string(body))
+				if ok {
+					return r.Response, nil
+				}
+				c.Client.vlogf("CachingClient.findCachedRequest: no cache response for page '%s', url: '%s' in %d cached requests\n", pageID, uri, len(pageRequests))
+				return nil, fmt.Errorf("no cache response for '%s' of size %d", uri, len(body))
+			}
 			cp.PageFromCache, err = c.Client.DownloadPage(nid.NoDashID)
 			if cp.PageFromCache != nil {
 				_ = cp.PageFromCache.GetSubPages()
