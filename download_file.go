@@ -67,10 +67,6 @@ func (c *Client) DownloadURL(uri string) (*DownloadFileResponse, error) {
 // This also allows resizing via ?width=${n} arguments
 func maybeProxyImageURL(uri string, block *Block) string {
 
-	if !strings.Contains(uri, s3FileURLPrefix) {
-		return uri
-	}
-
 	if strings.HasPrefix(uri, "https://cdn.dutchcowboys.nl/uploads") {
 		return uri
 	}
@@ -93,6 +89,11 @@ func maybeProxyImageURL(uri string, block *Block) string {
 	if block == nil {
 		return uri
 	}
+
+	if !strings.Contains(uri, s3FileURLPrefix) {
+		return uri
+	}
+
 	blockID := block.ID
 	parentTable := block.ParentTable
 	uri = notionImageProxy + url.PathEscape(uri) + "?table=" + parentTable + "&id=" + blockID
