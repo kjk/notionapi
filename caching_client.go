@@ -320,21 +320,19 @@ func (c *CachingClient) PreLoadCache() {
 	var ids []*NotionID
 	for _, fi := range files {
 		name := fi.Name()
-		if !strings.HasSuffix(name, ".txt") {
-			continue
-		}
-		id := strings.Split(name, ".")[0]
-		nid := NewNotionID(id)
-		if nid != nil {
-			ids = append(ids, nid)
+		if strings.HasSuffix(name, ".txt") {
+			nid := NewNotionID(strings.Split(name, ".")[0])
+			if nid != nil {
+				ids = append(ids, nid)
+			}
 		}
 	}
-	nThreads := runtime.NumCPU() + 2
+	nThreads := runtime.NumCPU() + 1
 	sem := make(chan bool, nThreads)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	for _, id := range ids {
-		cp := c.getCachedPage(id)
+		cachedPage := c.getCachedPage(id)
 		client := *c.Client
 		sem <- true // enter semaphore
 		wg.Add(1)
@@ -351,12 +349,9 @@ func (c *CachingClient) PreLoadCache() {
 				return nil, fmt.Errorf("no cache response for '%s' of size %d", uri, len(body))
 			}
 			cp.PageFromCache, err = client.DownloadPage(nid.NoDashID)
-			if cp.PageFromCache != nil {
-				_ = cp.PageFromCache.GetSubPages()
-			}
 			<-sem // leave semaphore
 			wg.Done()
-		}(&client, cp, id)
+		}(&client, cachedPage, id)
 	}
 	wg.Wait()
 }
