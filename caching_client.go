@@ -529,7 +529,7 @@ func (c *CachingClient) findDownloadedFileInCache(uri string) string {
 	name := sha1OfURL(uri)
 	for _, f := range c.fileNamesInCache {
 		if strings.HasPrefix(f, name) {
-			return filepath.Join(dir, name)
+			return filepath.Join(dir, f)
 		}
 	}
 	return ""
