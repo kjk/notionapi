@@ -445,7 +445,8 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 			pageID := notionapi.AttrGetPageID(attr)
 			pageTitle := ""
 			relURL := notionapi.ToNoDashID(pageID)
-			block := c.Page.BlockByID(pageID)
+			nid := notionapi.NewNotionID(pageID)
+			block := c.Page.BlockByID(nid)
 			if block != nil {
 				pageTitle = block.Title
 			}
@@ -588,7 +589,8 @@ func (c *Converter) renderPageHeader(block *notionapi.Block) {
 // RenderCollectionViewPage renders BlockCollectionViewPage
 func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
 	colID := block.CollectionID
-	col := c.Page.CollectionByID(colID)
+	nid := notionapi.NewNotionID(colID)
+	col := c.Page.CollectionByID(nid)
 	icon := col.Icon
 	name := col.GetName()
 	c.indent++
@@ -1375,8 +1377,9 @@ func (c *Converter) RenderColumn(block *notionapi.Block) {
 func (c *Converter) findParentPageID(page *notionapi.Page, id string) string {
 	// we traverse blocks upwards until we find a block of type Page
 	currID := id
+	nid := notionapi.NewNotionID(id)
 	for {
-		block := page.BlockByID(currID)
+		block := page.BlockByID(nid)
 		// assume it's a Page block that's not in Page's block
 		if block == nil {
 			return currID

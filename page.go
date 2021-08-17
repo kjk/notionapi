@@ -9,14 +9,15 @@ import (
 var (
 	// TODO: add more values, see FormatPage struct
 	validFormatValues = map[string]struct{}{
-		"page_full_width": struct{}{},
-		"page_small_text": struct{}{},
+		"page_full_width": {},
+		"page_small_text": {},
 	}
 )
 
 // Page describes a single Notion page
 type Page struct {
-	ID string
+	ID       string
+	NotionID *NotionID
 
 	// expose raw records for all data associated with this page
 	BlockRecords          []*Record
@@ -41,47 +42,55 @@ type Page struct {
 
 	blocksToSkip map[string]struct{} // not alive or when server doesn't return "value" for this block id
 
-	client *Client
+	client   *Client
+	subPages []*NotionID
+}
+
+func (p *Page) GetNotionID() *NotionID {
+	if p.NotionID == nil {
+		p.NotionID = NewNotionID(p.ID)
+	}
+	return p.NotionID
 }
 
 // SpaceByID returns a space by its id
-func (p *Page) SpaceByID(id string) *Space {
-	return p.idToSpace[ToDashID(id)]
+func (p *Page) SpaceByID(nid *NotionID) *Space {
+	return p.idToSpace[nid.DashID]
 }
 
 // BlockByID returns a block by its id
-func (p *Page) BlockByID(id string) *Block {
-	return p.idToBlock[ToDashID(id)]
+func (p *Page) BlockByID(nid *NotionID) *Block {
+	return p.idToBlock[nid.DashID]
 }
 
 // UserByID returns a user by its id
-func (p *Page) UserByID(id string) *User {
-	return p.idToUser[ToDashID(id)]
+func (p *Page) UserByID(nid *NotionID) *User {
+	return p.idToUser[nid.DashID]
 }
 
 // CollectionByID returns a collection by its id
-func (p *Page) CollectionByID(id string) *Collection {
-	return p.idToCollection[ToDashID(id)]
+func (p *Page) CollectionByID(nid *NotionID) *Collection {
+	return p.idToCollection[nid.DashID]
 }
 
 // CollectionViewByID returns a collection view by its id
-func (p *Page) CollectionViewByID(id string) *CollectionView {
-	return p.idToCollectionView[ToDashID(id)]
+func (p *Page) CollectionViewByID(nid *NotionID) *CollectionView {
+	return p.idToCollectionView[nid.DashID]
 }
 
 // DiscussionByID returns a discussion by its id
-func (p *Page) DiscussionByID(id string) *Discussion {
-	return p.idToDiscussion[ToDashID(id)]
+func (p *Page) DiscussionByID(nid *NotionID) *Discussion {
+	return p.idToDiscussion[nid.DashID]
 }
 
 // CommentByID returns a comment by its id
-func (p *Page) CommentByID(id string) *Comment {
-	return p.idToComment[ToDashID(id)]
+func (p *Page) CommentByID(nid *NotionID) *Comment {
+	return p.idToComment[nid.DashID]
 }
 
 // Root returns a root block representing a page
 func (p *Page) Root() *Block {
-	return p.BlockByID(p.ID)
+	return p.BlockByID(p.GetNotionID())
 }
 
 // SetTitle changes page title
@@ -177,7 +186,7 @@ func (p *Page) IsSubPage(block *Block) bool {
 		if parentID == p.ID {
 			return true
 		}
-		parent := p.BlockByID(block.ParentID)
+		parent := p.BlockByID(block.GetParentNotionID())
 		if parent == nil {
 			return false
 		}
@@ -213,31 +222,45 @@ func isPageBlock(block *Block) bool {
 }
 
 // GetSubPages return list of ids for direct sub-pages of this page
-func (p *Page) GetSubPages() []string {
+func (p *Page) GetSubPages() []*NotionID {
+	if len(p.subPages) > 0 {
+		return p.subPages
+	}
 	root := p.Root()
 	panicIf(!isPageBlock(root))
-	subPages := map[string]struct{}{}
+	subPages := map[*NotionID]struct{}{}
 	seenBlocks := map[string]struct{}{}
-	blocksToVisit := append([]string{}, root.ContentIDs...)
+	var blocksToVisit []*NotionID
+	for _, id := range root.ContentIDs {
+		nid := NewNotionID(id)
+		blocksToVisit = append(blocksToVisit, nid)
+	}
 	for len(blocksToVisit) > 0 {
-		id := ToDashID(blocksToVisit[0])
+		nid := blocksToVisit[0]
+		id := nid.DashID
 		blocksToVisit = blocksToVisit[1:]
 		if _, ok := seenBlocks[id]; ok {
 			continue
 		}
 		seenBlocks[id] = struct{}{}
-		block := p.BlockByID(id)
+		block := p.BlockByID(nid)
 		if p.IsSubPage(block) {
-			subPages[id] = struct{}{}
+			subPages[nid] = struct{}{}
 		}
 		// need to recursively scan blocks with children
-		blocksToVisit = append(blocksToVisit, block.ContentIDs...)
+		for _, id := range block.ContentIDs {
+			nid := NewNotionID(id)
+			blocksToVisit = append(blocksToVisit, nid)
+		}
 	}
-	res := []string{}
+	res := []*NotionID{}
 	for id := range subPages {
 		res = append(res, id)
 	}
-	sort.Strings(res)
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].DashID < res[j].DashID
+	})
+	p.subPages = res
 	return res
 }
 

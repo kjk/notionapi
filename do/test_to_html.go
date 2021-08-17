@@ -104,7 +104,7 @@ func testToHTML(startPageID string) {
 		AuthToken: getToken(),
 	}
 	seenPages := map[string]bool{}
-	pages := []string{startPageID}
+	pages := []*notionapi.NotionID{notionapi.NewNotionID(startPageID)}
 	nPage := 0
 
 	hasDirDiff := getDiffToolPath() != ""
@@ -124,14 +124,14 @@ func testToHTML(startPageID string) {
 		pageID := pages[0]
 		pages = pages[1:]
 
-		pageIDNormalized := notionapi.ToNoDashID(pageID)
+		pageIDNormalized := pageID.NoDashID
 		if seenPages[pageIDNormalized] {
 			continue
 		}
 		seenPages[pageIDNormalized] = true
 		nPage++
 
-		page, err := downloadPage(client, pageID)
+		page, err := downloadPage(client, pageID.NoDashID)
 		must(err)
 		pages = append(pages, page.GetSubPages()...)
 		name, pageHTML := toHTML2NotionCompat(page)
@@ -158,22 +158,22 @@ func testToHTML(startPageID string) {
 		}
 
 		if bytes.Equal(pageHTML, expData) {
-			if isPageIDInArray(knownBad, pageID) {
-				printLastEvent(" ok (AND ALSO WHITELISTED)", pageID)
+			if isPageIDInArray(knownBad, pageID.NoDashID) {
+				printLastEvent(" ok (AND ALSO WHITELISTED)", pageID.NoDashID)
 				continue
 			}
-			printLastEvent(" ok", pageID)
+			printLastEvent(" ok", pageID.NoDashID)
 			continue
 		}
 
 		{
 			{
-				fileName := fmt.Sprintf("%s.1-from-notion.html", notionapi.ToNoDashID(pageID))
+				fileName := fmt.Sprintf("%s.1-from-notion.html", pageID.NoDashID)
 				path := filepath.Join(diffDir, fileName)
 				u.WriteFileMust(path, expData)
 			}
 			{
-				fileName := fmt.Sprintf("%s.2-mine.html", notionapi.ToNoDashID(pageID))
+				fileName := fmt.Sprintf("%s.2-mine.html", pageID.NoDashID)
 				path := filepath.Join(diffDir, fileName)
 				u.WriteFileMust(path, pageHTML)
 			}
@@ -183,22 +183,22 @@ func testToHTML(startPageID string) {
 		gotDataFormatted := ppHTML(pageHTML)
 
 		if bytes.Equal(expDataFormatted, gotDataFormatted) {
-			if isPageIDInArray(knownBad, pageID) {
+			if isPageIDInArray(knownBad, pageID.NoDashID) {
 				logf(" ok after formatting (AND ALSO WHITELISTED)")
 				continue
 			}
-			printLastEvent(", same formatted", pageID)
+			printLastEvent(", same formatted", pageID.NoDashID)
 			continue
 		}
 
 		// if we can diff dirs, run through all files and save files that are
 		// differetn in in dirs
-		fileName := fmt.Sprintf("%s.html", notionapi.ToNoDashID(pageID))
+		fileName := fmt.Sprintf("%s.html", pageID.NoDashID)
 		expPath := filepath.Join(expDiffDir, fileName)
 		u.WriteFileMust(expPath, expDataFormatted)
 		gotPath := filepath.Join(gotDiffDir, fileName)
 		u.WriteFileMust(gotPath, gotDataFormatted)
-		logf("\nHTML in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
+		logf("\nHTML in https://notion.so/%s doesn't match\n", pageID.NoDashID)
 
 		// if has diff tool capable of comparing directories, save files to
 		// directory and invoke difftools
@@ -207,8 +207,8 @@ func testToHTML(startPageID string) {
 			continue
 		}
 
-		if isPageIDInArray(knownBad, pageID) {
-			printLastEvent(" doesn't match but whitelisted", pageID)
+		if isPageIDInArray(knownBad, pageID.NoDashID) {
+			printLastEvent(" doesn't match but whitelisted", pageID.NoDashID)
 			continue
 		}
 

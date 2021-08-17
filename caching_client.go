@@ -339,6 +339,9 @@ func (c *CachingClient) PreLoadCache() {
 		go func(cp *CachedPage, nid *NotionID) {
 			c.Client.httpPostOverride = c.doPostCacheOnly
 			cp.PageFromCache, err = c.Client.DownloadPage(nid.NoDashID)
+			if cp.PageFromCache != nil {
+				_ = cp.PageFromCache.GetSubPages()
+			}
 			<-sem // leave semaphore
 			wg.Done()
 		}(cp, id)
@@ -495,10 +498,10 @@ type DownloadInfo struct {
 }
 
 func (c *CachingClient) DownloadPagesRecursively(startPageID string, afterDownload func(*DownloadInfo) error) ([]*Page, error) {
-	toVisit := []string{startPageID}
+	toVisit := []*NotionID{NewNotionID(startPageID)}
 	downloaded := map[string]*Page{}
 	for len(toVisit) > 0 {
-		pageID := ToNoDashID(toVisit[0])
+		pageID := toVisit[0].NoDashID
 		toVisit = toVisit[1:]
 		if downloaded[pageID] != nil {
 			continue

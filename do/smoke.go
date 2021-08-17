@@ -28,7 +28,7 @@ func loadAndRenderPageRecur(pageID string) {
 	u.WriteFileMust(mdPath, md)
 	logf("%s : md version of the page\n", mdPath)
 	for _, pageID := range page.GetSubPages() {
-		loadAndRenderPageRecur(pageID)
+		loadAndRenderPageRecur(pageID.NoDashID)
 	}
 }
 

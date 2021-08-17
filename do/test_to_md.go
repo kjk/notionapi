@@ -149,7 +149,7 @@ func testToMarkdown(startPageID string) {
 		AuthToken: getToken(),
 	}
 	seenPages := map[string]bool{}
-	pages := []string{startPageID}
+	pages := []*notionapi.NotionID{notionapi.NewNotionID(startPageID)}
 	nPage := 0
 
 	hasDirDiff := getDiffToolPath() != ""
@@ -168,20 +168,20 @@ func testToMarkdown(startPageID string) {
 		pageID := pages[0]
 		pages = pages[1:]
 
-		pageIDNormalized := notionapi.ToNoDashID(pageID)
+		pageIDNormalized := pageID.NoDashID
 		if seenPages[pageIDNormalized] {
 			continue
 		}
 		seenPages[pageIDNormalized] = true
 		nPage++
 
-		page, err := downloadPage(client, pageID)
+		page, err := downloadPage(client, pageID.NoDashID)
 		must(err)
 		pages = append(pages, page.GetSubPages()...)
 		name, pageMd := toMarkdown(page)
 		fmt.Printf("%02d: '%s'", nPage, name)
 
-		expData, ok := findReferenceMarkdownData(referenceFiles, name, pageID)
+		expData, ok := findReferenceMarkdownData(referenceFiles, name, pageID.NoDashID)
 		if !ok {
 			fmt.Printf("\n'%s' from '%s' doesn't seem correct as it's not present in referenceFiles\n", name, page.Root().Title)
 			fmt.Printf("Names in referenceFiles:\n")
@@ -192,7 +192,7 @@ func testToMarkdown(startPageID string) {
 		}
 
 		if bytes.Equal(pageMd, expData) {
-			if isPageIDInArray(knownBad, pageID) {
+			if isPageIDInArray(knownBad, pageID.NoDashID) {
 				fmt.Printf(" ok (AND ALSO WHITELISTED)\n")
 				continue
 			}
@@ -203,12 +203,12 @@ func testToMarkdown(startPageID string) {
 		// if we can diff dirs, run through all files and save files that are
 		// differetn in in dirs
 		if hasDirDiff {
-			fileName := fmt.Sprintf("%s.md", notionapi.ToNoDashID(pageID))
+			fileName := fmt.Sprintf("%s.md", pageID.NoDashID)
 			expPath := filepath.Join(expDiffDir, fileName)
 			u.WriteFileMust(expPath, expData)
 			gotPath := filepath.Join(gotDiffDir, fileName)
 			u.WriteFileMust(gotPath, pageMd)
-			fmt.Printf(" https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
+			fmt.Printf(" https://notion.so/%s doesn't match\n", pageID.NoDashID)
 			if nDifferent == 0 {
 				dirDiff(expDiffDir, gotDiffDir)
 			}
@@ -216,14 +216,14 @@ func testToMarkdown(startPageID string) {
 			continue
 		}
 
-		if isPageIDInArray(knownBad, pageID) {
+		if isPageIDInArray(knownBad, pageID.NoDashID) {
 			fmt.Printf(" doesn't match but whitelisted\n")
 			continue
 		}
 
-		fmt.Printf("\nMarkdown in https://notion.so/%s doesn't match\n", notionapi.ToNoDashID(pageID))
+		fmt.Printf("\nMarkdown in https://notion.so/%s doesn't match\n", pageID.NoDashID)
 
-		fileName := fmt.Sprintf("%s.md", notionapi.ToNoDashID(pageID))
+		fileName := fmt.Sprintf("%s.md", pageID.NoDashID)
 		expPath := "exp-" + fileName
 		gotPath := "got-" + fileName
 		u.WriteFileMust(expPath, expData)

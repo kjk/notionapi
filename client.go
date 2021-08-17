@@ -493,7 +493,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				continue
 			}
 
-			b.Parent = p.BlockByID(b.ParentID)
+			b.Parent = p.BlockByID(b.GetParentNotionID())
 			if b.Parent == nil {
 				return nil, fmt.Errorf("could not find parent '%s' of id '%s' of block '%s'", b.ParentTable, b.ParentID, b.ID)
 			}

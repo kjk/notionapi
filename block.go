@@ -378,7 +378,23 @@ type Block struct {
 	// RawJSON represents Block as
 	RawJSON map[string]interface{} `json:"-"`
 
-	isResolved bool
+	notionID       *NotionID
+	parentNotionID *NotionID
+	isResolved     bool
+}
+
+func (b *Block) GetNotionID() *NotionID {
+	if b.notionID == nil {
+		b.notionID = NewNotionID(b.ID)
+	}
+	return b.notionID
+}
+
+func (b *Block) GetParentNotionID() *NotionID {
+	if b.parentNotionID == nil {
+		b.parentNotionID = NewNotionID(b.ParentID)
+	}
+	return b.parentNotionID
 }
 
 func (b *Block) Prop(key string) (interface{}, bool) {
@@ -697,20 +713,20 @@ func (b *Block) FormatCallout() *FormatCallout {
 	return &format
 }
 
-func (b *Block) BlockByID(id string) *Block {
-	return b.Page.BlockByID(id)
+func (b *Block) BlockByID(nid *NotionID) *Block {
+	return b.Page.BlockByID(nid)
 }
 
-func (b *Block) UserByID(id string) *User {
-	return b.Page.UserByID(id)
+func (b *Block) UserByID(nid *NotionID) *User {
+	return b.Page.UserByID(nid)
 }
 
-func (b *Block) CollectionByID(id string) *Collection {
-	return b.Page.CollectionByID(id)
+func (b *Block) CollectionByID(nid *NotionID) *Collection {
+	return b.Page.CollectionByID(nid)
 }
 
-func (b *Block) CollectionViewByID(id string) *CollectionView {
-	return b.Page.CollectionViewByID(id)
+func (b *Block) CollectionViewByID(nid *NotionID) *CollectionView {
+	return b.Page.CollectionViewByID(nid)
 }
 
 func getBlockIDsSorted(idToBlock map[string]*Block) []string {
