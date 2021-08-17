@@ -17,7 +17,7 @@ const (
 // DownloadFileResponse is a result of DownloadFile()
 type DownloadFileResponse struct {
 	URL           string
-	CacheFileName string
+	CacheFilePath string
 	Data          []byte
 	Header        http.Header
 }

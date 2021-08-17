@@ -82,6 +82,9 @@ type CachingClient struct {
 	currPageRequests      []*RequestCacheEntry
 	needSerializeRequests bool
 	didCheckVersions      bool
+
+	// names of files in file cache
+	fileNamesInCache []string
 }
 
 func (c *CachingClient) vlogf(format string, args ...interface{}) {
@@ -503,56 +506,74 @@ func sha1OfURL(uri string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// GetCacheFileNameFromURL returns name of the file in cache
-// for this URL. The name is files/${sha1OfURL}.${ext}
-// It's a consistent, one-way transform
-func GetCacheFileNameFromURL(uri string) string {
-	parts := strings.Split(uri, "/")
-	name := parts[len(parts)-1]
-	ext := filepath.Ext(name)
-	// some urls don't have good .ext
-	// https://images.unsplash.com/photo-1535819982781-87e951f67cce?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb
-	if len(ext) > 5 {
-		// heurstic to not use random strings as extension
-		ext = ""
-	}
-	if ext == "" {
-		// heuristics for unsplash
-		if strings.Contains(uri, "fmt=jpg") {
-			ext = ".jpg"
-		} else if strings.Contains(uri, "fmt=png") {
-			ext = ".png"
+// Returns a name of file in files cache that corresponds
+// to a given uri.
+// Name of file in cache is sha1(uri) + extension.
+// We don't always know the extension, so we need to
+// check all file names
+func (c *CachingClient) findDownloadedFileInCache(uri string) string {
+	dir := filepath.Join(c.CacheDir, "files")
+	if len(c.fileNamesInCache) == 0 {
+		files, err := os.ReadDir(dir)
+		if err != nil {
+			return ""
+		}
+		for _, fi := range files {
+			if fi.Type().IsRegular() {
+				c.fileNamesInCache = append(c.fileNamesInCache, fi.Name())
+			}
 		}
 	}
-	ext = strings.ToLower(ext)
+	name := sha1OfURL(uri)
+	for _, f := range c.fileNamesInCache {
+		if strings.HasPrefix(f, name) {
+			return filepath.Join(dir, name)
+		}
+	}
+	return ""
+}
 
-	name = sha1OfURL(uri) + ext
-	return filepath.Join("files", name)
+func guessExt(fileName string, contentType string) string {
+	ext := strings.ToLower(filepath.Ext(fileName))
+	switch ext {
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".svg", ".txt":
+		return ext
+	}
+
+	contentType = strings.ToLower(contentType)
+	switch contentType {
+	case "image/png":
+		return ".png"
+	case "image/jpeg":
+		return ".jpg"
+	case "image/svg+xml":
+		return ".svg"
+	}
+	if len(ext) <= 5 {
+		// allow any extension of up to 4 chars
+		return ext
+	}
+	panic(fmt.Errorf("didn't find ext for file '%s', content type '%s'", fileName, contentType))
 }
 
 // DownloadFile downloads a file refered by block with a given blockID and a parent table
 // we cache the file
 func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileResponse, error) {
-	//fmt.Printf("Downloader.DownloadFile('%s'\n", uri)
-	cacheFileName := GetCacheFileNameFromURL(uri)
-	path := filepath.Join(c.CacheDir, cacheFileName)
-	// ensure dif for file exists
-	dir := filepath.Dir(path)
-	_ = os.MkdirAll(dir, 0755)
 
 	var data []byte
 	var err error
 	// first try to get it from cache
 	if c.Policy != PolicyDownloadAlways {
 		timeStart := time.Now()
-		data, err = ioutil.ReadFile(cacheFileName)
+		path := c.findDownloadedFileInCache(uri)
+		data, err = ioutil.ReadFile(path)
 		if err != nil {
-			os.Remove(cacheFileName)
+			os.Remove(path)
 		} else {
 			res := &DownloadFileResponse{
 				URL:           uri,
 				Data:          data,
-				CacheFileName: cacheFileName,
+				CacheFilePath: path,
 			}
 			c.vlogf("CachingClient.DownloadFile: got file from cache '%s' in %s\n", uri, time.Since(timeStart))
 			c.FilesFromCacheCount++
@@ -561,7 +582,7 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 	}
 
 	if c.Policy == PolicyCacheOnly {
-		return nil, fmt.Errorf("file '%s' for url '%s' not in cache", cacheFileName, uri)
+		return nil, fmt.Errorf("no cached file for url '%s'", uri)
 	}
 
 	timeStart := time.Now()
@@ -571,8 +592,18 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 		return nil, err
 	}
 	c.vlogf("CachingClient.DownloadFile: downloaded file '%s' in %s\n", uri, time.Since(timeStart))
-	_ = ioutil.WriteFile(path, res.Data, 0644)
-	res.CacheFileName = cacheFileName
+	ext := guessExt(uri, res.Header.Get("Content-Type"))
+	name := sha1OfURL(uri) + ext
+	path := filepath.Join(c.CacheDir, name)
+	dir := filepath.Dir(c.CacheDir)
+	_ = os.MkdirAll(dir, 0755)
+
+	err = ioutil.WriteFile(path, res.Data, 0644)
+	if err != nil {
+		return nil, err
+	}
+	res.CacheFilePath = path
+	c.fileNamesInCache = append(c.fileNamesInCache, name)
 	c.DownloadedFilesCount++
 	return res, nil
 }
