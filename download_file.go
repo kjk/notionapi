@@ -111,5 +111,16 @@ func (c *Client) DownloadFile(uri string, block *Block) (*DownloadFileResponse, 
 		// otherwise just try your luck with original URL
 		res, err = c.DownloadURL(uri)
 	}
+	if err != nil {
+		rsp, err2 := c.GetSignedURLs([]string{uri}, block)
+		if err2 != nil {
+			return nil, err
+		}
+		if len(rsp.SignedURLS) == 0 {
+			return nil, err
+		}
+		uri3 := rsp.SignedURLS[0]
+		res, err = c.DownloadURL(uri3)
+	}
 	return res, err
 }
