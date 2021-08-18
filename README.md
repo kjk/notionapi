@@ -2,20 +2,16 @@
 
 This is an unofficial, Go API for https://notion.so. Mostly for reading, limited write capabilities.
 
-For Go client using official Notion API, see https://github.com/kjk/notion
-
-Note: official Notion API is still in beta and not as capable as this unofficial API.
-
 It allows you to retrieve content of a Notion page in structured format.
 
 You can then e.g. convert that format to HTML.
 
-It's used in https://presstige.io/
+Note: official Notion API is still in beta and not as capable as this unofficial API.
 
 Documentation:
 
-- [getting started tutorial](https://presstige.io/p/Using-Notion-API-Go-client-2567fcfa8f7a4ed4bdf6f6ec9298d34a)
-- [API docs](https://godoc.org/github.com/kjk/notionapi)
+- tutorial: https://blog.kowalczyk.info/article/c9df78cbeaae4e0cb2848c9964bcfc94/using-notion-api-go-client.html
+- API docs: https://pkg.go.dev/github.com/kjk/notionapi
 
 You can learn how [I reverse-engineered the Notion API](https://blog.kowalczyk.info/article/88aee8f43620471aa9dbcad28368174c/how-i-reverse-engineered-notion-api.html) in order to write this library.
 
@@ -27,7 +23,7 @@ Notion serves as a CMS (Content Management System). I write and edit pages in No
 
 I use custom Go program to download Notion pages using this this library and converts pages to HTML. It then publishes the result to Netlify.
 
-You can see the code at https://github.com/kjk/blog and https://github.com/essentialbooks/books/
+You can see the code at https://github.com/kjk/blog and https://github.com/essentialbooks/tools/
 
 # Implementations for other languages
 
