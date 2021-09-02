@@ -963,22 +963,14 @@ func (c *Converter) RenderTodo(block *notionapi.Block) {
 func (c *Converter) RenderToggle(block *notionapi.Block) {
 	cls := GetBlockColorClass(block) + " toggle"
 	cls = CleanAttributeValue(cls)
-	c.Printf(`<ul id="%s" class="%s">`, block.ID, cls)
+	c.Printf(`<details id="%s" class="%s">`, block.ID, cls)
 	{
-		c.Printf(`<li>`)
-		{
-			c.Printf(`<details open="">`)
-			{
-				c.Printf(`<summary>`)
-				c.RenderInlines(block.InlineContent)
-				c.Printf(`</summary>`)
-				c.RenderChildren(block)
-			}
-			c.Printf(`</details>`)
-		}
-		c.Printf(`</li>`)
+		c.Printf(`<summary>`)
+		c.RenderInlines(block.InlineContent)
+		c.Printf(`</summary>`)
+		c.RenderChildren(block)
 	}
-	c.Printf(`</ul>`)
+	c.Printf(`</details>`)
 }
 
 // RenderQuote renders BlockQuote
