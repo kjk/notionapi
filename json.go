@@ -17,9 +17,10 @@ var prettyOpts = pretty.Options{
 	SortKeys: true,
 }
 
+// TODO: doesn't work with some of Notion json responses?
 // pretty-print if valid JSON. If not, return unchanged
 // about 4x faster than naive version using json.Unmarshal() + json.Marshal()
-func PrettyPrintJS(js []byte) []byte {
+func PrettyPrintJSBroken(js []byte) []byte {
 	if !jsonit.Valid(js) {
 		return js
 	}
@@ -41,4 +42,19 @@ func jsonGetMap(m map[string]interface{}, key string) map[string]interface{} {
 		}
 	}
 	return nil
+}
+
+// pretty-print if valid JSON. If not, return unchanged
+// about 4x faster than naive version using json.Unmarshal() + json.Marshal()
+func PrettyPrintJS(js []byte) []byte {
+	var m map[string]interface{}
+	err := json.Unmarshal(js, &m)
+	if err != nil {
+		return js
+	}
+	d, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return js
+	}
+	return d
 }

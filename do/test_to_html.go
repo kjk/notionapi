@@ -170,12 +170,12 @@ func testToHTML(startPageID string) {
 			{
 				fileName := fmt.Sprintf("%s.1-from-notion.html", pageID.NoDashID)
 				path := filepath.Join(diffDir, fileName)
-				u.WriteFileMust(path, expData)
+				writeFileMust(path, expData)
 			}
 			{
 				fileName := fmt.Sprintf("%s.2-mine.html", pageID.NoDashID)
 				path := filepath.Join(diffDir, fileName)
-				u.WriteFileMust(path, pageHTML)
+				writeFileMust(path, pageHTML)
 			}
 		}
 
@@ -195,9 +195,9 @@ func testToHTML(startPageID string) {
 		// differetn in in dirs
 		fileName := fmt.Sprintf("%s.html", pageID.NoDashID)
 		expPath := filepath.Join(expDiffDir, fileName)
-		u.WriteFileMust(expPath, expDataFormatted)
+		writeFileMust(expPath, expDataFormatted)
 		gotPath := filepath.Join(gotDiffDir, fileName)
-		u.WriteFileMust(gotPath, gotDataFormatted)
+		writeFileMust(gotPath, gotDataFormatted)
 		logf("\nHTML in https://notion.so/%s doesn't match\n", pageID.NoDashID)
 
 		// if has diff tool capable of comparing directories, save files to

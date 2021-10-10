@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
@@ -9,8 +10,12 @@ import (
 	"github.com/kjk/u"
 )
 
-var must = u.Must
-var logf = u.Logf
+var (
+	must        = u.Must
+	logf        = u.Logf
+	panicIf     = u.PanicIf
+	openBrowser = u.OpenBrowser
+)
 
 func recreateDir(dir string) {
 	_ = os.RemoveAll(dir)
@@ -32,5 +37,10 @@ func openCodeDiff(path1, path2 string) {
 	cmd := exec.Command("code", "--new-window", "--diff", path1, path2)
 	logf("running: %s\n", strings.Join(cmd.Args, " "))
 	err := cmd.Start()
+	must(err)
+}
+
+func writeFileMust(path string, data []byte) {
+	err := ioutil.WriteFile(path, data, 0644)
 	must(err)
 }

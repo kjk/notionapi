@@ -25,7 +25,7 @@ func loadAndRenderPageRecur(pageID string) {
 	_, md := toMarkdown(page)
 	mdName := fmt.Sprintf("%s.page.md", id)
 	mdPath := filepath.Join(cacheDir, mdName)
-	u.WriteFileMust(mdPath, md)
+	writeFileMust(mdPath, md)
 	logf("%s : md version of the page\n", mdPath)
 	for _, pageID := range page.GetSubPages() {
 		loadAndRenderPageRecur(pageID.NoDashID)

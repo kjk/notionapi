@@ -162,7 +162,7 @@ func (c *Client) doNotionAPI(apiURL string, requestData interface{}, result inte
 	if err != nil {
 		return nil, err
 	}
-	//logJSON(c, d)
+	logJSON(c, d)
 
 	err = jsonit.Unmarshal(d, result)
 	if err != nil {

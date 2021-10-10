@@ -205,9 +205,9 @@ func testToMarkdown(startPageID string) {
 		if hasDirDiff {
 			fileName := fmt.Sprintf("%s.md", pageID.NoDashID)
 			expPath := filepath.Join(expDiffDir, fileName)
-			u.WriteFileMust(expPath, expData)
+			writeFileMust(expPath, expData)
 			gotPath := filepath.Join(gotDiffDir, fileName)
-			u.WriteFileMust(gotPath, pageMd)
+			writeFileMust(gotPath, pageMd)
 			fmt.Printf(" https://notion.so/%s doesn't match\n", pageID.NoDashID)
 			if nDifferent == 0 {
 				dirDiff(expDiffDir, gotDiffDir)
@@ -226,8 +226,8 @@ func testToMarkdown(startPageID string) {
 		fileName := fmt.Sprintf("%s.md", pageID.NoDashID)
 		expPath := "exp-" + fileName
 		gotPath := "got-" + fileName
-		u.WriteFileMust(expPath, expData)
-		u.WriteFileMust(gotPath, pageMd)
+		writeFileMust(expPath, expData)
+		writeFileMust(gotPath, pageMd)
 		openCodeDiff(expPath, gotPath)
 		os.Exit(1)
 	}

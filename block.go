@@ -214,6 +214,12 @@ type FormatNumberedList struct {
 	BlockColor string `json:"block_color"`
 }
 
+type CopiedFromPointer struct {
+	ID      string `json:"id"`
+	Table   string `json:"table"`
+	SpaceID string `json:"spaceId"`
+}
+
 // FormatPage describes format for BlockPage
 type FormatPage struct {
 	// /images/page-cover/gradients_11.jpg
@@ -231,6 +237,7 @@ type FormatPage struct {
 	BlockLocked   bool   `json:"block_locked"`
 	BlockLockedBy string `json:"block_locked_by"`
 
+	CopiedFromPointer *CopiedFromPointer `json:"copied_from_pointer"`
 	// calculated by us
 	PageCoverURL string `json:"page_cover_url,omitempty"`
 }
@@ -284,6 +291,8 @@ type Permission struct {
 	// if Type == "user_permission"
 	UserID *string `json:"user_id,omitempty"`
 
+	AddedTimestamp int64 `json:"added_timestamp"`
+
 	// if Type == "public_permission"
 	AllowDuplicate            bool `json:"allow_duplicate"`
 	AllowSearchEngineIndexing bool `json:"allow_search_engine_indexing"`
@@ -305,8 +314,11 @@ type Block struct {
 	CreatedBy   string `json:"created_by"`
 	CreatedTime int64  `json:"created_time"`
 
-	CreatedByTable    string `json:"created_by_table"`     // e.g. "notion_user"
-	CreatedByID       string `json:"created_by_id"`        // e.g. "bb760e2d-d679-4b64-b2a9-03005b21870a",
+	CreatedByTable string `json:"created_by_table"` // e.g. "notion_user"
+	CreatedByID    string `json:"created_by_id"`    // e.g. "bb760e2d-d679-4b64-b2a9-03005b21870a",
+	// ID of the user who last edited this block
+	LastEditedBy      string `json:"last_edited_by"`
+	LastEditedTime    int64  `json:"last_edited_time"`
 	LastEditedByTable string `json:"last_edited_by_table"` // e.g. "notion_user"
 	LastEditedByID    string `json:"last_edited_by_id"`    // e.g. "bb760e2d-d679-4b64-b2a9-03005b21870a"
 
@@ -319,9 +331,6 @@ type Block struct {
 	// TODO: don't know what this means
 	IgnoreBlockCount bool `json:"ignore_block_count,omitempty"`
 
-	// ID of the user who last edited this block
-	LastEditedBy   string `json:"last_edited_by"`
-	LastEditedTime int64  `json:"last_edited_time"`
 	// ID of parent Block
 	ParentID    string `json:"parent_id"`
 	ParentTable string `json:"parent_table"`

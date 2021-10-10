@@ -6,7 +6,6 @@ import (
 
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml"
-	"github.com/kjk/u"
 )
 
 func htmlPath(pageID string, n int) string {
@@ -33,14 +32,14 @@ func toHTML(pageID string) *notionapi.Page {
 	c.FullHTML = true
 	html, _ := c.ToHTML()
 	path := htmlPath(pageID, 2)
-	u.WriteFileMust(path, html)
+	writeFileMust(path, html)
 	logf("%s : HTML version of the page\n", path)
 	if !flgNoOpen {
 		path, err := filepath.Abs(path)
 		must(err)
 		uri := "file://" + path
 		logf("Opening browser with %s\n", uri)
-		u.OpenBrowser(uri)
+		openBrowser(uri)
 	}
 	return page
 }

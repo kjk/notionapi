@@ -177,8 +177,9 @@ func closeNoError(c io.Closer) {
 	_ = c.Close()
 }
 
-// TODO: add option to enable this logging
 // log JSON after pretty printing it
 func logJSON(client *Client, js []byte) {
-	//log(client, "%s\n", string(PrettyPrintJS(js)))
+	//client.vlogf("%s\n\n", string(js))
+	pp := string(PrettyPrintJS(js))
+	client.vlogf("%s\n\n", pp)
 }

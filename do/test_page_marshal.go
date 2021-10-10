@@ -46,7 +46,7 @@ func testCachingDownloads(pageID string) {
 	must(err)
 
 	// verify we made the same amount of requests
-	//u.PanicIf(nRequests != cache.RequestsNotFromCache, "nRequests: %d, cache.RequestsNotFromCache: %d", nRequests, cache.RequestsNotFromCache)
+	//panicIf(nRequests != cache.RequestsNotFromCache, "nRequests: %d, cache.RequestsNotFromCache: %d", nRequests, cache.RequestsNotFromCache)
 
 	html2 := pageToHTML(page2)
 	md_2 := pageToMarkdown(page2)

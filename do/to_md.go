@@ -6,7 +6,6 @@ import (
 
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tomarkdown"
-	"github.com/kjk/u"
 )
 
 func mdPath(pageID string, n int) string {
@@ -32,14 +31,14 @@ func toMd(pageID string) *notionapi.Page {
 	c := tomarkdown.NewConverter(page)
 	md := c.ToMarkdown()
 	path := htmlPath(pageID, 2)
-	u.WriteFileMust(path, md)
+	writeFileMust(path, md)
 	logf("%s : MarkDown version of the page\n", path)
 	if !flgNoOpen {
 		path, err := filepath.Abs(path)
 		must(err)
 		uri := "file://" + path
 		logf("Opening browser with %s\n", uri)
-		u.OpenBrowser(uri)
+		openBrowser(uri)
 	}
 	return page
 }

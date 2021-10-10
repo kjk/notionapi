@@ -58,7 +58,7 @@ func exportPageToFile(id string, exportType string, recursive bool, path string)
 		return err
 	}
 
-	u.WriteFileMust(path, d)
+	writeFileMust(path, d)
 	logf("Downloaded exported page of id %s as %s\n", id, path)
 	return nil
 }
@@ -79,7 +79,7 @@ func exportPage(id string, exportType string, recursive bool) {
 		return
 	}
 	name := notionapi.ToNoDashID(id) + "-" + exportType + ".zip"
-	u.WriteFileMust(name, d)
+	writeFileMust(name, d)
 	logf("Downloaded exported page of id %s as %s\n", id, name)
 }
 
@@ -101,7 +101,8 @@ func testSubPages() {
 	must(err)
 	subPages := page.GetSubPages()
 	nExp := 7
-	u.PanicIf(len(subPages) != nExp, "expected %d sub-pages of '%s', got %d", nExp, uri, len(subPages))
+	panicIf(len(subPages) != nExp, "expected %d sub-pages of '%s', got %d", nExp, uri, len(subPages))
+	logf("ok\ttestSubPages()\n")
 }
 
 func traceNotionAPI() {
@@ -381,7 +382,7 @@ func startHTTPServer(uri string) {
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt /* SIGINT */, syscall.SIGTERM)
 
-	u.OpenBrowser("http://" + flgHTTPAddr + uri)
+	openBrowser("http://" + flgHTTPAddr + uri)
 	time.Sleep(time.Second * 2)
 
 	sig := <-c
