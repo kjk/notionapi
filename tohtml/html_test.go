@@ -3,7 +3,7 @@ package tohtml
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/kjk/common/assert"
 )
 
 func TestHTMLFileNameForPage(t *testing.T) {

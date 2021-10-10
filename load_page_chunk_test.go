@@ -3,7 +3,7 @@ package notionapi
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/kjk/common/require"
 )
 
 const (
