@@ -1369,8 +1369,8 @@ func (c *Converter) RenderColumn(block *notionapi.Block) {
 func (c *Converter) findParentPageID(page *notionapi.Page, id string) string {
 	// we traverse blocks upwards until we find a block of type Page
 	currID := id
-	nid := notionapi.NewNotionID(id)
 	for {
+		nid := notionapi.NewNotionID(currID)
 		block := page.BlockByID(nid)
 		// assume it's a Page block that's not in Page's block
 		if block == nil {
