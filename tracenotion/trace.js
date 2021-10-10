@@ -39,6 +39,17 @@ function isApiRequest(url) {
   return url.includes("/api/v3/");
 }
 
+function shouldLogApiRequest(url) {
+  // this returns too much data
+  if (url.includes("/api/v3/getClientExperimentsV2")) {
+    return false;
+  }
+  if (url.includes("/api/v3/getAssetsJsonV2")) {
+    return false;   
+  }
+  return true;
+}
+
 function ppjson(s) {
   try {
     js = JSON.parse(s);
@@ -54,6 +65,10 @@ let apiLog = [];
 function logApiRR(method, url, status, reqBody, rspBody) {
   let s = `${method} ${status} ${url}`;
   if (!isApiRequest(url)) {
+    apiLog.push(s);
+    return;
+  }
+  if (!shouldLogApiRequest(url)) {
     apiLog.push(s);
     return;
   }

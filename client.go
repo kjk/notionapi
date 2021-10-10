@@ -441,10 +441,6 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 
 		collectionID := block.CollectionID
 		for _, collectionViewID := range block.ViewIDs {
-			var user *User
-			if len(p.UserRecords) > 0 {
-				user = p.UserRecords[0].User
-			}
 			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {
 				return nil, fmt.Errorf("didn't find collection_view with id '%s'", collectionViewID)
@@ -454,8 +450,17 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				//return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
 				continue
 			}
-			q := collectionView.Query2
-			res, err := c.QueryCollection(collectionID, collectionViewID, q, user)
+			spaceID := block.SpaceID
+			req := QueryCollectionRequest{}
+			req.Collection.ID = collectionID
+			req.Collection.SpaceID = spaceID
+			req.CollectionView.ID = collectionViewID
+			req.CollectionView.SpaceID = spaceID
+			var sort *QuerySort
+			if collectionView.Query2 != nil && len(collectionView.Query2.Sort) > 0 {
+				sort = collectionView.Query2.Sort[0]
+			}
+			res, err := c.QueryCollection(req, sort)
 			if err != nil {
 				return nil, err
 			}

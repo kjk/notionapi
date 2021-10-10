@@ -1,7 +1,6 @@
 package notionapi
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -120,6 +119,16 @@ type TableProperty struct {
 	Property string `json:"property"`
 }
 
+type QuerySort struct {
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	Property  string `json:"property"`
+	Direction string `json:"direction"`
+}
+type Query2 struct {
+	Sort []*QuerySort `json:"sort"`
+}
+
 // FormatTable describes format for BlockTable
 type FormatTable struct {
 	PageSort        []string         `json:"page_sort"`
@@ -129,19 +138,18 @@ type FormatTable struct {
 
 // CollectionView represents a collection view
 type CollectionView struct {
-	ID          string          `json:"id"`
-	Version     int64           `json:"version"`
-	Type        string          `json:"type"` // "table"
-	Format      *FormatTable    `json:"format"`
-	Name        string          `json:"name"`
-	ParentID    string          `json:"parent_id"`
-	ParentTable string          `json:"parent_table"`
-	Query       json.RawMessage `json:"query"`
-	Query2      json.RawMessage `json:"query2"`
-	Alive       bool            `json:"alive"`
-	PageSort    []string        `json:"page_sort"`
-	ShardID     int64           `json:"shard_id"`
-	SpaceID     string          `json:"space_id"`
+	ID          string       `json:"id"`
+	Version     int64        `json:"version"`
+	Type        string       `json:"type"` // "table"
+	Format      *FormatTable `json:"format"`
+	Name        string       `json:"name"`
+	ParentID    string       `json:"parent_id"`
+	ParentTable string       `json:"parent_table"`
+	Query2      *Query2      `json:"query2"`
+	Alive       bool         `json:"alive"`
+	PageSort    []string     `json:"page_sort"`
+	ShardID     int64        `json:"shard_id"`
+	SpaceID     string       `json:"space_id"`
 
 	// set by us
 	RawJSON map[string]interface{} `json:"-"`
@@ -254,6 +262,7 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 		tv.Columns = append(tv.Columns, ci)
 	}
 
+	/* TODO: fix me
 	// blockIDs are IDs of page blocks
 	// each page represents one table row
 	blockIds := res.Result.BlockIDS
@@ -272,6 +281,7 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 			tv.Rows = append(tv.Rows, tr)
 		}
 	}
+	*/
 
 	// pre-calculate cell content
 	for _, tr := range tv.Rows {
