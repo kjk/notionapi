@@ -138,10 +138,11 @@ type QueryAggregation struct {
 	Property   string `json:"property"`
 	Aggregator string `json:"aggregator"`
 }
+
 type Query struct {
 	Sort         []*QuerySort           `json:"sort"`
 	Aggregate    []*QueryAggregate      `json:"aggregate"`
-	Aggregations []*QueryAggregation    `json:"aggregations`
+	Aggregations []*QueryAggregation    `json:"aggregations"`
 	Filter       map[string]interface{} `json:"filter"`
 }
 
