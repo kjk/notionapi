@@ -278,10 +278,12 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 		tv.Columns = append(tv.Columns, ci)
 	}
 
-	/* TODO: fix me
 	// blockIDs are IDs of page blocks
 	// each page represents one table row
-	blockIds := res.Result.BlockIDS
+	var blockIds []string
+	if res.Result.ReducerResults != nil && res.Result.ReducerResults.CollectionGroupResults != nil {
+		blockIds = res.Result.ReducerResults.CollectionGroupResults.BlockIds
+	}
 	for _, id := range blockIds {
 		rec, ok := res.RecordMap.Blocks[id]
 		if !ok {
@@ -297,7 +299,6 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 			tv.Rows = append(tv.Rows, tr)
 		}
 	}
-	*/
 
 	// pre-calculate cell content
 	for _, tr := range tv.Rows {

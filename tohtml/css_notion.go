@@ -27,12 +27,6 @@ body {
 		color: rgb(55, 53, 47);
 	}
 }
-
-body {
-	line-height: 1.5;
-	white-space: pre-wrap;
-}
-
 a,
 a.visited {
 	color: inherit;
