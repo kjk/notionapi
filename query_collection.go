@@ -10,29 +10,6 @@ type ReducerCollectionGroupResults struct {
 	Limit int    `json:"limit"`
 }
 
-type LoaderReducer struct {
-	Type         string                 `json:"type"` //"reducer"
-	Reducers     map[string]interface{} `json:"reducers"`
-	Sort         []*QuerySort           `json:"sort"`
-	SearchQuery  string                 `json:"searchQuery"`
-	UserTimeZone string                 `json:"userTimeZone"` // e.g. "America/Los_Angeles" from User.Locale
-}
-
-func MakeLoaderReducer(sort *QuerySort) *LoaderReducer {
-	res := &LoaderReducer{
-		Type:     "reducer",
-		Reducers: map[string]interface{}{},
-		Sort:     []*QuerySort{sort},
-	}
-	res.Reducers[ReducerCollectionGroupResultsName] = &ReducerCollectionGroupResults{
-		Type:  "results",
-		Limit: 50,
-	}
-	// set some default value, should over-ride with User.TimeZone
-	res.UserTimeZone = "America/Los_Angeles"
-	return res
-}
-
 // /api/v3/queryCollection request
 type QueryCollectionRequest struct {
 	Collection struct {
@@ -67,9 +44,36 @@ type QueryCollectionResponse struct {
 	RawJSON map[string]interface{} `json:"-"`
 }
 
+type LoaderReducer struct {
+	Type         string                 `json:"type"` //"reducer"
+	Reducers     map[string]interface{} `json:"reducers"`
+	Sort         []*QuerySort           `json:"sort"`
+	Filter       map[string]interface{} `json:"filter"`
+	SearchQuery  string                 `json:"searchQuery"`
+	UserTimeZone string                 `json:"userTimeZone"` // e.g. "America/Los_Angeles" from User.Locale
+}
+
+func MakeLoaderReducer(query *Query) *LoaderReducer {
+	res := &LoaderReducer{
+		Type:     "reducer",
+		Reducers: map[string]interface{}{},
+	}
+	if query != nil {
+		res.Sort = query.Sort
+		res.Filter = query.Filter
+	}
+	res.Reducers[ReducerCollectionGroupResultsName] = &ReducerCollectionGroupResults{
+		Type:  "results",
+		Limit: 50,
+	}
+	// set some default value, should over-ride with User.TimeZone
+	res.UserTimeZone = "America/Los_Angeles"
+	return res
+}
+
 // QueryCollection executes a raw API call /api/v3/queryCollection
-func (c *Client) QueryCollection(req QueryCollectionRequest, sort *QuerySort) (*QueryCollectionResponse, error) {
-	req.Loader = MakeLoaderReducer(sort)
+func (c *Client) QueryCollection(req QueryCollectionRequest, query *Query) (*QueryCollectionResponse, error) {
+	req.Loader = MakeLoaderReducer(query)
 	var rsp QueryCollectionResponse
 	var err error
 	apiURL := "/api/v3/queryCollection"

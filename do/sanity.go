@@ -1,16 +1,12 @@
 package main
 
 import (
-	"os"
-
 	"github.com/kjk/notionapi"
 )
 
 // https://www.notion.so/Comparing-prices-of-VPS-servers-c30393989ae549c3a39f21ca5a681d72
 func testSyncRecordValues() {
-	c := &notionapi.Client{}
-	//c.DebugLog = true
-	//c.Logger = os.Stdout
+	c := newClient()
 	ids := []string{"c30393989ae549c3a39f21ca5a681d72"}
 	res, err := c.SyncBlockRecords(ids)
 	must(err)
@@ -25,9 +21,7 @@ func testSyncRecordValues() {
 
 func testQueryCollection() {
 	// test for table on https://www.notion.so/Comparing-prices-of-VPS-servers-c30393989ae549c3a39f21ca5a681d72
-	c := &notionapi.Client{}
-	c.DebugLog = true
-	c.Logger = os.Stdout
+	c := newClient()
 	spaceID := "bc202e06-6caa-4e3f-81eb-f226ab5deef7"
 	collectionID := "0567b270-3cb1-44e4-847c-34a843f55dfc"
 	collectionViewID := "74e9cd84-ff2d-4259-bd56-5f8478da8839"
@@ -36,14 +30,16 @@ func testQueryCollection() {
 	req.Collection.SpaceID = spaceID
 	req.CollectionView.ID = collectionViewID
 	req.CollectionView.SpaceID = spaceID
-	// TODO: use sort from "query2"
-	sort := notionapi.QuerySort{
+	sort := &notionapi.QuerySort{
 		ID:        "6e89c507-e0da-47c7-b8c8-fe2b336e0985",
 		Type:      "number",
 		Property:  "E13y",
 		Direction: "ascending",
 	}
-	res, err := c.QueryCollection(req, &sort)
+	q := notionapi.Query{
+		Sort: []*notionapi.QuerySort{sort},
+	}
+	res, err := c.QueryCollection(req, &q)
 	must(err)
 	colRes := res.Result.ReducerResults.CollectionGroupResults
 	panicIf(colRes.Total != 18)
@@ -58,12 +54,12 @@ func sanityTests() {
 	logf("Running sanity tests\n")
 	testQueryCollection()
 
-	if false {
+	if true {
 		runGoTests()
 		testSyncRecordValues()
 		testSubPages()
 	}
-	if false {
+	if true {
 		// queryCollectionApi changed
 		pageID := "c30393989ae549c3a39f21ca5a681d72"
 		testCachingDownloads(pageID)

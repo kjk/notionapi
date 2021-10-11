@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/kjk/notionapi"
 )
 
@@ -11,11 +9,7 @@ var (
 )
 
 func makeNotionClient() *notionapi.Client {
-	client := &notionapi.Client{
-		AuthToken: getToken(),
-		DebugLog:  flgVerbose,
-		Logger:    os.Stdout,
-	}
+	client := newClient()
 
 	if !didPrintTokenStatus {
 		didPrintTokenStatus = true

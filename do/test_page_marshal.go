@@ -29,11 +29,7 @@ func testCachingDownloads(pageID string) {
 	// - format as html and md
 	// - compare they are identical
 	logf("testCachingDownloads: '%s'\n", pageID)
-	client := &notionapi.Client{
-		DebugLog: flgVerbose,
-		//Logger:     os.Stdout,
-		AuthToken: getToken(),
-	}
+	client := newClient()
 
 	pageID = notionapi.ToNoDashID(pageID)
 	page1, err := client.DownloadPage(pageID)

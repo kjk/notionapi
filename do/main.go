@@ -42,16 +42,23 @@ func getToken() string {
 	return os.Getenv("NOTION_TOKEN")
 }
 
-func exportPageToFile(id string, exportType string, recursive bool, path string) error {
-	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
-		Logger:    os.Stdout,
+func newClient() *notionapi.Client {
+	c := &notionapi.Client{
 		AuthToken: getToken(),
 	}
+	if flgVerbose {
+		c.DebugLog = flgVerbose
+		c.Logger = os.Stdout
+	}
+	return c
+}
+
+func exportPageToFile(id string, exportType string, recursive bool, path string) error {
 
 	if exportType == "" {
 		exportType = "html"
 	}
+	client := newClient()
 	d, err := client.ExportPages(id, exportType, recursive)
 	if err != nil {
 		logf("client.ExportPages() failed with '%s'\n", err)
@@ -64,11 +71,7 @@ func exportPageToFile(id string, exportType string, recursive bool, path string)
 }
 
 func exportPage(id string, exportType string, recursive bool) {
-	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
-		Logger:    os.Stdout,
-		AuthToken: getToken(),
-	}
+	client := newClient()
 
 	if exportType == "" {
 		exportType = "html"
@@ -94,7 +97,7 @@ func runGoTests() {
 func testSubPages() {
 	// test that GetSubPages() only returns direct children
 	// of a page, not link to pages
-	client := &notionapi.Client{}
+	client := newClient()
 	uri := "https://www.notion.so/Test-sub-pages-in-mono-font-381243f4ba4d4670ac491a3da87b8994"
 	pageID := "381243f4ba4d4670ac491a3da87b8994"
 	page, err := client.DownloadPage(pageID)

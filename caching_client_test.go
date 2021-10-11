@@ -9,8 +9,8 @@ import (
 /*
 Tests that use pages cached in testdata/ directory.
 Because they don't involve that they are good for unit tests.
-To create the file for a page, run: ./do/do.sh -to-html ${pageID}
-and copy data/cache/${pageID}.txt to testdata/
+To create the file for a page, run: ./doiit.sh -clean -to-html ${pageID}
+and copy tmpdata/cache/${pageID}.txt to caching_client_testdata
 */
 
 func testDownloadFromCache(t *testing.T, pageID string) *Page {

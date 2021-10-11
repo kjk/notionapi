@@ -125,8 +125,24 @@ type QuerySort struct {
 	Property  string `json:"property"`
 	Direction string `json:"direction"`
 }
-type Query2 struct {
-	Sort []*QuerySort `json:"sort"`
+
+type QueryAggregate []struct {
+	ID              string `json:"id"`
+	Type            string `json:"type"`
+	Property        string `json:"property"`
+	ViewType        string `json:"view_type"`
+	AggregationType string `json:"aggregation_type"`
+}
+
+type QueryAggregation struct {
+	Property   string `json:"property"`
+	Aggregator string `json:"aggregator"`
+}
+type Query struct {
+	Sort         []*QuerySort           `json:"sort"`
+	Aggregate    []*QueryAggregate      `json:"aggregate"`
+	Aggregations []*QueryAggregation    `json:"aggregations`
+	Filter       map[string]interface{} `json:"filter"`
 }
 
 // FormatTable describes format for BlockTable
@@ -145,7 +161,7 @@ type CollectionView struct {
 	Name        string       `json:"name"`
 	ParentID    string       `json:"parent_id"`
 	ParentTable string       `json:"parent_table"`
-	Query2      *Query2      `json:"query2"`
+	Query       *Query       `json:"query2"`
 	Alive       bool         `json:"alive"`
 	PageSort    []string     `json:"page_sort"`
 	ShardID     int64        `json:"shard_id"`

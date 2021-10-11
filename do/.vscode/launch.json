@@ -5,13 +5,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "sanity",
+      "name": "adhoc",
       "type": "go",
       "request": "launch",
       "mode": "auto",
       "program": "${fileDirname}",
       "env": {},
-      "args": ["-sanity"]
+      "args": ["-to-html", "94167af6567043279811dc923edd1f04"]
     }    
   ]
 }

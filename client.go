@@ -456,11 +456,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			req.Collection.SpaceID = spaceID
 			req.CollectionView.ID = collectionViewID
 			req.CollectionView.SpaceID = spaceID
-			var sort *QuerySort
-			if collectionView.Query2 != nil && len(collectionView.Query2.Sort) > 0 {
-				sort = collectionView.Query2.Sort[0]
-			}
-			res, err := c.QueryCollection(req, sort)
+			res, err := c.QueryCollection(req, collectionView.Query)
 			if err != nil {
 				return nil, err
 			}

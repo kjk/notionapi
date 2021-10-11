@@ -99,10 +99,8 @@ func testToHTML(startPageID string) {
 	referenceFiles := exportPages(startPageID, notionapi.ExportTypeHTML)
 	logf("There are %d files in zip file\n", len(referenceFiles))
 
-	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
-		AuthToken: getToken(),
-	}
+	client := newClient()
+
 	seenPages := map[string]bool{}
 	pages := []*notionapi.NotionID{notionapi.NewNotionID(startPageID)}
 	nPage := 0

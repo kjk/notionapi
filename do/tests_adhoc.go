@@ -19,10 +19,8 @@ func pageURL(pageID string) string {
 }
 
 func testDownloadFile() {
-	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
-		AuthToken: getToken(),
-	}
+	client := newClient()
+
 	// just enough data for DownloadFile
 	b := &notionapi.Block{
 		ID:          "5cc81055-1b81-4f31-9df3-390152d272cf",
@@ -38,10 +36,8 @@ func testDownloadFile() {
 }
 
 func testDownloadImage() {
-	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
-		AuthToken: getToken(),
-	}
+	client := newClient()
+
 	// page with images
 	pageID := "8511412cbfde432ba226648e9bdfbec2"
 	fmt.Printf("testDownloadImage %s\n", pageURL(pageID))
@@ -83,10 +79,8 @@ func testDownloadImage() {
 }
 
 func testGist() {
-	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
-		AuthToken: getToken(),
-	}
+	client := newClient()
+
 	// gist page
 	pageID := "7b9cdf3ab2cf405692e9810b0ac8322e"
 	fmt.Printf("testGist %s\n", pageURL(pageID))
@@ -108,10 +102,8 @@ func testChangeFormat() {
 		return
 	}
 
-	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
-		AuthToken: authToken,
-	}
+	client := newClient()
+
 	// https://www.notion.so/Test-for-change-title-7e825831be07487e87e756e52914233b
 	pageID := "7e825831be07487e87e756e52914233b"
 	pageID = "0fc3a590ba5f4e128e7c750e8ecc961d"
@@ -153,10 +145,8 @@ func testChangeTitle() {
 		fmt.Printf("Skipping testChangeTitle() because NOTION_TOKEN env variable not provided")
 		return
 	}
-	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
-		AuthToken: authToken,
-	}
+	client := newClient()
+
 	// https://www.notion.so/Test-for-change-title-7e825831be07487e87e756e52914233b
 	pageID := "7e825831be07487e87e756e52914233b"
 	page, err := client.DownloadPage(pageID)
@@ -191,10 +181,8 @@ func testDownloadBig() {
 	// this tests downloading a page that has (hopefully) all kinds of elements
 	// for notion, for testing that we handle everything
 	// page is c969c9455d7c4dd79c7f860f3ace6429 https://www.notion.so/Test-page-all-not-c969c9455d7c4dd79c7f860f3ace6429
-	client := &notionapi.Client{
-		DebugLog:  flgVerbose,
-		AuthToken: getToken(),
-	}
+	client := newClient()
+
 	// page with images
 	pageID := "c969c9455d7c4dd79c7f860f3ace6429"
 	fmt.Printf("testDownloadImage %s\n", pageURL(pageID))
