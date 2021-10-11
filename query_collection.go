@@ -47,7 +47,7 @@ type QueryCollectionResponse struct {
 type LoaderReducer struct {
 	Type         string                 `json:"type"` //"reducer"
 	Reducers     map[string]interface{} `json:"reducers"`
-	Sort         []*QuerySort           `json:"sort"`
+	Sort         []QuerySort            `json:"sort"`
 	Filter       map[string]interface{} `json:"filter"`
 	SearchQuery  string                 `json:"searchQuery"`
 	UserTimeZone string                 `json:"userTimeZone"` // e.g. "America/Los_Angeles" from User.Locale

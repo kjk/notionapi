@@ -126,7 +126,7 @@ type QuerySort struct {
 	Direction string `json:"direction"`
 }
 
-type QueryAggregate []struct {
+type QueryAggregate struct {
 	ID              string `json:"id"`
 	Type            string `json:"type"`
 	Property        string `json:"property"`
@@ -140,9 +140,9 @@ type QueryAggregation struct {
 }
 
 type Query struct {
-	Sort         []*QuerySort           `json:"sort"`
-	Aggregate    []*QueryAggregate      `json:"aggregate"`
-	Aggregations []*QueryAggregation    `json:"aggregations"`
+	Sort         []QuerySort            `json:"sort"`
+	Aggregate    []QueryAggregate       `json:"aggregate"`
+	Aggregations []QueryAggregation     `json:"aggregations"`
 	Filter       map[string]interface{} `json:"filter"`
 }
 
@@ -165,7 +165,6 @@ type CollectionView struct {
 	Query       *Query       `json:"query2"`
 	Alive       bool         `json:"alive"`
 	PageSort    []string     `json:"page_sort"`
-	ShardID     int64        `json:"shard_id"`
 	SpaceID     string       `json:"space_id"`
 
 	// set by us

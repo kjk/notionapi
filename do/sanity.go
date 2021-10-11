@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+
 	"github.com/kjk/notionapi"
 )
 
@@ -19,6 +21,23 @@ func testSyncRecordValues() {
 	}
 }
 
+func testQueryDecode() {
+	s := `{
+    "aggregate": [
+      {
+        "aggregation_type": "count",
+        "id": "count",
+        "property": "title",
+        "type": "title",
+        "view_type": "table"
+      }
+    ]
+  }`
+	var v notionapi.Query
+	err := json.Unmarshal([]byte(s), &v)
+	must(err)
+}
+
 func testQueryCollection() {
 	// test for table on https://www.notion.so/Comparing-prices-of-VPS-servers-c30393989ae549c3a39f21ca5a681d72
 	c := newClient()
@@ -30,14 +49,14 @@ func testQueryCollection() {
 	req.Collection.SpaceID = spaceID
 	req.CollectionView.ID = collectionViewID
 	req.CollectionView.SpaceID = spaceID
-	sort := &notionapi.QuerySort{
+	sort := notionapi.QuerySort{
 		ID:        "6e89c507-e0da-47c7-b8c8-fe2b336e0985",
 		Type:      "number",
 		Property:  "E13y",
 		Direction: "ascending",
 	}
 	q := notionapi.Query{
-		Sort: []*notionapi.QuerySort{sort},
+		Sort: []notionapi.QuerySort{sort},
 	}
 	res, err := c.QueryCollection(req, &q)
 	must(err)
@@ -52,14 +71,15 @@ func testQueryCollection() {
 // meant to not take too long
 func sanityTests() {
 	logf("Running sanity tests\n")
-	testQueryCollection()
+	testQueryDecode()
 
-	if true {
+	if false {
+		testQueryCollection()
 		runGoTests()
 		testSyncRecordValues()
 		testSubPages()
 	}
-	if true {
+	if false {
 		// queryCollectionApi changed
 		pageID := "c30393989ae549c3a39f21ca5a681d72"
 		testCachingDownloads(pageID)
