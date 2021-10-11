@@ -87,8 +87,6 @@ func parseRecord(table string, r *Record) error {
 		r.CollectionView = &CollectionView{}
 		obj = r.CollectionView
 		pRawJSON = &r.CollectionView.RawJSON
-		s := PrettyPrintJS([]byte(r.Value))
-		fmt.Printf("TableCollectionView:\n%s\n\n", s)
 	case TableDiscussion:
 		r.Discussion = &Discussion{}
 		obj = r.Discussion
@@ -100,12 +98,6 @@ func parseRecord(table string, r *Record) error {
 	}
 	if obj == nil {
 		return fmt.Errorf("unsupported table '%s'", r.Table)
-	}
-	if false {
-		if table == TableCollectionView {
-			s := string(r.Value)
-			fmt.Printf("collection_view json:\n%s\n\n", s)
-		}
 	}
 	if err := jsonit.Unmarshal(r.Value, pRawJSON); err != nil {
 		return err
