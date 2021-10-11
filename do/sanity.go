@@ -73,17 +73,14 @@ func sanityTests() {
 	logf("Running sanity tests\n")
 	testQueryDecode()
 
-	if false {
-		testQueryCollection()
-		runGoTests()
-		testSyncRecordValues()
-		testSubPages()
-	}
-	if false {
-		// queryCollectionApi changed
-		pageID := "c30393989ae549c3a39f21ca5a681d72"
-		testCachingDownloads(pageID)
-		logf("ok\ttestCachingDownloads() of %s ok!\n", pageID)
-	}
+	runGoTests()
+	testSyncRecordValues()
+	testSubPages()
+	testQueryCollection()
+
+	// queryCollectionApi changed
+	pageID := "c30393989ae549c3a39f21ca5a681d72"
+	testCachingDownloads(pageID)
+	logf("ok\ttestCachingDownloads() of %s ok!\n", pageID)
 	// TODO: more tests?
 }
