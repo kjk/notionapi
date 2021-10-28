@@ -73,7 +73,9 @@ func MakeLoaderReducer(query *Query) *LoaderReducer {
 
 // QueryCollection executes a raw API call /api/v3/queryCollection
 func (c *Client) QueryCollection(req QueryCollectionRequest, query *Query) (*QueryCollectionResponse, error) {
-	req.Loader = MakeLoaderReducer(query)
+	if req.Loader == nil {
+		req.Loader = MakeLoaderReducer(query)
+	}
 	var rsp QueryCollectionResponse
 	var err error
 	apiURL := "/api/v3/queryCollection"
