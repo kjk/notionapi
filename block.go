@@ -286,7 +286,7 @@ type Permission struct {
 	Type string `json:"type"`
 
 	// common to some permission types
-	Role string `json:"role"`
+	Role interface{} `json:"role"`
 
 	// if Type == "user_permission"
 	UserID *string `json:"user_id,omitempty"`
