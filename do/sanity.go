@@ -62,7 +62,7 @@ func testQueryCollection() {
 	res, err := c.QueryCollection(req, &q)
 	must(err)
 	colRes := res.Result.ReducerResults.CollectionGroupResults
-	panicIf(colRes.Total != 18)
+	panicIf(colRes.Total != 18, "colRes.Total == %d", colRes.Total)
 	panicIf(len(colRes.BlockIds) != 18)
 	panicIf(colRes.Type != "results")
 	//fmt.Printf("%#v\n", colRes)
