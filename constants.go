@@ -15,7 +15,7 @@ const (
 	ColumnTypeDate           = "date"
 	ColumnTypeEmail          = "email"
 	ColumnTypeFile           = "file"
-	ColumnTypeForumula       = "formula"
+	ColumnTypeFormula        = "formula"
 	ColumnTypeLastEditedBy   = "last_edited_by"
 	ColumnTypeLastEditedTime = "last_edited_time"
 	ColumnTypeMultiSelect    = "multi_select"
