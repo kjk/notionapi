@@ -253,10 +253,11 @@ func main() {
 		return
 	}
 
-	if false {
+	if true {
 		// simple page with an image
 		//flgToHTML = "da0b358c21ab4ac6b5c0f7154b2ecadc"
-		flgToHTML = "35fbba015f344570af678d56827dd67c"
+		//flgToHTML = "35fbba015f344570af678d56827dd67c"
+		flgToHTML = "638829dcc8f24475afcdfa245d411e50"
 	}
 
 	if false {

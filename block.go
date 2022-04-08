@@ -81,6 +81,7 @@ const (
 	BlockVideo                 = "video"
 	BlockCopyIndicator         = "copy_indicator"
 	BlockLinkToCollection      = "link_to_collection"
+	BlockLinkToPage            = "link_to_page"
 	BlockMiro                  = "miro"
 	BlockAlias                 = "alias"
 	BlockTransclusionReference = "transclusion_reference"

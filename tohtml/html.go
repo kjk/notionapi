@@ -1770,6 +1770,9 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderTransclusionReference
 	case notionapi.BlockFactory:
 		return nil
+	case notionapi.BlockLinkToPage:
+		// TODO: not sure how to render it
+		return nil
 	default:
 		maybePanic("DefaultRenderFunc: unsupported block type '%s' in %s\n", blockType, c.Page.NotionURL())
 	}
