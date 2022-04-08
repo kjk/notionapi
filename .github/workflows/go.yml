@@ -21,5 +21,7 @@ jobs:
 
       - name: Staticcheck
         run: |
-          go install honnef.co/go/tools/cmd/staticcheck@latest
-          staticcheck ./... || true
+          # need to disable because staticcheck doesn't work on go 1.16
+          # and GitHub Actions still has 1.16
+          # go install honnef.co/go/tools/cmd/staticcheck@latest
+          # staticcheck ./... || true
