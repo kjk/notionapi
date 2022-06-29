@@ -16,6 +16,10 @@ type RecordRequest struct {
 	ID    string `json:"id"`
 }
 
+type RecordValue struct {
+	Value *Record `json:"value"`
+}
+
 // Record represents a polymorphic record
 type Record struct {
 	// fields returned by the server
@@ -23,10 +27,9 @@ type Record struct {
 	// polymorphic value of the record, which we decode into Block, Space etc.
 	Value json.RawMessage `json:"value"`
 
-	// fields set from Value based on type
-	ID    string `json:"-"`
-	Table string `json:"-"`
-
+	// fields calculated from Value based on type
+	ID             string          `json:"-"`
+	Table          string          `json:"-"`
 	Activity       *Activity       `json:"-"`
 	Block          *Block          `json:"-"`
 	Space          *Space          `json:"-"`

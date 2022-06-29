@@ -27,5 +27,5 @@ func (c *Client) CreateEmailUser(email string) (*User, error) {
 		return nil, errors.New("error inviting user")
 	}
 
-	return users.User, err
+	return users.Value.User, err
 }

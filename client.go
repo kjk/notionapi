@@ -299,13 +299,14 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	chunkNo := 0
 	var cur *cursor
 	for {
-		rsp, err := c.LoadPageChunk(pageID, chunkNo, cur)
+		rsp, err := c.LoadCachedPageChunk(pageID, chunkNo, cur)
 		chunkNo++
 		if err != nil {
 			return nil, err
 		}
 		recordMap := rsp.RecordMap
-		for id, v := range recordMap.Blocks {
+		for id, rv := range recordMap.Blocks {
+			v := rv.Value
 			b := v.Block
 			if b.Alive {
 				p.idToBlock[id] = b
@@ -314,24 +315,24 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			}
 		}
 		for id, r := range recordMap.Collections {
-			p.CollectionRecords = append(p.CollectionRecords, r)
-			p.idToCollection[id] = r.Collection
+			p.CollectionRecords = append(p.CollectionRecords, r.Value)
+			p.idToCollection[id] = r.Value.Collection
 		}
 		for id, r := range recordMap.CollectionViews {
-			p.CollectionViewRecords = append(p.CollectionViewRecords, r)
-			p.idToCollectionView[id] = r.CollectionView
+			p.CollectionViewRecords = append(p.CollectionViewRecords, r.Value)
+			p.idToCollectionView[id] = r.Value.CollectionView
 		}
 		for id, r := range recordMap.Discussions {
-			p.DiscussionRecords = append(p.DiscussionRecords, r)
-			p.idToDiscussion[id] = r.Discussion
+			p.DiscussionRecords = append(p.DiscussionRecords, r.Value)
+			p.idToDiscussion[id] = r.Value.Discussion
 		}
 		for id, r := range recordMap.Comments {
-			p.CommentRecords = append(p.CommentRecords, r)
-			p.idToComment[id] = r.Comment
+			p.CommentRecords = append(p.CommentRecords, r.Value)
+			p.idToComment[id] = r.Value.Comment
 		}
 		for id, r := range recordMap.Spaces {
-			p.SpaceRecords = append(p.SpaceRecords, r)
-			p.idToSpace[id] = r.Space
+			p.SpaceRecords = append(p.SpaceRecords, r.Value)
+			p.idToSpace[id] = r.Value.Space
 		}
 
 		cursor := rsp.Cursor

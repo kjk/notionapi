@@ -290,7 +290,7 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 			cvID := tv.CollectionView.ID
 			return fmt.Errorf("didn't find block with id '%s' for collection view with id '%s'", id, cvID)
 		}
-		b := rec.Block
+		b := rec.Value.Block
 		if b != nil {
 			tr := &TableRow{
 				TableView: tv,
