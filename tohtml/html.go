@@ -405,7 +405,7 @@ func (c *Converter) IsNextBlockOfType(t string) bool {
 func (c *Converter) FormatDate(d *notionapi.Date) string {
 	// TODO: allow over-riding date formatting
 	s := notionapi.FormatDate(d)
-	return fmt.Sprintf(`<time>@%s</time>`, s)
+	return fmt.Sprintf(`<time>%s</time>`, s)
 }
 
 // RewrittenURL optionally transforms the url via the
