@@ -30,7 +30,7 @@ func (c *Client) SyncRecordValuesAPI(req syncRecordRequest) (*SyncRecordValuesRe
 	var rsp SyncRecordValuesResponse
 	var err error
 	apiURL := "/api/v3/syncRecordValues"
-	if rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp); err != nil {
+	if err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON); err != nil {
 		return nil, err
 	}
 	if err = ParseRecordMap(rsp.RecordMap); err != nil {

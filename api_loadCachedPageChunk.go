@@ -68,7 +68,7 @@ func (c *Client) LoadCachedPageChunk(pageID string, chunkNo int, cur *cursor) (*
 	var rsp LoadCachedPageChunkResponse
 	var err error
 	apiURL := "/api/v3/loadCachedPageChunk"
-	if rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp); err != nil {
+	if err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON); err != nil {
 		return nil, err
 	}
 	if err = ParseRecordMap(rsp.RecordMap); err != nil {

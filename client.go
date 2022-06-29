@@ -143,13 +143,13 @@ repeatRequest:
 	return d, nil
 }
 
-func (c *Client) doNotionAPI(apiURL string, requestData interface{}, result interface{}) (map[string]interface{}, error) {
+func (c *Client) doNotionAPI(apiURL string, requestData interface{}, result interface{}, rawJSON *map[string]interface{}) error {
 	var body []byte
 	var err error
 	if requestData != nil {
 		body, err = jsonit.MarshalIndent(requestData, "", "  ")
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 	uri := notionHost + apiURL
@@ -160,21 +160,19 @@ func (c *Client) doNotionAPI(apiURL string, requestData interface{}, result inte
 
 	d, err := c.doPost(uri, body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	logJSON(c, d)
 
 	err = jsonit.Unmarshal(d, result)
 	if err != nil {
 		c.logf("Error: json.Unmarshal() failed with %s\n. Body:\n%s\n", err, string(d))
-		return nil, err
+		return err
 	}
-	var m map[string]interface{}
-	err = jsonit.Unmarshal(d, &m)
-	if err != nil {
-		return nil, err
+	if rawJSON != nil {
+		err = jsonit.Unmarshal(d, rawJSON)
 	}
-	return m, nil
+	return err
 }
 
 // ExtractNoDashIDFromNotionURL tries to extract notion page id from

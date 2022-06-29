@@ -46,7 +46,7 @@ func (c *Client) getUploadFileURL(name, contentType string) (*GetUploadFileUrlRe
 	var rsp GetUploadFileUrlResponse
 	var err error
 	const apiURL = "/api/v3/getUploadFileUrl"
-	rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp)
+	err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON)
 	if err != nil {
 		return nil, err
 	}

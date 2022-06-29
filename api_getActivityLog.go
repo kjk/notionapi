@@ -27,7 +27,7 @@ func (c *Client) GetActivityLog(spaceID string, startingAfterID string, limit in
 	var rsp GetActivityLogResponse
 	var err error
 	apiURL := "/api/v3/getActivityLog"
-	if rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp); err != nil {
+	if err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON); err != nil {
 		return nil, err
 	}
 	if err = ParseRecordMap(rsp.RecordMap); err != nil {

@@ -79,7 +79,7 @@ func (c *Client) QueryCollection(req QueryCollectionRequest, query *Query) (*Que
 	var rsp QueryCollectionResponse
 	var err error
 	apiURL := "/api/v3/queryCollection"
-	rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp)
+	err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON)
 	if err != nil {
 		return nil, err
 	}

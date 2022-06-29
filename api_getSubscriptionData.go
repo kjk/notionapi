@@ -73,7 +73,7 @@ func (c *Client) GetSubscriptionData(spaceID string) (*SubscriptionData, error) 
 	var rsp SubscriptionData
 	var err error
 	apiURL := "/api/v3/getSubscriptionData"
-	rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp)
+	err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON)
 	if err != nil {
 		return nil, err
 	}

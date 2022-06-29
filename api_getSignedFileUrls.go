@@ -45,7 +45,7 @@ func (c *Client) GetSignedURLs(urls []string, block *Block) (*GetSignedURLsRespo
 	var rsp GetSignedURLsResponse
 	var err error
 	apiURL := "/api/v3/getSignedFileUrls"
-	if rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp); err != nil {
+	if err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON); err != nil {
 		return nil, err
 	}
 	return &rsp, nil

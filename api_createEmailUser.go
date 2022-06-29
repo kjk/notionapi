@@ -18,7 +18,7 @@ func (c *Client) CreateEmailUser(email string) (*NotionUser, error) {
 	}
 
 	apiURL := "/api/v3/createEmailUser"
-	_, err := c.doNotionAPI(apiURL, req, &rsp)
+	err := c.doNotionAPI(apiURL, req, &rsp, nil)
 
 	recordMap := rsp.RecordMap
 	ParseRecordMap(recordMap)

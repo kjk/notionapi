@@ -23,13 +23,11 @@ func (c *Client) LoadUserContent() (*LoadUserResponse, error) {
 		RecordMap map[string]map[string]*LoadUserResponse `json:"recordMap"`
 	}
 	apiURL := "/api/v3/loadUserContent"
-	rawJSON, err := c.doNotionAPI(apiURL, req, &rsp)
+	result := LoadUserResponse{}
+
+	err := c.doNotionAPI(apiURL, req, &rsp, &result.RawJSON)
 	if err != nil {
 		return nil, err
-	}
-
-	result := &LoadUserResponse{
-		RawJSON: rawJSON,
 	}
 
 	for table, values := range rsp.RecordMap {
@@ -56,5 +54,5 @@ func (c *Client) LoadUserContent() (*LoadUserResponse, error) {
 		}
 	}
 
-	return result, nil
+	return &result, nil
 }
