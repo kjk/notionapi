@@ -5,11 +5,6 @@ import (
 	"fmt"
 )
 
-type RecordValue struct {
-	SpaceID string  `json:"spaceId"`
-	Value   *Record `json:"value"`
-}
-
 // Record represents a polymorphic record
 type Record struct {
 	// fields returned by the server

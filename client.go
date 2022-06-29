@@ -282,13 +282,12 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 	var root *Block
 	// get page's root block and then recursively download referenced blocks
 	{
-		recVals, err := c.GetBlockRecords([]string{pageID})
+		blocks, err := c.GetBlockRecords([]string{pageID})
 		if err != nil {
 			return nil, err
 		}
-		res := recVals.Results[0]
 		// this might happen e.g. when a page is not publicly visible
-		root = res.Block
+		root = blocks[0]
 		if root == nil {
 			return nil, newErrPageNotFound(pageID)
 		}
@@ -306,8 +305,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		}
 		recordMap := rsp.RecordMap
 		for id, rv := range recordMap.Blocks {
-			v := rv.Value
-			b := v.Block
+			b := rv.Block
 			if b.Alive {
 				p.idToBlock[id] = b
 			} else {
@@ -315,24 +313,24 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			}
 		}
 		for id, r := range recordMap.Collections {
-			p.CollectionRecords = append(p.CollectionRecords, r.Value)
-			p.idToCollection[id] = r.Value.Collection
+			p.CollectionRecords = append(p.CollectionRecords, r)
+			p.idToCollection[id] = r.Collection
 		}
 		for id, r := range recordMap.CollectionViews {
-			p.CollectionViewRecords = append(p.CollectionViewRecords, r.Value)
-			p.idToCollectionView[id] = r.Value.CollectionView
+			p.CollectionViewRecords = append(p.CollectionViewRecords, r)
+			p.idToCollectionView[id] = r.CollectionView
 		}
 		for id, r := range recordMap.Discussions {
-			p.DiscussionRecords = append(p.DiscussionRecords, r.Value)
-			p.idToDiscussion[id] = r.Value.Discussion
+			p.DiscussionRecords = append(p.DiscussionRecords, r)
+			p.idToDiscussion[id] = r.Discussion
 		}
 		for id, r := range recordMap.Comments {
-			p.CommentRecords = append(p.CommentRecords, r.Value)
-			p.idToComment[id] = r.Value.Comment
+			p.CommentRecords = append(p.CommentRecords, r)
+			p.idToComment[id] = r.Comment
 		}
 		for id, r := range recordMap.Spaces {
-			p.SpaceRecords = append(p.SpaceRecords, r.Value)
-			p.idToSpace[id] = r.Value.Space
+			p.SpaceRecords = append(p.SpaceRecords, r)
+			p.idToSpace[id] = r.Space
 		}
 
 		cursor := rsp.Cursor
@@ -365,12 +363,11 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				missing = nil
 			}
 
-			recVals, err := c.GetBlockRecords(toGet)
+			blocks, err := c.GetBlockRecords(toGet)
 			if err != nil {
 				return nil, err
 			}
-			for n, recordValue := range recVals.Results {
-				block := recordValue.Block
+			for n, block := range blocks {
 				// This can happen e.g. in 157765353f2c4705bd45474e5ba8b46c
 				// Server returns { "role": "none" },
 				expectedID := toGet[n]
@@ -395,12 +392,12 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				}
 				p.blocksToSkip[expectedID] = struct{}{}
 				if n > 0 {
-					prevRecord := recVals.Results[n-1]
-					if prevRecord == nil || prevRecord.Block == nil {
+					prevBlock := blocks[n-1]
+					if prevBlock == nil {
 						// this can happen if we don't have access to this page
 						c.vlogf("prevBlock.Value is nil at position n = %d with expected id %s.\n", n, expectedID)
 					} else {
-						prevBlockID := prevRecord.Block.ID
+						prevBlockID := prevBlock.ID
 						c.vlogf("block is nil at position n = %d with expected id %s. Prev block id: %s\n", n, expectedID, prevBlockID)
 					}
 				} else {

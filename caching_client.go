@@ -385,19 +385,17 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		timeStart := time.Now()
 		// when we're getting new versions, we have to disable all caching
 		c.Client.httpPostOverride = nil
-		recVals, err := c.Client.GetBlockRecords(ids)
+		blocks, err := c.Client.GetBlockRecords(ids)
 		if err != nil {
 			return
 		}
-		results := recVals.Results
-		if len(results) != len(ids) {
-			panic(fmt.Sprintf("updateVersions(): got %d results, expected %d", len(results), len(ids)))
+		if len(blocks) != len(ids) {
+			panic(fmt.Sprintf("updateVersions(): got %d results, expected %d", len(blocks), len(ids)))
 		}
 		c.vlogf("CachingClient.updateVersion: got versions for %d pages in %s\n", len(ids), time.Since(timeStart))
 
 		c.didCheckVersions = true
-		for i, rec := range results {
-			b := rec.Block
+		for i, b := range blocks {
 			// rec.Block might be nil when a page is not publicly visible or was deleted
 			if b != nil {
 				id := ids[i]

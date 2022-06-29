@@ -182,4 +182,5 @@ func logJSON(client *Client, js []byte) {
 	//client.vlogf("%s\n\n", string(js))
 	pp := string(PrettyPrintJS(js))
 	client.vlogf("%s\n\n", pp)
+	fmt.Printf("%s\n\n", pp)
 }

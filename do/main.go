@@ -94,20 +94,6 @@ func runGoTests() {
 	must(cmd.Run())
 }
 
-func testSubPages() {
-	// test that GetSubPages() only returns direct children
-	// of a page, not link to pages
-	client := newClient()
-	uri := "https://www.notion.so/Test-sub-pages-in-mono-font-381243f4ba4d4670ac491a3da87b8994"
-	pageID := "381243f4ba4d4670ac491a3da87b8994"
-	page, err := client.DownloadPage(pageID)
-	must(err)
-	subPages := page.GetSubPages()
-	nExp := 7
-	panicIf(len(subPages) != nExp, "expected %d sub-pages of '%s', got %d", nExp, uri, len(subPages))
-	logf("ok\ttestSubPages()\n")
-}
-
 func traceNotionAPI() {
 	nodeModulesDir := filepath.Join("tracenotion", "node_modules")
 	if !u.DirExists(nodeModulesDir) {
@@ -203,6 +189,12 @@ func main() {
 
 	if false {
 		adhocTests()
+		return
+	}
+
+	if true {
+		// testGetBlockRecords()
+		testLoadCachePageChunk()
 		return
 	}
 

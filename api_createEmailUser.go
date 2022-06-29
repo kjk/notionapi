@@ -27,5 +27,5 @@ func (c *Client) CreateEmailUser(email string) (*NotionUser, error) {
 		return nil, errors.New("error inviting user")
 	}
 
-	return users.Value.NotionUser, err
+	return users.NotionUser, err
 }

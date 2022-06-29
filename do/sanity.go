@@ -2,19 +2,35 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/kjk/notionapi"
 )
 
 // https://www.notion.so/Comparing-prices-of-VPS-servers-c30393989ae549c3a39f21ca5a681d72
-func testSyncRecordValues() {
+func testGetBlockRecords() {
 	c := newClient()
 	ids := []string{"c30393989ae549c3a39f21ca5a681d72"}
-	res, err := c.GetBlockRecords(ids)
+	blocks, err := c.GetBlockRecords(ids)
 	must(err)
-	blocks := res.Results
-	for id, r := range blocks {
-		logf("testSyncRecordValues: id: %s, id: '%s'\n", id, r.ID)
+	panicIf(len(blocks) == 1)
+	dashID := notionapi.ToDashID(ids[0])
+	panicIf(blocks[0].ID != dashID)
+	for _, r := range blocks {
+		logf("testSyncRecordValues: id: '%s'\n", r.ID)
+	}
+}
+
+// https://www.notion.so/Test-text-4c6a54c68b3e4ea2af9cfaabcc88d58d
+func testLoadCachePageChunk() {
+	c := newClient()
+	pageID := notionapi.ToDashID("4c6a54c68b3e4ea2af9cfaabcc88d58d")
+	rsp, err := c.LoadCachedPageChunk(pageID, 0, nil)
+	must(err)
+	fmt.Printf("rsp:\n%#v\n\n", rsp)
+	for blockID, block := range rsp.RecordMap.Blocks {
+		fmt.Printf("blockID: %s, block.ID: %s\n", blockID, block.ID)
+		panicIf(blockID != block.ID)
 	}
 }
 
@@ -33,6 +49,20 @@ func testQueryDecode() {
 	var v notionapi.Query
 	err := json.Unmarshal([]byte(s), &v)
 	must(err)
+}
+
+func testSubPages() {
+	// test that GetSubPages() only returns direct children
+	// of a page, not link to pages
+	client := newClient()
+	uri := "https://www.notion.so/Test-sub-pages-in-mono-font-381243f4ba4d4670ac491a3da87b8994"
+	pageID := "381243f4ba4d4670ac491a3da87b8994"
+	page, err := client.DownloadPage(pageID)
+	must(err)
+	subPages := page.GetSubPages()
+	nExp := 7
+	panicIf(len(subPages) != nExp, "expected %d sub-pages of '%s', got %d", nExp, uri, len(subPages))
+	logf("ok\ttestSubPages()\n")
 }
 
 // TODO: this fails now
@@ -72,7 +102,8 @@ func sanityTests() {
 	testQueryDecode()
 
 	runGoTests()
-	testSyncRecordValues()
+	testGetBlockRecords()
+	testLoadCachePageChunk()
 	testSubPages()
 
 	// TODO: something must have changed on the server and this test fails now
