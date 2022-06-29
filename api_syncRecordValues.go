@@ -1,16 +1,24 @@
 package notionapi
 
+import "fmt"
+
 // /api/v3/syncRecordValues request
 type syncRecordValuesRequest struct {
 	Requests []SyncRecordRequest `json:"requests"`
 }
 
+type Pointer struct {
+	Table string `json:"table"`
+	ID    string `json:"id"`
+}
+
+type PointerWithVersion struct {
+	Pointer Pointer `json:"pointer"`
+	Version int     `json:"version"`
+}
+
 type SyncRecordRequest struct {
-	Pointer struct {
-		Table string `json:"table"`
-		ID    string `json:"id"`
-	} `json:"pointer"`
-	Version int `json:"version"`
+	Requests []PointerWithVersion `json:"requests"`
 }
 
 // SyncRecordValuesResponse represents response to /api/v3/syncRecordValues api
@@ -22,11 +30,7 @@ type SyncRecordValuesResponse struct {
 }
 
 // SyncRecordValues executes a raw API call /api/v3/syncRecordValues
-func (c *Client) SyncRecordValues(records []SyncRecordRequest) (*SyncRecordValuesResponse, error) {
-	req := &syncRecordValuesRequest{
-		Requests: records,
-	}
-
+func (c *Client) SyncRecordValuesAPI(req SyncRecordRequest) (*SyncRecordValuesResponse, error) {
 	var rsp SyncRecordValuesResponse
 	var err error
 	apiURL := "/api/v3/syncRecordValues"
@@ -39,21 +43,82 @@ func (c *Client) SyncRecordValues(records []SyncRecordRequest) (*SyncRecordValue
 	return &rsp, nil
 }
 
-/*
-// SyncRecordValues executes a raw API call /api/v3/syncRecordValues
+// SyncBlockValues executes a raw API call /api/v3/syncRecordValues
 // to get records for blocks with given ids
-func (c *Client) SyncRecordValues(ids []string) (*SyncRecordValuesResponse, error) {
-	records := make([]SyncRecordRequest, len(ids))
+func (c *Client) SyncBlockValues(ids []string) (*SyncRecordValuesResponse, error) {
+	var req SyncRecordRequest
+	for _, id := range ids {
+		dashID := ToDashID(id)
+		if !IsValidDashID(dashID) {
+			return nil, fmt.Errorf("'%s' is not a valid notion id", id)
+		}
+		p := Pointer{
+			Table: TableBlock,
+			ID:    dashID,
+		}
+		pver := PointerWithVersion{
+			Pointer: p,
+			Version: -1,
+		}
+		req.Requests = append(req.Requests, pver)
+	}
+	return c.SyncRecordValuesAPI(req)
+}
+
+// GetRecordValuesResponse represents response to /api/v3/getRecordValues api
+// Note: it depends on Table type in request
+type GetRecordValuesResponse struct {
+	Results []*Record              `json:"results"`
+	RawJSON map[string]interface{} `json:"-"`
+}
+
+// RecordRequest represents argument to GetRecordValues
+type RecordRequest struct {
+	Table string `json:"table"`
+	ID    string `json:"id"`
+}
+
+// GetRecordValues emulates deprecated /api/v3/getRecordValues with  /api/v3/syncRecordValues
+func (c *Client) GetRecordValues(records []RecordRequest) (*GetRecordValuesResponse, error) {
+
+	var req SyncRecordRequest
+	for _, rr := range records {
+		p := Pointer{
+			Table: rr.Table,
+			ID:    rr.ID,
+		}
+		pver := PointerWithVersion{
+			Pointer: p,
+			Version: -1,
+		}
+		req.Requests = append(req.Requests, pver)
+	}
+
+	srsp, err := c.SyncRecordValuesAPI(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var rsp GetRecordValuesResponse
+	rm := srsp.RecordMap
+	for _, rv := range rm.Blocks {
+		rsp.Results = append(rsp.Results, rv.Value)
+	}
+
+	return &rsp, nil
+}
+
+// GetBlockRecords executes a raw API call /api/v3/getRecordValues
+// to get records for blocks with given ids
+func (c *Client) GetBlockRecords(ids []string) (*GetRecordValuesResponse, error) {
+	records := make([]RecordRequest, len(ids))
 	for pos, id := range ids {
 		dashID := ToDashID(id)
 		if !IsValidDashID(dashID) {
 			return nil, fmt.Errorf("'%s' is not a valid notion id", id)
 		}
-		r := &records[pos]
-		r.Version = -1
-		r.Pointer.Table = TableBlock
-		r.Pointer.ID = dashID
+		records[pos].Table = TableBlock
+		records[pos].ID = dashID
 	}
-	return c.SyncRecordValues(records)
+	return c.GetRecordValues(records)
 }
-*/

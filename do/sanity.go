@@ -10,14 +10,11 @@ import (
 func testSyncRecordValues() {
 	c := newClient()
 	ids := []string{"c30393989ae549c3a39f21ca5a681d72"}
-	res, err := c.SyncBlockRecords(ids)
+	res, err := c.GetBlockRecords(ids)
 	must(err)
-	for table, records := range res.RecordMap {
-		panicIf(table != "block")
-		for id, r := range records {
-			logf("testSyncRecordValues: id: %s, id: '%s'\n", id, r.ID)
-			panicIf(id != r.ID)
-		}
+	blocks := res.Results
+	for id, r := range blocks {
+		logf("testSyncRecordValues: id: %s, id: '%s'\n", id, r.ID)
 	}
 }
 
