@@ -12,8 +12,8 @@ github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnr
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/kjk/common v0.0.0-20211010101831-6203abf05163 h1:iwH0ioFLk58sU4CCis60VwIkrZksSeNP08+FFe9n50c=
 github.com/kjk/common v0.0.0-20211010101831-6203abf05163/go.mod h1:bZoW8+ube8gSUMxdvIMVBw97o5gepeZqlCD8V+0MWXg=
-github.com/kjk/siser v0.0.0-20210621233355-17e67ed4384f h1:X3X0zk+W4FIR4LvlT4BQbHMXM3rj2Ba6P4nZ8MkVPqM=
-github.com/kjk/siser v0.0.0-20210621233355-17e67ed4384f/go.mod h1:k2Pzb2Ix2MoXVfVLt3SeCEhwammA4PTgLxjDBhIUHoA=
+github.com/kjk/siser v0.0.0-20220410204903-1b1e84ea1397 h1:OUgj4KSdIQeZfLSXR4WeUb3tRbWVGIXdlv9SfJJmbeg=
+github.com/kjk/siser v0.0.0-20220410204903-1b1e84ea1397/go.mod h1:k2Pzb2Ix2MoXVfVLt3SeCEhwammA4PTgLxjDBhIUHoA=
 github.com/mattn/go-isatty v0.0.8/go.mod h1:Iq45c/XA43vh69/j3iqttzPXn0bhXyGjM0Hdxcsrc5s=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=
