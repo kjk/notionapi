@@ -13,7 +13,7 @@ func testGetBlockRecords() {
 	ids := []string{"c30393989ae549c3a39f21ca5a681d72"}
 	blocks, err := c.GetBlockRecords(ids)
 	must(err)
-	panicIf(len(blocks) == 1)
+	panicIf(len(blocks) != 1)
 	dashID := notionapi.ToDashID(ids[0])
 	panicIf(blocks[0].ID != dashID)
 	for _, r := range blocks {
@@ -27,7 +27,7 @@ func testLoadCachePageChunk() {
 	pageID := notionapi.ToDashID("4c6a54c68b3e4ea2af9cfaabcc88d58d")
 	rsp, err := c.LoadCachedPageChunk(pageID, 0, nil)
 	must(err)
-	fmt.Printf("rsp:\n%#v\n\n", rsp)
+	// fmt.Printf("rsp:\n%#v\n\n", rsp)
 	for blockID, block := range rsp.RecordMap.Blocks {
 		fmt.Printf("blockID: %s, block.ID: %s\n", blockID, block.ID)
 		panicIf(blockID != block.ID)

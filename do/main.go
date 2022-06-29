@@ -193,7 +193,7 @@ func main() {
 	}
 
 	if false {
-		// testGetBlockRecords()
+		testGetBlockRecords()
 		testLoadCachePageChunk()
 		return
 	}
