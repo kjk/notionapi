@@ -172,6 +172,8 @@ func main() {
 		flag.StringVar(&flgExportType, "export-type", "", "html or markdown")
 		flag.StringVar(&flgTestToMd, "test-to-md", "", "test markdown generation")
 		flag.StringVar(&flgTestToHTML, "test-to-html", "", "id of start page")
+		flag.StringVar(&flgToHTML, "to-html", "", "id of notion page to download and convert to html")
+		flag.StringVar(&flgToMarkdown, "to-md", "", "id of notion page to download and convert to markdown")
 
 		flag.StringVar(&flgPreviewHTML, "preview-html", "", "id of start page")
 		flag.StringVar(&flgPreviewMarkdown, "preview-md", "", "id of start page")
@@ -180,8 +182,6 @@ func main() {
 		flag.BoolVar(&flgSmokeTest, "smoke", false, "run a smoke test (not fast, run after non-trivial changes)")
 		flag.StringVar(&flgTestDownloadCache, "test-download-cache", "", "page id to use to test download cache")
 		flag.StringVar(&flgDownloadPage, "dlpage", "", "id of notion page to download")
-		flag.StringVar(&flgToHTML, "to-html", "", "id of notion page to download and convert to html")
-		flag.StringVar(&flgToMarkdown, "to-md", "", "id of notion page to download and convert to markdown")
 		flag.BoolVar(&flgReExport, "re-export", false, "if true, will re-export from notion")
 		flag.BoolVar(&flgNoCache, "no-cache", false, "if true, will not use a cached version in log/ directory")
 		flag.BoolVar(&flgNoOpen, "no-open", false, "if true, will not automatically open the browser with html file generated with -tohtml")
@@ -253,7 +253,7 @@ func main() {
 		return
 	}
 
-	if true {
+	if false {
 		// simple page with an image
 		//flgToHTML = "da0b358c21ab4ac6b5c0f7154b2ecadc"
 		//flgToHTML = "35fbba015f344570af678d56827dd67c"

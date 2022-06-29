@@ -9,7 +9,7 @@ import (
 /*
 Tests that use pages cached in testdata/ directory.
 Because they don't involve that they are good for unit tests.
-To create the file for a page, run: ./doit.bat -clean -to-html ${pageID}
+To create the file for a page, run: ./doit.bat -clean-cache -to-html ${pageID}
 and copy tmpdata/cache/${pageID}.txt to caching_client_testdata
 */
 

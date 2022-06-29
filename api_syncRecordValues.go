@@ -3,8 +3,8 @@ package notionapi
 import "fmt"
 
 // /api/v3/syncRecordValues request
-type syncRecordValuesRequest struct {
-	Requests []SyncRecordRequest `json:"requests"`
+type syncRecordRequest struct {
+	Requests []PointerWithVersion `json:"requests"`
 }
 
 type Pointer struct {
@@ -17,10 +17,6 @@ type PointerWithVersion struct {
 	Version int     `json:"version"`
 }
 
-type SyncRecordRequest struct {
-	Requests []PointerWithVersion `json:"requests"`
-}
-
 // SyncRecordValuesResponse represents response to /api/v3/syncRecordValues api
 // Note: it depends on Table type in request
 type SyncRecordValuesResponse struct {
@@ -30,7 +26,7 @@ type SyncRecordValuesResponse struct {
 }
 
 // SyncRecordValues executes a raw API call /api/v3/syncRecordValues
-func (c *Client) SyncRecordValuesAPI(req SyncRecordRequest) (*SyncRecordValuesResponse, error) {
+func (c *Client) SyncRecordValuesAPI(req syncRecordRequest) (*SyncRecordValuesResponse, error) {
 	var rsp SyncRecordValuesResponse
 	var err error
 	apiURL := "/api/v3/syncRecordValues"
@@ -46,7 +42,7 @@ func (c *Client) SyncRecordValuesAPI(req SyncRecordRequest) (*SyncRecordValuesRe
 // SyncBlockValues executes a raw API call /api/v3/syncRecordValues
 // to get records for blocks with given ids
 func (c *Client) SyncBlockValues(ids []string) (*SyncRecordValuesResponse, error) {
-	var req SyncRecordRequest
+	var req syncRecordRequest
 	for _, id := range ids {
 		dashID := ToDashID(id)
 		if !IsValidDashID(dashID) {
@@ -72,21 +68,11 @@ type GetRecordValuesResponse struct {
 	RawJSON map[string]interface{} `json:"-"`
 }
 
-// RecordRequest represents argument to GetRecordValues
-type RecordRequest struct {
-	Table string `json:"table"`
-	ID    string `json:"id"`
-}
-
 // GetRecordValues emulates deprecated /api/v3/getRecordValues with  /api/v3/syncRecordValues
-func (c *Client) GetRecordValues(records []RecordRequest) (*GetRecordValuesResponse, error) {
+func (c *Client) GetRecordValues(records []Pointer) (*GetRecordValuesResponse, error) {
 
-	var req SyncRecordRequest
-	for _, rr := range records {
-		p := Pointer{
-			Table: rr.Table,
-			ID:    rr.ID,
-		}
+	var req syncRecordRequest
+	for _, p := range records {
 		pver := PointerWithVersion{
 			Pointer: p,
 			Version: -1,
@@ -111,7 +97,7 @@ func (c *Client) GetRecordValues(records []RecordRequest) (*GetRecordValuesRespo
 // GetBlockRecords executes a raw API call /api/v3/getRecordValues
 // to get records for blocks with given ids
 func (c *Client) GetBlockRecords(ids []string) (*GetRecordValuesResponse, error) {
-	records := make([]RecordRequest, len(ids))
+	records := make([]Pointer, len(ids))
 	for pos, id := range ids {
 		dashID := ToDashID(id)
 		if !IsValidDashID(dashID) {

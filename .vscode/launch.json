@@ -4,6 +4,7 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+
     {
       "name": "test-to-html",
       "type": "go",
@@ -11,7 +12,7 @@
       "mode": "auto",
       "program": "${fileDirname}",
       "env": {},
-      "args": ["-to-html", "94167af6567043279811dc923edd1f04"]
+      "args": ["-to-html", "6682351e44bb4f9ca0e149b703265bdb"]
     }
   ]
 }
