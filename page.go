@@ -33,7 +33,9 @@ type Page struct {
 	TableViews []*TableView
 
 	idToBlock          map[string]*Block
-	idToUser           map[string]*User
+	idToNotionUser     map[string]*NotionUser
+	idToUserRoot       map[string]*UserRoot
+	idToUserSettings   map[string]*UserSettings
 	idToCollection     map[string]*Collection
 	idToCollectionView map[string]*CollectionView
 	idToComment        map[string]*Comment
@@ -64,8 +66,8 @@ func (p *Page) BlockByID(nid *NotionID) *Block {
 }
 
 // UserByID returns a user by its id
-func (p *Page) UserByID(nid *NotionID) *User {
-	return p.idToUser[nid.DashID]
+func (p *Page) NotionUserByID(nid *NotionID) *NotionUser {
+	return p.idToNotionUser[nid.DashID]
 }
 
 // CollectionByID returns a collection by its id
@@ -264,7 +266,7 @@ func (p *Page) GetSubPages() []*NotionID {
 	return res
 }
 
-func makeUserName(user *User) string {
+func makeUserName(user *NotionUser) string {
 	s := user.GivenName
 	if len(s) > 0 {
 		s += " "
@@ -280,7 +282,7 @@ func makeUserName(user *User) string {
 // it's a helper function
 func GetUserNameByID(page *Page, userID string) string {
 	for _, r := range page.UserRecords {
-		user := r.User
+		user := r.NotionUser
 		if user.ID == userID {
 			return makeUserName(user)
 		}

@@ -5,7 +5,7 @@ import (
 )
 
 // CreateEmailUser invites a new user through his email address
-func (c *Client) CreateEmailUser(email string) (*User, error) {
+func (c *Client) CreateEmailUser(email string) (*NotionUser, error) {
 	req := struct {
 		Email string `json:"email"`
 	}{
@@ -22,10 +22,10 @@ func (c *Client) CreateEmailUser(email string) (*User, error) {
 
 	recordMap := rsp.RecordMap
 	ParseRecordMap(recordMap)
-	users, ok := recordMap.Users[rsp.UserID]
+	users, ok := recordMap.NotionUsers[rsp.UserID]
 	if !ok {
 		return nil, errors.New("error inviting user")
 	}
 
-	return users.Value.User, err
+	return users.Value.NotionUser, err
 }

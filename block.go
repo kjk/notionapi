@@ -727,8 +727,8 @@ func (b *Block) BlockByID(nid *NotionID) *Block {
 	return b.Page.BlockByID(nid)
 }
 
-func (b *Block) UserByID(nid *NotionID) *User {
-	return b.Page.UserByID(nid)
+func (b *Block) NotionUserByID(nid *NotionID) *NotionUser {
+	return b.Page.NotionUserByID(nid)
 }
 
 func (b *Block) CollectionByID(nid *NotionID) *Collection {

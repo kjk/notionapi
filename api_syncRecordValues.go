@@ -1,7 +1,5 @@
 package notionapi
 
-import "fmt"
-
 // /api/v3/syncRecordValues request
 type syncRecordValuesRequest struct {
 	Requests []SyncRecordRequest `json:"requests"`
@@ -15,16 +13,11 @@ type SyncRecordRequest struct {
 	Version int `json:"version"`
 }
 
-type RecordsByID map[string]*Record
-
-// SyncRecordValuesResponse represents response to /api/v3/getRecordValues api
+// SyncRecordValuesResponse represents response to /api/v3/syncRecordValues api
 // Note: it depends on Table type in request
 type SyncRecordValuesResponse struct {
-	RecordMap map[string]RecordsByID `json:"recordMap"`
+	RecordMap *RecordMap `json:"recordMap"`
 
-	// TODO: maybe temporary, we synthesize this for compat with
-	// GetBlockRecords()
-	Results []*Record              `json:"-"`
 	RawJSON map[string]interface{} `json:"-"`
 }
 
@@ -40,22 +33,16 @@ func (c *Client) SyncRecordValues(records []SyncRecordRequest) (*SyncRecordValue
 	if rsp.RawJSON, err = c.doNotionAPI(apiURL, req, &rsp); err != nil {
 		return nil, err
 	}
-
-	for table, records := range rsp.RecordMap {
-		for _, r := range records {
-			err = parseRecord(table, r)
-			rsp.Results = append(rsp.Results, r)
-			if err != nil {
-				return nil, err
-			}
-		}
+	if err = ParseRecordMap(rsp.RecordMap); err != nil {
+		return nil, err
 	}
 	return &rsp, nil
 }
 
-// SyncBlockRecords executes a raw API call /api/v3/getRecordValues
+/*
+// SyncRecordValues executes a raw API call /api/v3/syncRecordValues
 // to get records for blocks with given ids
-func (c *Client) SyncBlockRecords(ids []string) (*SyncRecordValuesResponse, error) {
+func (c *Client) SyncRecordValues(ids []string) (*SyncRecordValuesResponse, error) {
 	records := make([]SyncRecordRequest, len(ids))
 	for pos, id := range ids {
 		dashID := ToDashID(id)
@@ -69,3 +56,4 @@ func (c *Client) SyncBlockRecords(ids []string) (*SyncRecordValuesResponse, erro
 	}
 	return c.SyncRecordValues(records)
 }
+*/

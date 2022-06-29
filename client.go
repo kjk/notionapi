@@ -274,7 +274,9 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		idToCollectionView: map[string]*CollectionView{},
 		idToComment:        map[string]*Comment{},
 		idToDiscussion:     map[string]*Discussion{},
-		idToUser:           map[string]*User{},
+		idToNotionUser:     map[string]*NotionUser{},
+		idToUserRoot:       map[string]*UserRoot{},
+		idToUserSettings:   map[string]*UserSettings{},
 		idToSpace:          map[string]*Space{},
 		blocksToSkip:       map[string]struct{}{},
 	}

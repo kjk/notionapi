@@ -9,9 +9,9 @@ type LoadUserResponse struct {
 
 	Value json.RawMessage `json:"value"`
 
-	Block *Block `json:"-"`
-	Space *Space `json:"-"`
-	User  *User  `json:"-"`
+	Block *Block      `json:"-"`
+	Space *Space      `json:"-"`
+	User  *NotionUser `json:"-"`
 
 	RawJSON map[string]interface{} `json:"-"`
 }
@@ -35,8 +35,8 @@ func (c *Client) LoadUserContent() (*LoadUserResponse, error) {
 	for table, values := range rsp.RecordMap {
 		for _, value := range values {
 			var obj interface{}
-			if table == TableUser {
-				result.User = &User{}
+			if table == TableNotionUser {
+				result.User = &NotionUser{}
 				obj = result.User
 			}
 			if table == TableBlock {
