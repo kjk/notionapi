@@ -62,9 +62,10 @@ func (c *Client) GetBlockRecords(ids []string) ([]*Block, error) {
 	}
 	var res []*Block
 	rm := rsp.RecordMap
-	for _, rv := range rm.Blocks {
-		res = append(res, rv.Block)
+	for _, id := range ids {
+		id = ToDashID(id)
+		b := rm.Blocks[id].Block
+		res = append(res, b)
 	}
-
 	return res, nil
 }
