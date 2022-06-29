@@ -277,7 +277,6 @@ func main() {
 			os.RemoveAll(dir)
 		}
 		u.RemoveFilesInDirMust(cacheDir)
-		return
 	}
 
 	if flgBench {
