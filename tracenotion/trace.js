@@ -45,7 +45,16 @@ function shouldLogApiRequest(url) {
     return false;
   }
   if (url.includes("/api/v3/getAssetsJsonV2")) {
-    return false;   
+    return false;
+  }
+  if (url.includes("/api/v3/trackSegmentEvent")) {
+    return false;
+  }
+  if (url.includes("/api/v3/teV1")) {
+    return false;
+  }
+  if (url.includes("/api/v3/getExternalIntegrations")) {
+    return false;
   }
   return true;
 }
@@ -96,7 +105,7 @@ async function traceNotion(url) {
     const c = {
       domain: "www.notion.so",
       name: "token_v2",
-      value: token
+      value: token,
     };
     await page.setCookie(c);
   } else {
@@ -147,7 +156,7 @@ async function traceNotion(url) {
     return false;
   }
 
-  page.on("request", request => {
+  page.on("request", (request) => {
     const url = request.url();
     if (isBlacklisted(url)) {
       request.abort();
@@ -156,7 +165,7 @@ async function traceNotion(url) {
     request.continue();
   });
 
-  page.on("requestfailed", request => {
+  page.on("requestfailed", (request) => {
     const url = request.url();
     if (isBlacklisted(url)) {
       // it was us who failed this request
