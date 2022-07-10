@@ -998,14 +998,14 @@ func CleanAttributeValue(v string) string {
 
 // RenderCallout renders BlockCallout
 func (c *Converter) RenderCallout(block *notionapi.Block) {
-	cls := GetBlockColorClass(block) + " callout"
+	cls := "notion-callout " + GetBlockColorClass(block)
 	cls = CleanAttributeValue(cls)
-	c.Printf(`<figure class="%s" style="white-space:pre-wrap;display:flex" id="%s">`, cls, block.ID)
+	c.Printf(`<figure class="%s" style="display:flex" id="%s">`, cls, block.ID)
 	{
-		c.Printf(`<div style="font-size:1.5em">`)
+		c.Printf(`<div class="notion-figure-icon-wrap">`)
 		{
 			pageIcon, _ := block.PropAsString("format.page_icon")
-			c.Printf(`<span class="icon">%s</span>`, pageIcon)
+			c.Printf(`<span class="notion-figure-icon">%s</span>`, pageIcon)
 		}
 		c.Printf(`</div>`)
 
