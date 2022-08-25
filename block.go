@@ -383,6 +383,16 @@ type Block struct {
 	// those correspond to ViewIDs
 	TableViews []*TableView `json:"-"`
 
+	// for BlockCollectionView without "collection_id" use ID from the CollectionPointer
+	Format struct {
+		CollectionPointer struct {
+			ID      string `json:"id"`
+			SpaceID string `json:"spaceId"`
+			Table   string `json:"table"`
+		} `json:"collection_pointer"`
+		PageIcon string `json:"page_icon"`
+	} `json:"format"`
+
 	Page *Page `json:"-"`
 
 	// RawJSON represents Block as
@@ -721,6 +731,18 @@ func (b *Block) FormatCallout() *FormatCallout {
 		return nil
 	}
 	return &format
+}
+
+func (b *Block) FixCollectionID() string {
+	if b.CollectionID != "" {
+		return b.CollectionID
+	}
+
+	if b.Format.CollectionPointer.ID != "" {
+		return b.Format.CollectionPointer.ID
+	}
+
+	return ""
 }
 
 func (b *Block) BlockByID(nid *NotionID) *Block {
