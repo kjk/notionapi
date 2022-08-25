@@ -437,7 +437,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			return nil, fmt.Errorf("no users when trying to resolve collection_view")
 		}
 
-		collectionID := block.CollectionID
+		collectionID := block.FixCollectionID()
 		for _, collectionViewID := range block.ViewIDs {
 			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {

@@ -588,7 +588,12 @@ func (c *Converter) renderPageHeader(block *notionapi.Block) {
 
 // RenderCollectionViewPage renders BlockCollectionViewPage
 func (c *Converter) RenderCollectionViewPage(block *notionapi.Block) {
-	colID := block.CollectionID
+	colID := block.FixCollectionID()
+	//when collection is empty, we don't have ID
+	if colID == "" {
+		return
+	}
+
 	nid := notionapi.NewNotionID(colID)
 	col := c.Page.CollectionByID(nid)
 	icon := col.Icon
