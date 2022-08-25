@@ -492,6 +492,11 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				continue
 			}
 
+			// Page's parent is inside the blocks to skip
+			if _, ok := p.blocksToSkip[b.GetParentNotionID().DashID]; ok {
+				continue
+			}
+
 			b.Parent = p.BlockByID(b.GetParentNotionID())
 			if b.Parent == nil {
 				return nil, fmt.Errorf("could not find parent '%s' of id '%s' of block '%s'", b.ParentTable, b.ParentID, b.ID)
