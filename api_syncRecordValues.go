@@ -64,7 +64,13 @@ func (c *Client) GetBlockRecords(ids []string) ([]*Block, error) {
 	rm := rsp.RecordMap
 	for _, id := range ids {
 		id = ToDashID(id)
-		b := rm.Blocks[id].Block
+
+		// sometimes notion does not return the block ask by the API
+		var b *Block
+		if rm.Blocks[id] != nil {
+			b = rm.Blocks[id].Block
+		}
+
 		res = append(res, b)
 	}
 	return res, nil
