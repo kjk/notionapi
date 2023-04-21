@@ -21,6 +21,12 @@ type Edit struct {
 	BlockID   string `json:"block_id"`
 	BlockData struct {
 		BlockValue Block `json:"block_value"`
+		Before     struct {
+			BlockValue Block `json:"block_value"`
+		} `json:"before"`
+		After struct {
+			BlockValue Block `json:"block_value"`
+		} `json:"after"`
 	} `json:"block_data"`
 	NavigableBlockID string `json:"navigable_block_id"`
 

@@ -1,13 +1,18 @@
 package notionapi
 
-// /api/v3/getActivityLog request
-type getActivityLogRequest struct {
-	SpaceID         string `json:"spaceId"`
-	StartingAfterID string `json:"startingAfterId,omitempty"`
-	Limit           int    `json:"limit"`
+type navigableBlockID struct {
+	ID string `json:"id"`
 }
 
-// LoadPageChunkResponse is a response to /api/v3/loadPageChunk api
+// /api/v3/getActivityLog request
+type getActivityLogRequest struct {
+	SpaceID         string           `json:"spaceId"`
+	StartingAfterID string           `json:"startingAfterId,omitempty"`
+	NavigableBlock  navigableBlockID `json:"navigableBlock,omitempty"`
+	Limit           int              `json:"limit"`
+}
+
+// GetActivityLogResponse is a response to /api/v3/getActivityLog api
 type GetActivityLogResponse struct {
 	ActivityIDs []string   `json:"activityIds"`
 	RecordMap   *RecordMap `json:"recordMap"`
@@ -18,11 +23,13 @@ type GetActivityLogResponse struct {
 
 // GetActivityLog executes a raw API call /api/v3/getActivityLog.
 // If startingAfterId is "", starts at the most recent log entry.
-func (c *Client) GetActivityLog(spaceID string, startingAfterID string, limit int) (*GetActivityLogResponse, error) {
+// navBlockID is the ID of a navigable block (like a page in a database)
+func (c *Client) GetActivityLog(spaceID string, startingAfterID string, navBlockID string, limit int) (*GetActivityLogResponse, error) {
 	req := &getActivityLogRequest{
 		SpaceID:         spaceID,
 		StartingAfterID: startingAfterID,
 		Limit:           limit,
+		NavigableBlock:  navigableBlockID{ID: navBlockID},
 	}
 	var rsp GetActivityLogResponse
 	var err error
