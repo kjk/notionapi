@@ -317,14 +317,15 @@ func (c *Converter) GetInlineContent(blocks []*notionapi.TextSpan, trimeEndSpace
 // RenderCode renders BlockCode
 func (c *Converter) RenderCode(block *notionapi.Block) {
 	code := block.Code
-	ind := "    "
 	parts := strings.Split(code, "\n")
 
+	// The line was already indented by AddNewlineBeforeBlock(),
+	// so no additional indentation is added before this line.
 	c.Printf("```" + block.CodeLanguage + "\n")
 	for _, part := range parts {
-		c.Printf(ind + part + "\n")
+		c.Printf(c.Indent + part + "\n")
 	}
-	c.Printf("```\n")
+	c.Printf(c.Indent + "```\n")
 }
 
 func (c *Converter) renderRootPage(block *notionapi.Block) {
