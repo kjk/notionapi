@@ -319,9 +319,12 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 	code := block.Code
 	ind := "    "
 	parts := strings.Split(code, "\n")
+
+	c.Printf("```" + block.CodeLanguage + "\n")
 	for _, part := range parts {
 		c.Printf(ind + part + "\n")
 	}
+	c.Printf("```\n")
 }
 
 func (c *Converter) renderRootPage(block *notionapi.Block) {
