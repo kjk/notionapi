@@ -8,8 +8,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.0.14 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect
 )
 
