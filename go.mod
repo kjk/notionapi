@@ -9,4 +9,4 @@ require (
 	github.com/tidwall/pretty v1.2.1
 )
 
-go 1.11
+go 1.21
