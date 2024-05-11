@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sort"
 	"strings"
@@ -131,13 +130,13 @@ repeatRequest:
 	defer closeNoError(rsp.Body)
 
 	if rsp.StatusCode != 200 {
-		d, _ := ioutil.ReadAll(rsp.Body)
+		d, _ := io.ReadAll(rsp.Body)
 		c.logf("Error: status code %s\nBody:\n%s\n", rsp.Status, PrettyPrintJS(d))
 		return nil, fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
 	}
-	d, err := ioutil.ReadAll(rsp.Body)
+	d, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		c.logf("Error: ioutil.ReadAll() failed with %s\n", err)
+		c.logf("Error: io.ReadAll() failed with %s\n", err)
 		return nil, err
 	}
 	return d, nil

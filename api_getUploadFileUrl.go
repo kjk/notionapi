@@ -2,7 +2,7 @@ package notionapi
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime"
 	"net/http"
 	"os"
@@ -163,7 +163,7 @@ func (c *Client) UploadFile(file *os.File) (fileID, fileURL string, err error) {
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		var contents []byte
-		contents, err = ioutil.ReadAll(resp.Body)
+		contents, err = io.ReadAll(resp.Body)
 		if err != nil {
 			contents = []byte(fmt.Sprintf("Error from ReadAll: %s", err))
 		}

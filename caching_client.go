@@ -6,7 +6,6 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -169,14 +168,15 @@ func (c *CachingClient) readRequestsCacheFile(dir string) error {
 	if err != nil {
 		return err
 	}
-	entries, err := ioutil.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return err
 	}
 	nFiles := 0
 
 	for _, fi := range entries {
-		if !fi.Mode().IsRegular() {
+
+		if !fi.Type().IsRegular() {
 			continue
 		}
 		name := fi.Name()
@@ -190,7 +190,7 @@ func (c *CachingClient) readRequestsCacheFile(dir string) error {
 		}
 		nFiles++
 		path := filepath.Join(dir, name)
-		d, err := ioutil.ReadFile(path)
+		d, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
@@ -431,12 +431,12 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		// append to a file for this page
 		fileName := pageID.NoDashID + ".txt"
 		path := filepath.Join(c.CacheDir, fileName)
-		err := ioutil.WriteFile(path, buf, 0644)
+		err := os.WriteFile(path, buf, 0644)
 		if err != nil {
 			// judgement call: delete file if failed to append
 			// as it might be corrupted
 			// could instead try appendAtomically()
-			c.logf("CachingClient.writeCacheForCurrPage: ioutil.WriteFile(%s) failed with '%s'\n", fileName, err)
+			c.logf("CachingClient.writeCacheForCurrPage: os.WriteFile(%s) failed with '%s'\n", fileName, err)
 			os.Remove(path)
 			return err
 		}
@@ -633,7 +633,7 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 	if c.Policy != PolicyDownloadAlways {
 		timeStart := time.Now()
 		path := c.findDownloadedFileInCache(uri)
-		data, err = ioutil.ReadFile(path)
+		data, err = os.ReadFile(path)
 		if err != nil {
 			os.Remove(path)
 		} else {
@@ -667,7 +667,7 @@ func (c *CachingClient) DownloadFile(uri string, block *Block) (*DownloadFileRes
 	dir := filepath.Dir(path)
 	_ = os.MkdirAll(dir, 0755)
 
-	err = ioutil.WriteFile(path, res.Data, 0644)
+	err = os.WriteFile(path, res.Data, 0644)
 	if err != nil {
 		return nil, err
 	}
