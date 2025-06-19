@@ -195,6 +195,8 @@ func ExtractNoDashIDFromNotionURL(uri string) string {
 	// remove url fragment
 	parts = strings.Split(id, "#")
 	id = parts[0]
+	parts = strings.Split(id, "?")
+	id = parts[0]
 	return ToNoDashID(id)
 }
 
@@ -454,7 +456,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 			req.Collection.SpaceID = spaceID
 			req.CollectionView.ID = collectionViewID
 			req.CollectionView.SpaceID = spaceID
-			res, err := c.QueryCollection(req, collectionView.Query)
+			res, err := c.QueryCollection(req, collectionView.Query, map[string]string{"src": "initial_load"})
 			if err != nil {
 				return nil, err
 			}
@@ -463,6 +465,8 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				Page:           p,
 				CollectionView: collectionView,
 				Collection:     collection,
+				SpaceId:        spaceID,
+				SizeHint:       res.Result.SizeHint,
 			}
 			if err := c.buildTableView(tableView, res); err != nil {
 				return nil, err

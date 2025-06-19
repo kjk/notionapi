@@ -1,5 +1,9 @@
 package notionapi
 
+import (
+	"net/url"
+)
+
 const (
 	// key in LoaderReducer.Reducers map
 	ReducerCollectionGroupResultsName = "collection_group_results"
@@ -27,6 +31,7 @@ type CollectionGroupResults struct {
 	Type     string   `json:"type"`
 	BlockIds []string `json:"blockIds"`
 	Total    int      `json:"total"`
+	HasMore  bool     `json:"hasMore"`
 }
 type ReducerResults struct {
 	// TODO: probably more types
@@ -37,7 +42,8 @@ type ReducerResults struct {
 type QueryCollectionResponse struct {
 	RecordMap *RecordMap `json:"recordMap"`
 	Result    struct {
-		Type string `json:"type"`
+		Type     string `json:"type"`
+		SizeHint int    `json:"sizeHint"` // e.g. 50
 		// TODO: there's probably more
 		ReducerResults *ReducerResults `json:"reducerResults"`
 	} `json:"result"`
@@ -53,7 +59,7 @@ type LoaderReducer struct {
 	UserTimeZone string                 `json:"userTimeZone"` // e.g. "America/Los_Angeles" from User.Locale
 }
 
-func MakeLoaderReducer(query *Query) *LoaderReducer {
+func MakeLoaderReducer(query *Query, limits ...int) *LoaderReducer {
 	res := &LoaderReducer{
 		Type:     "reducer",
 		Reducers: map[string]interface{}{},
@@ -62,9 +68,13 @@ func MakeLoaderReducer(query *Query) *LoaderReducer {
 		res.Sort = query.Sort
 		res.Filter = query.Filter
 	}
+	limit := 50
+	if len(limits) > 0 {
+		limit = limits[0]
+	}
 	res.Reducers[ReducerCollectionGroupResultsName] = &ReducerCollectionGroupResults{
 		Type:  "results",
-		Limit: 50,
+		Limit: limit,
 	}
 	// set some default value, should over-ride with User.TimeZone
 	res.UserTimeZone = "America/Los_Angeles"
@@ -72,13 +82,22 @@ func MakeLoaderReducer(query *Query) *LoaderReducer {
 }
 
 // QueryCollection executes a raw API call /api/v3/queryCollection
-func (c *Client) QueryCollection(req QueryCollectionRequest, query *Query) (*QueryCollectionResponse, error) {
+func (c *Client) QueryCollection(req QueryCollectionRequest, query *Query, params ...map[string]string) (*QueryCollectionResponse, error) {
 	if req.Loader == nil {
 		req.Loader = MakeLoaderReducer(query)
 	}
 	var rsp QueryCollectionResponse
 	var err error
+	values := url.Values{}
+	for _, p := range params {
+		for k, v := range p {
+			values.Add(k, v)
+		}
+	}
 	apiURL := "/api/v3/queryCollection"
+	if len(values) > 0 {
+		apiURL += "?" + values.Encode()
+	}
 	err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON)
 	if err != nil {
 		return nil, err

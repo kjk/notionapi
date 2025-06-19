@@ -1,6 +1,7 @@
 package notionapi
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -79,6 +80,7 @@ type CollectionFormat struct {
 // Collection describes a collection
 type Collection struct {
 	ID          string                   `json:"id"`
+	SpaceId     *string                  `json:"space_id"`
 	Version     int                      `json:"version"`
 	Name        interface{}              `json:"name"`
 	Schema      map[string]*ColumnSchema `json:"schema"`
@@ -219,6 +221,10 @@ type TableView struct {
 	// easier to work representation we calculate
 	Columns []*ColumnInfo
 	Rows    []*TableRow
+
+	HasMore  bool
+	SizeHint int
+	SpaceId  string
 }
 
 func (t *TableView) RowCount() int {
@@ -239,11 +245,6 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 	cv := tv.CollectionView
 	collection := tv.Collection
 
-	if cv.Format == nil {
-		c.logf("buildTableView: page: '%s', missing CollectionView.Format in collection view with id '%s'\n", ToNoDashID(tv.Page.ID), cv.ID)
-		return nil
-	}
-
 	if collection == nil {
 		c.logf("buildTableView: page: '%s', colleciton is nil, collection view id: '%s'\n", ToNoDashID(tv.Page.ID), cv.ID)
 		// TODO: maybe should return nil if this is missing in data returned
@@ -252,30 +253,24 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 		return fmt.Errorf("buildTableView: page: '%s', colleciton is nil, collection view id: '%s'", ToNoDashID(tv.Page.ID), cv.ID)
 	}
 
-	if collection.Schema == nil {
-		c.logf("buildTableView: page: '%s', missing collection.Schema, collection view id: '%s', collection id: '%s'\n", ToNoDashID(tv.Page.ID), cv.ID, collection.ID)
-		// TODO: maybe should return nil if this is missing in data returned
-		// by Notion. If it's a bug in our interpretation, we should fix
-		// that instead
-		return fmt.Errorf("buildTableView: page: '%s', missing collection.Schema, collection view id: '%s', collection id: '%s'", ToNoDashID(tv.Page.ID), cv.ID, collection.ID)
-	}
+	if cv.Format != nil && collection.Schema != nil {
+		idx := 0
+		for _, prop := range cv.Format.TableProperties {
+			if !prop.Visible {
+				continue
+			}
+			propName := prop.Property
+			schema := collection.Schema[propName]
+			ci := &ColumnInfo{
+				TableView: tv,
 
-	idx := 0
-	for _, prop := range cv.Format.TableProperties {
-		if !prop.Visible {
-			continue
+				Index:    idx,
+				Property: prop,
+				Schema:   schema,
+			}
+			idx++
+			tv.Columns = append(tv.Columns, ci)
 		}
-		propName := prop.Property
-		schema := collection.Schema[propName]
-		ci := &ColumnInfo{
-			TableView: tv,
-
-			Index:    idx,
-			Property: prop,
-			Schema:   schema,
-		}
-		idx++
-		tv.Columns = append(tv.Columns, ci)
 	}
 
 	// blockIDs are IDs of page blocks
@@ -283,12 +278,12 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 	var blockIds []string
 	if res.Result.ReducerResults != nil && res.Result.ReducerResults.CollectionGroupResults != nil {
 		blockIds = res.Result.ReducerResults.CollectionGroupResults.BlockIds
+		tv.HasMore = res.Result.ReducerResults.CollectionGroupResults.HasMore
 	}
 	for _, id := range blockIds {
 		rec, ok := res.RecordMap.Blocks[id]
 		if !ok {
-			cvID := tv.CollectionView.ID
-			return fmt.Errorf("didn't find block with id '%s' for collection view with id '%s'", id, cvID)
+			continue
 		}
 		b := rec.Block
 		if b != nil {
@@ -300,13 +295,43 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 		}
 	}
 
-	// pre-calculate cell content
-	for _, tr := range tv.Rows {
-		for _, ci := range tv.Columns {
-			propName := ci.Property.Property
-			v := tr.Page.GetProperty(propName)
-			tr.Columns = append(tr.Columns, v)
-		}
-	}
 	return nil
+}
+
+// FetchTableRows limit is 1000, if limit > 1000, it will get last 1000 rows
+func (c *Client) FetchTableRows(tv *TableView, limits ...int) (*TableView, error) {
+	if tv == nil {
+		return nil, errors.New("tableView is nil")
+	}
+
+	req := QueryCollectionRequest{}
+	req.Collection.ID = tv.Collection.ID
+	req.Collection.SpaceID = tv.SpaceId
+	req.CollectionView.ID = tv.CollectionView.ID
+	req.CollectionView.SpaceID = tv.SpaceId
+	if req.Loader == nil {
+		req.Loader = MakeLoaderReducer(tv.CollectionView.Query, limits...)
+	}
+
+	var rsp QueryCollectionResponse
+	var err error
+	apiURL := "/api/v3/queryCollection?src=change_group"
+	err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ParseRecordMap(rsp.RecordMap); err != nil {
+		return nil, err
+	}
+
+	tv.Columns = nil // reset columns
+	tv.Rows = nil    // reset rows
+	tv.SizeHint = rsp.Result.SizeHint
+
+	if err := c.buildTableView(tv, &rsp); err != nil {
+		return nil, err
+	}
+
+	return tv, nil
 }
