@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sort"
 	"strings"
@@ -37,7 +36,7 @@ type Client struct {
 	// MinRequestDelay between requests
 	lastRequestTime time.Time
 
-	httpPostOverride func(uri string, body []byte) ([]byte, error)
+	httpPostOverride func(uri string, body []byte, headers ...http.Header) ([]byte, error)
 }
 
 // vlogf is for verbose logging
@@ -82,14 +81,14 @@ func (c *Client) rateLimitRequest() {
 	c.lastRequestTime = time.Now()
 }
 
-func (c *Client) doPost(uri string, body []byte) ([]byte, error) {
+func (c *Client) doPost(uri string, body []byte, headers ...http.Header) ([]byte, error) {
 	if c.httpPostOverride != nil {
-		return c.httpPostOverride(uri, body)
+		return c.httpPostOverride(uri, body, headers...)
 	}
-	return c.doPostInternal(uri, body)
+	return c.doPostInternal(uri, body, headers...)
 }
 
-func (c *Client) doPostInternal(uri string, body []byte) ([]byte, error) {
+func (c *Client) doPostInternal(uri string, body []byte, headers ...http.Header) ([]byte, error) {
 	c.rateLimitRequest()
 
 	// try to back-off exponentially
@@ -107,6 +106,11 @@ repeatRequest:
 	req.Header.Set("Accept-Language", acceptLang)
 	if c.AuthToken != "" {
 		req.Header.Set("cookie", fmt.Sprintf("token_v2=%v", c.AuthToken))
+	}
+	for _, header := range headers {
+		for k := range header {
+			req.Header.Set(k, header.Get(k))
+		}
 	}
 	var rsp *http.Response
 
@@ -131,11 +135,11 @@ repeatRequest:
 	defer closeNoError(rsp.Body)
 
 	if rsp.StatusCode != 200 {
-		d, _ := ioutil.ReadAll(rsp.Body)
+		d, _ := io.ReadAll(rsp.Body)
 		c.logf("Error: status code %s\nBody:\n%s\n", rsp.Status, PrettyPrintJS(d))
 		return nil, fmt.Errorf("http.Post('%s') returned non-200 status code of %d", uri, rsp.StatusCode)
 	}
-	d, err := ioutil.ReadAll(rsp.Body)
+	d, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		c.logf("Error: ioutil.ReadAll() failed with %s\n", err)
 		return nil, err
@@ -143,7 +147,7 @@ repeatRequest:
 	return d, nil
 }
 
-func (c *Client) doNotionAPI(apiURL string, requestData interface{}, result interface{}, rawJSON *map[string]interface{}) error {
+func (c *Client) doNotionAPI(apiURL string, requestData any, result any, rawJSON *map[string]any, headers ...http.Header) error {
 	var body []byte
 	var err error
 	if requestData != nil {
@@ -158,7 +162,7 @@ func (c *Client) doNotionAPI(apiURL string, requestData interface{}, result inte
 		logJSON(c, body)
 	}
 
-	d, err := c.doPost(uri, body)
+	d, err := c.doPost(uri, body, headers...)
 	if err != nil {
 		return err
 	}
@@ -440,6 +444,7 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		}
 
 		collectionID := block.FixCollectionID()
+		spaceShortId := ""
 		for _, collectionViewID := range block.ViewIDs {
 			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {
@@ -467,12 +472,21 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				Collection:     collection,
 				SpaceId:        spaceID,
 				SizeHint:       res.Result.SizeHint,
+				SpaceShortId:   spaceShortId,
 			}
 			if err := c.buildTableView(tableView, res); err != nil {
 				return nil, err
 			}
 			block.TableViews = append(block.TableViews, tableView)
 			p.TableViews = append(p.TableViews, tableView)
+
+			if tableView.SizeHint > 1000 && c.AuthToken == "" && spaceShortId == "" {
+				// need space short id to get more than 1000 items
+				if rsp, err := c.QuerySpaceShortId(p.ID, collectionViewID); err == nil {
+					spaceShortId = rsp.SpaceShortId
+					tableView.SpaceShortId = spaceShortId
+				}
+			}
 		}
 	}
 

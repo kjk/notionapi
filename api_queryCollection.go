@@ -50,6 +50,54 @@ type QueryCollectionResponse struct {
 	RawJSON map[string]interface{} `json:"-"`
 }
 
+type BlockPointer struct {
+	Table string `json:"table"`
+	ID    string `json:"id"`
+}
+
+type QueryCollectionBlockRequest struct {
+	Pointer BlockPointer `json:"pointer"`
+	Version int          `json:"version"`
+}
+
+// /api/v3/syncRecordValuesSpaceInitial request
+type QueryCollectionBlocksRequest struct {
+	Requests []QueryCollectionBlockRequest `json:"requests"`
+}
+
+// QueryCollectionBlocksResponse is json response for /api/v3/syncRecordValuesSpaceInitial
+type QueryCollectionBlocksResponse struct {
+	RecordMap *RecordMap             `json:"recordMap"`
+	RawJSON   map[string]interface{} `json:"-"`
+}
+
+type QueryPageShortIdRequest struct {
+	BlockID                   string `json:"blockId"`                   // e.g. "20209ec4-150f-80f7-9f2f-d3a8965849ef"
+	Name                      string `json:"name"`                      // e.g. "page"
+	Type                      string `json:"type"`                      // e.g. "block-space"
+	RequestedOnPublicDomain   bool   `json:"requestedOnPublicDomain"`   // e.g. false
+	CollectionViewID          string `json:"collectionViewId"`          // e.g. "20209ec4-150f-81be-9839-000c1487315f"
+	ShowMoveTo                bool   `json:"showMoveTo"`                // e.g. false
+	SaveParent                bool   `json:"saveParent"`                // e.g. false
+	ShouldDuplicate           bool   `json:"shouldDuplicate"`           // e.g. false
+	ProjectManagementLaunch   bool   `json:"projectManagementLaunch"`   // e.g. false
+	ConfigureOpenInDesktopApp bool   `json:"configureOpenInDesktopApp"` // e.g. false
+	MobileData                struct {
+		IsPush bool `json:"isPush"` // e.g. false
+	} `json:"mobileData"`
+	DemoWorkspaceMode bool `json:"demoWorkspaceMode"` // e.g. false
+}
+
+type QueryPageShortIdResponse struct {
+	PageId       string                 `json:"pageId"`       // e.g. "20209ec4-150f-80f7-9f2f-d3a8965849ef"
+	SpaceName    string                 `json:"spaceName"`    // e.g. "Demo"
+	SpaceId      string                 `json:"spaceId"`      // e.g. "adcf8e8f-7e37-4d4b-97aa-5f2e26797a28"
+	BetaEnabled  bool                   `json:"betaEnabled"`  // e.g. false
+	SpaceDomain  string                 `json:"spaceDomain"`  // e.g. "wild-join-91f"
+	SpaceShortId string                 `json:"spaceShortId"` // e.g. "2663650575"
+	RawJSON      map[string]interface{} `json:"-"`
+}
+
 type LoaderReducer struct {
 	Type         string                 `json:"type"` //"reducer"
 	Reducers     map[string]interface{} `json:"reducers"`
@@ -104,6 +152,37 @@ func (c *Client) QueryCollection(req QueryCollectionRequest, query *Query, param
 	}
 	// TODO: fetch more if exceeded limit
 	if err := ParseRecordMap(rsp.RecordMap); err != nil {
+		return nil, err
+	}
+	return &rsp, nil
+}
+
+// QuerySpaceShortId executes a raw API call /api/v3/getPublicPageData
+func (c *Client) QuerySpaceShortId(pageId string, collectionViewID string) (*QueryPageShortIdResponse, error) {
+	req := QueryPageShortIdRequest{
+		BlockID:                   pageId,
+		Name:                      "page",
+		Type:                      "block-space",
+		RequestedOnPublicDomain:   false,
+		CollectionViewID:          collectionViewID,
+		ShowMoveTo:                false,
+		SaveParent:                false,
+		ShouldDuplicate:           false,
+		ProjectManagementLaunch:   false,
+		ConfigureOpenInDesktopApp: false,
+		MobileData: struct {
+			IsPush bool `json:"isPush"` // e.g. false
+		}{
+			IsPush: false,
+		},
+		DemoWorkspaceMode: false,
+	}
+
+	var rsp QueryPageShortIdResponse
+	var err error
+	apiURL := "/api/v3/getPublicPageData"
+	err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON)
+	if err != nil {
 		return nil, err
 	}
 	return &rsp, nil

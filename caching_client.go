@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -263,7 +264,7 @@ func (c *CachingClient) findCachedRequest(pageRequests []*RequestCacheEntry, met
 	return nil, false
 }
 
-func (c *CachingClient) doPostCacheOnly(uri string, body []byte) ([]byte, error) {
+func (c *CachingClient) doPostCacheOnly(uri string, body []byte, headers ...http.Header) ([]byte, error) {
 	pageID := c.currPageID.NoDashID
 	pageRequests := c.pageIDToEntries[pageID]
 	r, ok := c.findCachedRequest(pageRequests, "POST", uri, string(body))
@@ -274,8 +275,8 @@ func (c *CachingClient) doPostCacheOnly(uri string, body []byte) ([]byte, error)
 	return nil, fmt.Errorf("no cache response for '%s' of size %d", uri, len(body))
 }
 
-func (c *CachingClient) doPostNoCache(uri string, body []byte) ([]byte, error) {
-	d, err := c.Client.doPostInternal(uri, body)
+func (c *CachingClient) doPostNoCache(uri string, body []byte, headers ...http.Header) ([]byte, error) {
+	d, err := c.Client.doPostInternal(uri, body, headers...)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +338,7 @@ func (c *CachingClient) PreLoadCache() {
 		sem <- true // enter semaphore
 		wg.Add(1)
 		go func(client *Client, cp *CachedPage, nid *NotionID) {
-			client.httpPostOverride = func(uri string, body []byte) ([]byte, error) {
+			client.httpPostOverride = func(uri string, body []byte, headers ...http.Header) ([]byte, error) {
 				pageID := nid.NoDashID
 				pageRequests := c.pageIDToEntries[pageID]
 				mu.Lock()

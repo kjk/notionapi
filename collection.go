@@ -3,6 +3,7 @@ package notionapi
 import (
 	"errors"
 	"fmt"
+	"net/http"
 )
 
 const (
@@ -222,9 +223,11 @@ type TableView struct {
 	Columns []*ColumnInfo
 	Rows    []*TableRow
 
-	HasMore  bool
-	SizeHint int
-	SpaceId  string
+	RowIds       []string
+	HasMore      bool
+	SizeHint     int
+	SpaceId      string
+	SpaceShortId string
 }
 
 func (t *TableView) RowCount() int {
@@ -275,12 +278,11 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 
 	// blockIDs are IDs of page blocks
 	// each page represents one table row
-	var blockIds []string
 	if res.Result.ReducerResults != nil && res.Result.ReducerResults.CollectionGroupResults != nil {
-		blockIds = res.Result.ReducerResults.CollectionGroupResults.BlockIds
+		tv.RowIds = res.Result.ReducerResults.CollectionGroupResults.BlockIds
 		tv.HasMore = res.Result.ReducerResults.CollectionGroupResults.HasMore
 	}
-	for _, id := range blockIds {
+	for _, id := range tv.RowIds {
 		rec, ok := res.RecordMap.Blocks[id]
 		if !ok {
 			continue
@@ -298,7 +300,7 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 	return nil
 }
 
-// FetchTableRows limit is 1000, if limit > 1000, it will get last 1000 rows
+// FetchTableRows if limit > 1000, it will get first 1000 rows
 func (c *Client) FetchTableRows(tv *TableView, limits ...int) (*TableView, error) {
 	if tv == nil {
 		return nil, errors.New("tableView is nil")
@@ -334,4 +336,58 @@ func (c *Client) FetchTableRows(tv *TableView, limits ...int) (*TableView, error
 	}
 
 	return tv, nil
+}
+
+func (c *Client) FetchTableRowsByIds(spaceShortId string, rowIds []string) ([]*TableRow, error) {
+	if len(rowIds) == 0 {
+		return nil, errors.New("rowIds is empty")
+	}
+
+	requests := make([]QueryCollectionBlockRequest, len(rowIds))
+	for i, id := range rowIds {
+		requests[i] = QueryCollectionBlockRequest{
+			Pointer: BlockPointer{
+				Table: "block",
+				ID:    id,
+			},
+			Version: -1,
+		}
+	}
+	req := QueryCollectionBlocksRequest{
+		Requests: requests,
+	}
+
+	var rsp QueryCollectionBlocksResponse
+	var err error
+	apiURL := "/api/v3/syncRecordValuesSpaceInitial"
+
+	header := http.Header{}
+	header.Set("x-notion-space-short-id", spaceShortId)
+	header.Set("x-notion-active-user-header", "")
+
+	err = c.doNotionAPI(apiURL, req, &rsp, &rsp.RawJSON, header)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ParseRecordMap(rsp.RecordMap); err != nil {
+		return nil, err
+	}
+
+	if len(rsp.RecordMap.Blocks) == 0 {
+		return nil, fmt.Errorf("no blocks found in response")
+	}
+
+	rows := make([]*TableRow, 0, len(rowIds))
+	for _, id := range rowIds {
+		rec, ok := rsp.RecordMap.Blocks[id]
+		if !ok {
+			continue
+		}
+		rows = append(rows, &TableRow{
+			Page: rec.Block,
+		})
+	}
+
+	return rows, nil
 }
