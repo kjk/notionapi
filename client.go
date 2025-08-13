@@ -2,6 +2,7 @@ package notionapi
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -62,9 +63,15 @@ func (c *Client) getHTTPClient() *http.Client {
 	if c.HTTPClient != nil {
 		return c.HTTPClient
 	}
-	httpClient := *http.DefaultClient
-	httpClient.Timeout = time.Second * 30
-	return &httpClient
+	tr := &http.Transport{
+		// Key point: Disable HTTP/2 by setting TLSNextProto to empty.
+		// This prevents the client from negotiating "h2" (HTTP/2) during the TLS handshake.
+		TLSNextProto: make(map[string]func(authority string, c *tls.Conn) http.RoundTripper),
+	}
+	return &http.Client{
+		Transport: tr,
+		Timeout:   time.Second * 30,
+	}
 }
 
 func (c *Client) rateLimitRequest() {
