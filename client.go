@@ -454,8 +454,9 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 		}
 
 		collectionID := block.FixCollectionID()
+		collectionIDs := block.CollectionIDs()
 		spaceShortId := ""
-		for _, collectionViewID := range block.ViewIDs {
+		for i, collectionViewID := range block.ViewIDs {
 			collectionView, ok := p.idToCollectionView[collectionViewID]
 			if !ok {
 				return nil, fmt.Errorf("didn't find collection_view with id '%s'", collectionViewID)
@@ -465,6 +466,14 @@ func (c *Client) DownloadPage(pageID string) (*Page, error) {
 				//return nil, fmt.Errorf("Didn't find collection with id '%s'", collectionID)
 				continue
 			}
+
+			if len(collectionIDs) > i { // support for multiple collections on one page
+				if c, ok := p.idToCollection[collectionIDs[i]]; ok {
+					collection = c
+					collectionID = collectionIDs[i]
+				}
+			}
+
 			spaceID := block.SpaceID
 			req := QueryCollectionRequest{}
 			req.Collection.ID = collectionID

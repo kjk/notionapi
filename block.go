@@ -299,6 +299,12 @@ type Permission struct {
 	AllowSearchEngineIndexing bool `json:"allow_search_engine_indexing"`
 }
 
+type CollectionPointer struct {
+	ID      string `json:"id"`
+	SpaceID string `json:"spaceId"`
+	Table   string `json:"table"`
+}
+
 // Block describes a block
 type Block struct {
 	// values that come from JSON
@@ -385,12 +391,9 @@ type Block struct {
 
 	// for BlockCollectionView without "collection_id" use ID from the CollectionPointer
 	Format struct {
-		CollectionPointer struct {
-			ID      string `json:"id"`
-			SpaceID string `json:"spaceId"`
-			Table   string `json:"table"`
-		} `json:"collection_pointer"`
-		PageIcon string `json:"page_icon"`
+		CollectionPointer  CollectionPointer   `json:"collection_pointer"`
+		CollectionPointers []CollectionPointer `json:"collection_pointers"`
+		PageIcon           string              `json:"page_icon"`
 	} `json:"format"`
 
 	Page *Page `json:"-"`
@@ -743,6 +746,14 @@ func (b *Block) FixCollectionID() string {
 	}
 
 	return ""
+}
+
+func (b *Block) CollectionIDs() []string {
+	var ids []string
+	for _, ptr := range b.Format.CollectionPointers {
+		ids = append(ids, ptr.ID)
+	}
+	return ids
 }
 
 func (b *Block) BlockByID(nid *NotionID) *Block {
