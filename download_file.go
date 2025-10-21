@@ -18,11 +18,11 @@ type DownloadFileResponse struct {
 	FromCache     bool
 }
 
-// DownloadURL downloads a given url with possibly authenticated client
-func (c *Client) DownloadURL(uri string) (*DownloadFileResponse, error) {
+// DownloadURLStream downloads a given url with possibly authenticated client and returns a stream
+// The caller is responsible for closing the Response.Body when done
+func (c *Client) DownloadURLStream(uri string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		//fmt.Printf("DownloadURL: NewRequest() for '%s' failed with '%s'\n", uri, err)
 		return nil, err
 	}
 	if c.AuthToken != "" {
@@ -34,11 +34,23 @@ func (c *Client) DownloadURL(uri string) (*DownloadFileResponse, error) {
 		//fmt.Printf("DownloadFile: httpClient.Do() for '%s' failed with '%s'\n", uri, err)
 		return nil, err
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
+		resp.Body.Close()
 		//fmt.Printf("DownloadFile: httpClient.Do() for '%s' failed with '%s'\n", uri, resp.Status)
 		return nil, fmt.Errorf("http GET '%s' failed with status %s", uri, resp.Status)
 	}
+
+	return resp, nil
+}
+
+// DownloadURL downloads a given url with possibly authenticated client
+func (c *Client) DownloadURL(uri string) (*DownloadFileResponse, error) {
+	resp, err := c.DownloadURLStream(uri)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, resp.Body)
 	if err != nil {
@@ -86,17 +98,18 @@ func maybeProxyImageURL(uri string, block *Block) string {
 	}
 	blockID := block.ID
 	parentTable := block.ParentTable
+	spaceID := block.SpaceID
 
 	if strings.HasPrefix(uri, notionImageProxy) {
-		uri = uri + "?table=" + parentTable + "&id=" + blockID
+		uri = uri + "?id=" + blockID + "&table=" + parentTable + "&spaceId=" + spaceID
 		return uri
 	}
 
-	if !strings.Contains(uri, s3FileURLPrefix) {
+	if !strings.Contains(uri, s3FileURLPrefix) && !strings.HasPrefix(uri, "attachment:") {
 		return uri
 	}
 
-	uri = notionImageProxy + url.PathEscape(uri) + "?table=" + parentTable + "&id=" + blockID
+	uri = notionImageProxy + url.PathEscape(uri) + "?id=" + blockID + "&table=" + parentTable + "&spaceId=" + spaceID
 	return uri
 }
 
@@ -123,4 +136,41 @@ func (c *Client) DownloadFile(uri string, block *Block) (*DownloadFileResponse, 
 		res, err = c.DownloadURL(uri3)
 	}
 	return res, err
+}
+
+// DownloadFileStream downloads a file stored in Notion and returns a stream for streaming operations
+// The caller is responsible for closing the Response.Body when done
+func (c *Client) DownloadFileStream(uri string, block *Block) (*http.Response, error) {
+	// first try downloading proxied url
+	uri2 := maybeProxyImageURL(uri, block)
+	res, err := c.DownloadURLStream(uri2)
+	if err != nil {
+		rsp, err2 := c.GetSignedURLs([]string{uri}, block)
+		if err2 != nil {
+			return nil, err
+		}
+		if len(rsp.SignedURLS) == 0 {
+			return nil, err
+		}
+		uri3 := rsp.SignedURLS[0]
+		res, err = c.DownloadURLStream(uri3)
+	}
+	return res, err
+}
+
+// DownloadAttachmentStream downloads an attachment file stored in Notion and returns a stream for streaming operations
+// The caller is responsible for closing the Response.Body when done
+func (c *Client) DownloadAttachmentStream(uid string, block *Block) (*http.Response, error) {
+	return c.DownloadURLStream(c.GetAttachmentURL(uid, block))
+}
+
+// GetAttachmentURL returns the URL for an attachment file stored in Notion referenced by a block
+func (c *Client) GetAttachmentURL(uid string, block *Block) string {
+	if uid == "" || block == nil {
+		return ""
+	}
+	blockNew := *block
+	blockNew.ParentTable = "block" // attachments are always in block table
+
+	return maybeProxyImageURL(uid, &blockNew)
 }
