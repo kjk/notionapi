@@ -103,9 +103,12 @@ func maybeProxyImageURL(uri string, block *Block) string {
 	if strings.HasPrefix(uri, notionImageProxy) {
 		uri = uri + "?id=" + blockID + "&table=" + parentTable + "&spaceId=" + spaceID
 		return uri
+	} else if strings.HasPrefix(uri, "attachment:") {
+		uri = notionImageProxy + url.QueryEscape(uri) + "?id=" + blockID + "&table=" + parentTable + "&spaceId=" + spaceID
+		return uri
 	}
 
-	if !strings.Contains(uri, s3FileURLPrefix) && !strings.HasPrefix(uri, "attachment:") {
+	if !strings.Contains(uri, s3FileURLPrefix) {
 		return uri
 	}
 
