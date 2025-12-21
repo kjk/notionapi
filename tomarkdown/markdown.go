@@ -291,7 +291,7 @@ func (c *Converter) InlineToString(b *notionapi.TextSpan) string {
 
 func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 	s := c.InlineToString(b)
-	c.Printf(s)
+	c.Print(s)
 }
 
 // RenderInlines renders inline blocks
@@ -321,16 +321,16 @@ func (c *Converter) RenderCode(block *notionapi.Block) {
 
 	// The line was already indented by AddNewlineBeforeBlock(),
 	// so no additional indentation is added before this line.
-	c.Printf("```" + block.CodeLanguage + "\n")
+	c.Print("```" + block.CodeLanguage + "\n")
 	for _, part := range parts {
-		c.Printf(c.Indent + part + "\n")
+		c.Print(c.Indent + part + "\n")
 	}
-	c.Printf(c.Indent + "```\n")
+	c.Print(c.Indent + "```\n")
 }
 
 func (c *Converter) renderRootPage(block *notionapi.Block) {
 	title := c.GetInlineContent(block.InlineContent, false)
-	c.Printf("# " + title)
+	c.Print("# " + title)
 	c.Newline()
 	c.RenderChildren(block)
 }
@@ -445,6 +445,9 @@ func (c *Converter) RenderSubHeader(block *notionapi.Block) {
 // RenderSubSubHeader renders BlocSubSubkHeader
 func (c *Converter) RenderSubSubHeader(block *notionapi.Block) {
 	c.RenderHeaderLevel(block, 3)
+}
+func (c *Converter) Print(s string) {
+	c.Buf.WriteString(s)
 }
 
 func (c *Converter) Printf(format string, args ...interface{}) {

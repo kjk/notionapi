@@ -328,9 +328,18 @@ func (c *Converter) indentStr(n int) string {
 	return spaces[:n]
 }
 
+func (c *Converter) Print(s string) {
+	c.Buf.WriteString(c.indentStr(c.indent))
+	c.Buf.WriteString(s)
+}
+
 func (c *Converter) Printf(format string, args ...interface{}) {
 	c.Buf.WriteString(c.indentStr(c.indent))
 	c.NoIndentPrintf(format, args...)
+}
+
+func (c *Converter) NoIndentPrint(s string) {
+	c.Buf.WriteString(s)
 }
 
 func (c *Converter) NoIndentPrintf(format string, args ...interface{}) {
@@ -479,7 +488,7 @@ func (c *Converter) RenderInline(b *notionapi.TextSpan) {
 			text = ""
 		}
 	}
-	c.NoIndentPrintf(start + EscapeHTML(text) + end)
+	c.Print(start + EscapeHTML(text) + end)
 }
 
 // RenderInlines renders inline blocks
@@ -636,7 +645,7 @@ func (c *Converter) renderLinkToPageNotion(block *notionapi.Block) {
 			}
 		}
 		// TODO: possibly r.RenderInlines(block.InlineContent)
-		c.Printf(EscapeHTML(block.Title))
+		c.Print(EscapeHTML(block.Title))
 		c.Printf(`</a>`)
 		defer c.decIndent()
 	}
@@ -668,8 +677,8 @@ func (c *Converter) renderLinkToPage(block *notionapi.Block) {
 			}
 		}
 		// TODO: possibly r.RenderInlines(block.InlineContent)
-		c.Printf(EscapeHTML(block.Title))
-		c.Printf(`</a>`)
+		c.Print(EscapeHTML(block.Title))
+		c.Print(`</a>`)
 		defer c.decIndent()
 	}
 	c.Printf(`</div>`)
@@ -835,7 +844,7 @@ func (c *Converter) RenderEquation(block *notionapi.Block) {
 		}
 		c.Printf(`<div class="equation-container">`)
 		{
-			c.Printf(htmlStr)
+			c.Print(htmlStr)
 		}
 		c.Printf(`</div>`)
 
