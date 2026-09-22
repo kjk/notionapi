@@ -1609,6 +1609,8 @@ func fmtNumberWithCommas(v string) string {
 
 // TODO: mmore formats
 func fmtNumber(v string, numFmt string) string {
+	// inline content might be indented
+	v = strings.TrimSpace(v)
 	if numFmt == "dollar" {
 		v = strings.TrimPrefix(v, "$")
 		f, err := strconv.ParseFloat(v, 64)
