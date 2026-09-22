@@ -239,7 +239,14 @@ func (t *TableView) ColumnCount() int {
 }
 
 func (t *TableView) CellContent(row, col int) []*TextSpan {
-	return t.Rows[row].Columns[col]
+	if row < 0 || row >= len(t.Rows) {
+		return nil
+	}
+	cols := t.Rows[row].Columns
+	if col < 0 || col >= len(cols) {
+		return nil
+	}
+	return cols[col]
 }
 
 // TODO: some tables miss title column in TableProperties
@@ -294,6 +301,16 @@ func (c *Client) buildTableView(tv *TableView, res *QueryCollectionResponse) err
 				Page:      b,
 			}
 			tv.Rows = append(tv.Rows, tr)
+		}
+	}
+
+	// pre-calculate cell content
+	for _, tr := range tv.Rows {
+		tr.Columns = make([][]*TextSpan, 0, len(tv.Columns))
+		for _, ci := range tv.Columns {
+			propName := ci.Property.Property
+			v := tr.Page.GetProperty(propName)
+			tr.Columns = append(tr.Columns, v)
 		}
 	}
 
