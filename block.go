@@ -521,7 +521,11 @@ func getProp(block *Block, name string, toSet *string) bool {
 func (b *Block) GetProperty(name string) []*TextSpan {
 	v, ok := b.Properties[name]
 	if !ok {
-		return nil
+		// newer API might only have it in crdt_data
+		v = b.getCrdtProperty(name)
+		if v == nil {
+			return nil
+		}
 	}
 	ts, err := ParseTextSpans(v)
 	if err != nil {
