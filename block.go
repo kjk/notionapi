@@ -340,9 +340,13 @@ type Block struct {
 	Alive bool `json:"alive"`
 	// List of block ids for that make up content of this block
 	// Use Content to get corresponding block (they are in the same order)
-	ContentIDs   []string `json:"content,omitempty"`
-	CopiedFrom   string   `json:"copied_from,omitempty"`
-	CollectionID string   `json:"collection_id,omitempty"` // for BlockCollectionView
+	ContentIDs []string `json:"content,omitempty"`
+	CopiedFrom string   `json:"copied_from,omitempty"`
+	// version of crdt_data format (text properties as CRDT).
+	// crdt_data itself is available in RawJSON and used as a fallback
+	// in GetProperty()
+	CrdtFormatVersion int    `json:"crdt_format_version,omitempty"`
+	CollectionID      string `json:"collection_id,omitempty"` // for BlockCollectionView
 	// ID of the user who created this block
 	CreatedBy   string `json:"created_by"`
 	CreatedTime int64  `json:"created_time"`
