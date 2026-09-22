@@ -78,6 +78,28 @@ func (c *Client) LoadCachedPageChunk(pageID string, chunkNo int, cur *cursor) (*
 }
 
 func ParseRecordMap(recordMap *RecordMap) error {
+	// records without a value (e.g. not accessible) don't carry
+	// their id, so set it from the map key
+	setIDs := func(m map[string]*Record) {
+		for id, r := range m {
+			if r.ID == "" {
+				r.ID = id
+			}
+		}
+	}
+	defer func() {
+		setIDs(recordMap.Activities)
+		setIDs(recordMap.Blocks)
+		setIDs(recordMap.Spaces)
+		setIDs(recordMap.NotionUsers)
+		setIDs(recordMap.UsersRoot)
+		setIDs(recordMap.UserSettings)
+		setIDs(recordMap.CollectionViews)
+		setIDs(recordMap.Collections)
+		setIDs(recordMap.Discussions)
+		setIDs(recordMap.Comments)
+	}()
+
 	for _, r := range recordMap.Activities {
 		if err := parseRecord(TableActivity, r); err != nil {
 			return err

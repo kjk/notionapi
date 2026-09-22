@@ -43,9 +43,13 @@ func parseRecord(table string, r *Record) error {
 			Value json.RawMessage `json:"value"`
 			Role  string          `json:"role"`
 		}
-		if err := json.Unmarshal(r.Value, &wrapped); err == nil && wrapped.Role != "" && len(wrapped.Value) > 0 {
+		if err := json.Unmarshal(r.Value, &wrapped); err == nil && wrapped.Role != "" {
 			r.Role = wrapped.Role
 			r.Value = wrapped.Value
+			// e.g. {"role": "none"} for records we don't have access to
+			if len(r.Value) == 0 {
+				return nil
+			}
 		}
 	}
 	if r.Table == "" {
