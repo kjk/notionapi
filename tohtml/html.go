@@ -1118,6 +1118,41 @@ func (c *Converter) RenderTableOfContents(block *notionapi.Block) {
 }
 
 // RenderDivider renders BlockDivider
+// RenderTable renders BlockTable (simple table, not a database)
+func (c *Converter) RenderTable(block *notionapi.Block) {
+	colIDs := block.TableColumnIDs()
+	rows := block.TableRows()
+	format := block.FormatSimpleTable()
+	colHeader := format != nil && format.ColumnHeader
+	rowHeader := format != nil && format.RowHeader
+
+	c.Printf(`<table id="%s" class="simple-table">`, block.ID)
+	c.indent++
+	for rowNo, row := range rows {
+		c.Printf(`<tr id="%s">`, row.ID)
+		for colNo, colID := range colIDs {
+			tag := "td"
+			if (colHeader && rowNo == 0) || (rowHeader && colNo == 0) {
+				tag = "th"
+			}
+			c.NoIndentPrintf("<%s>%s</%s>", tag, strings.TrimSpace(c.GetInlineContent(row.TableCell(colID))), tag)
+		}
+		c.NoIndentPrint("</tr>")
+	}
+	c.decIndent()
+	c.Printf("</table>")
+}
+
+// RenderTableRow renders BlockTableRow. Rows are rendered
+// by RenderTable so this is a no-op
+func (c *Converter) RenderTableRow(block *notionapi.Block) {
+}
+
+// RenderButton renders BlockButton. Buttons are interactive
+// so there's nothing to render
+func (c *Converter) RenderButton(block *notionapi.Block) {
+}
+
 func (c *Converter) RenderDivider(block *notionapi.Block) {
 	c.Printf(`<hr id="%s"/>`, block.ID)
 }
@@ -1738,6 +1773,12 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderQuote
 	case notionapi.BlockDivider:
 		return c.RenderDivider
+	case notionapi.BlockTable:
+		return c.RenderTable
+	case notionapi.BlockTableRow:
+		return c.RenderTableRow
+	case notionapi.BlockButton:
+		return c.RenderButton
 	case notionapi.BlockCode:
 		return c.RenderCode
 	case notionapi.BlockBookmark:

@@ -85,7 +85,33 @@ const (
 	BlockMiro                  = "miro"
 	BlockAlias                 = "alias"
 	BlockTransclusionReference = "transclusion_reference"
+	// BlockTable is a simple table (not a database). Its children
+	// are BlockTableRow blocks
+	BlockTable = "table"
+	// BlockTableRow is a row in BlockTable. Cells are in Properties,
+	// keyed by column id (see FormatSimpleTable.ColumnOrder)
+	BlockTableRow = "table_row"
+	// BlockButton is an automation button
+	BlockButton = "button"
 )
+
+// FormatSimpleTable describes format for BlockTable
+type FormatSimpleTable struct {
+	// ids of columns, in display order. Cells of table_row
+	// blocks are in Properties keyed by column id
+	ColumnOrder []string `json:"table_block_column_order"`
+	// first row is a header
+	ColumnHeader bool `json:"table_block_column_header"`
+	// first column is a header
+	RowHeader    bool                                `json:"table_block_row_header"`
+	ColumnFormat map[string]*FormatSimpleTableColumn `json:"table_block_column_format"`
+}
+
+// FormatSimpleTableColumn describes format of a column in BlockTable
+type FormatSimpleTableColumn struct {
+	Width float64 `json:"width"`
+	Color string  `json:"color"`
+}
 
 // FormatBookmark describes format for BlockBookmark
 type FormatBookmark struct {
@@ -706,6 +732,52 @@ func (b *Block) FormatHeader() *FormatHeader {
 		return nil
 	}
 	return &format
+}
+
+func (b *Block) FormatSimpleTable() *FormatSimpleTable {
+	var format FormatSimpleTable
+	if ok := b.unmarshalFormat(BlockTable, &format); !ok {
+		return nil
+	}
+	return &format
+}
+
+// TableColumnIDs returns ids of columns of a BlockTable, in display order
+func (b *Block) TableColumnIDs() []string {
+	b.panicIfNotOfType(BlockTable)
+	if f := b.FormatSimpleTable(); f != nil && len(f.ColumnOrder) > 0 {
+		return f.ColumnOrder
+	}
+	// no column order: use property keys of the first row
+	var res []string
+	for _, row := range b.Content {
+		if row == nil || row.Type != BlockTableRow {
+			continue
+		}
+		for k := range row.Properties {
+			res = append(res, k)
+		}
+		sort.Strings(res)
+		break
+	}
+	return res
+}
+
+// TableRows returns BlockTableRow children of a BlockTable
+func (b *Block) TableRows() []*Block {
+	b.panicIfNotOfType(BlockTable)
+	var res []*Block
+	for _, row := range b.Content {
+		if row != nil && row.Type == BlockTableRow {
+			res = append(res, row)
+		}
+	}
+	return res
+}
+
+// TableCell returns content of a cell in BlockTableRow
+func (b *Block) TableCell(columnID string) []*TextSpan {
+	return b.GetProperty(columnID)
 }
 
 func (b *Block) FormatToggle() *FormatToggle {

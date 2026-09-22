@@ -490,6 +490,63 @@ func (c *Converter) RenderCallout(block *notionapi.Block) {
 }
 
 // RenderDivider renders BlockDivider
+func escapeMarkdownTableCell(s string) string {
+	s = strings.Replace(s, "|", `\|`, -1)
+	s = strings.Replace(s, "\n", " ", -1)
+	return s
+}
+
+// RenderTable renders BlockTable (simple table, not a database)
+// as a GitHub-flavored markdown table
+func (c *Converter) RenderTable(block *notionapi.Block) {
+	colIDs := block.TableColumnIDs()
+	rows := block.TableRows()
+	if len(colIDs) == 0 || len(rows) == 0 {
+		return
+	}
+	format := block.FormatSimpleTable()
+	colHeader := format != nil && format.ColumnHeader
+
+	renderRow := func(row *notionapi.Block) {
+		c.Printf("|")
+		for _, colID := range colIDs {
+			s := c.GetInlineContent(row.TableCell(colID), true)
+			c.Printf(" %s |", escapeMarkdownTableCell(s))
+		}
+		c.Printf("\n")
+	}
+	if colHeader {
+		renderRow(rows[0])
+		rows = rows[1:]
+	} else {
+		// markdown tables must have a header
+		c.Printf("|")
+		for range colIDs {
+			c.Printf(" |")
+		}
+		c.Printf("\n")
+	}
+	c.Printf("|")
+	for range colIDs {
+		c.Printf(" --- |")
+	}
+	c.Printf("\n")
+	for _, row := range rows {
+		renderRow(row)
+	}
+	c.Printf("\n")
+}
+
+// RenderTableRow renders BlockTableRow. Rows are rendered
+// by RenderTable so this is a no-op
+func (c *Converter) RenderTableRow(block *notionapi.Block) {
+}
+
+// RenderButton renders BlockButton. Buttons are interactive
+// so there's nothing to render
+func (c *Converter) RenderButton(block *notionapi.Block) {
+}
+
 func (c *Converter) RenderDivider(block *notionapi.Block) {
 	c.Printf("---\n\n")
 }
@@ -686,6 +743,12 @@ func (c *Converter) DefaultRenderFunc(blockType string) func(*notionapi.Block) {
 		return c.RenderQuote
 	case notionapi.BlockDivider:
 		return c.RenderDivider
+	case notionapi.BlockTable:
+		return c.RenderTable
+	case notionapi.BlockTableRow:
+		return c.RenderTableRow
+	case notionapi.BlockButton:
+		return c.RenderButton
 	case notionapi.BlockCode:
 		return c.RenderCode
 	case notionapi.BlockBookmark:
