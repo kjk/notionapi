@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/kjk/notionapi"
-	"github.com/kjk/u"
 )
 
 var (
@@ -53,7 +52,7 @@ func smokeTest() {
 	f, err := os.Create(logFilePath)
 	must(err)
 	defer f.Close()
-	u.LogFile = f
+	logFile = f
 
 	smokeSeen = map[string]bool{}
 	flgNoOpen = true

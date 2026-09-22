@@ -1,11 +1,12 @@
 package notionapi
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/sha1"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -15,13 +16,10 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/kjk/common/siser"
 )
 
-const (
-	recCacheName = "noahttpcache"
-)
+// extension of per-page files in the requests cache
+const cacheFileExt = ".ndjson"
 
 type CachingPolicy int
 
@@ -67,9 +65,6 @@ type CachingClient struct {
 
 	Policy CachingPolicy
 
-	// disable pretty-printing of json responses saved in the cache
-	NoPrettyPrintResponse bool
-
 	// maps no-dash id to info about a page
 	IdToCachedPage map[string]*CachedPage
 
@@ -102,63 +97,53 @@ func (c *CachingClient) logf(format string, args ...interface{}) {
 	c.Client.logf(format, args...)
 }
 
-func recGetKey(r *siser.ReadRecord, key string, pErr *error) string {
-	if *pErr != nil {
-		return ""
-	}
-	v, ok := r.Get(key)
-	if !ok {
-		*pErr = fmt.Errorf("didn't find key '%s'", key)
-	}
-	return v
+// cacheRecord is a single request/response pair as stored in the cache
+// file. Cache file is newline-delimited JSON: one compact JSON object
+// per line.
+type cacheRecord struct {
+	Method   string          `json:"method"`
+	URL      string          `json:"url"`
+	Body     string          `json:"body"`
+	Response json.RawMessage `json:"response"`
 }
 
-func recGetKeyBytes(r *siser.ReadRecord, key string, pErr *error) []byte {
-	return []byte(recGetKey(r, key, pErr))
-}
-
-func serializeCacheEntry(rr *RequestCacheEntry, prettyPrint bool) ([]byte, error) {
-	buf := bytes.NewBuffer(nil)
-	w := siser.NewWriter(buf)
-	w.NoTimestamp = true
-	var r siser.Record
-	r.Reset()
-	r.Write("Method", rr.Method)
-	r.Write("URL", rr.URL)
-	r.Write("Body", rr.Body)
-	if prettyPrint {
-		response := PrettyPrintJS(rr.Response)
-		r.Write("Response", string(response))
-	} else {
-		r.Write("Response", string(rr.Response))
+func serializeCacheEntry(rr *RequestCacheEntry) ([]byte, error) {
+	rec := cacheRecord{
+		Method: rr.Method,
+		URL:    rr.URL,
+		Body:   rr.Body,
 	}
-	r.Name = recCacheName
-	_, err := w.WriteRecord(&r)
+	var buf bytes.Buffer
+	if err := json.Compact(&buf, rr.Response); err != nil {
+		return nil, fmt.Errorf("response for '%s' is not valid JSON: %w", rr.URL, err)
+	}
+	rec.Response = buf.Bytes()
+	d, err := json.Marshal(rec)
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return append(d, '\n'), nil
 }
 
 func deserializeCacheEntry(d []byte) ([]*RequestCacheEntry, error) {
-	br := bufio.NewReader(bytes.NewBuffer(d))
-	r := siser.NewReader(br)
-	r.NoTimestamp = true
-	var err error
 	var res []*RequestCacheEntry
-	for r.ReadNextRecord() {
-		if r.Name != recCacheName {
-			return nil, fmt.Errorf("unexpected record type '%s', wanted '%s'", r.Name, recCacheName)
+	dec := json.NewDecoder(bytes.NewReader(d))
+	for {
+		var rec cacheRecord
+		err := dec.Decode(&rec)
+		if err == io.EOF {
+			break
 		}
-		rr := &RequestCacheEntry{}
-		rr.Method = recGetKey(r.Record, "Method", &err)
-		rr.URL = recGetKey(r.Record, "URL", &err)
-		rr.Body = recGetKey(r.Record, "Body", &err)
-		rr.Response = recGetKeyBytes(r.Record, "Response", &err)
+		if err != nil {
+			return nil, err
+		}
+		rr := &RequestCacheEntry{
+			Method:   rec.Method,
+			URL:      rec.URL,
+			Body:     rec.Body,
+			Response: []byte(rec.Response),
+		}
 		res = append(res, rr)
-	}
-	if err != nil {
-		return nil, err
 	}
 	return res, nil
 }
@@ -181,10 +166,10 @@ func (c *CachingClient) readRequestsCacheFile(dir string) error {
 			continue
 		}
 		name := fi.Name()
-		if !strings.HasSuffix(name, ".txt") {
+		if !strings.HasSuffix(name, cacheFileExt) {
 			continue
 		}
-		maybeID := strings.Replace(name, ".txt", "", -1)
+		maybeID := strings.TrimSuffix(name, cacheFileExt)
 		nid := NewNotionID(maybeID)
 		if nid == nil {
 			continue
@@ -321,7 +306,7 @@ func (c *CachingClient) PreLoadCache() {
 	var ids []*NotionID
 	for _, fi := range files {
 		name := fi.Name()
-		if strings.HasSuffix(name, ".txt") {
+		if strings.HasSuffix(name, cacheFileExt) {
 			nid := NewNotionID(strings.Split(name, ".")[0])
 			if nid != nil {
 				ids = append(ids, nid)
@@ -422,7 +407,7 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 			return nil
 		}
 		for _, rr := range c.currPageRequests {
-			d, err := serializeCacheEntry(rr, !c.NoPrettyPrintResponse)
+			d, err := serializeCacheEntry(rr)
 			if err != nil {
 				return err
 			}
@@ -430,7 +415,7 @@ func (c *CachingClient) DownloadPage(pageID string) (*Page, error) {
 		}
 
 		// append to a file for this page
-		fileName := pageID.NoDashID + ".txt"
+		fileName := pageID.NoDashID + cacheFileExt
 		path := filepath.Join(c.CacheDir, fileName)
 		err := ioutil.WriteFile(path, buf, 0644)
 		if err != nil {

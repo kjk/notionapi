@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kjk/common/u"
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tomarkdown"
-	"github.com/kjk/u"
 )
 
 var knownBadMarkdown = [][]string{
@@ -157,8 +157,8 @@ func testToMarkdown(startPageID string) {
 	if hasDirDiff {
 		must(os.MkdirAll(expDiffDir, 0755))
 		must(os.MkdirAll(gotDiffDir, 0755))
-		u.RemoveFilesInDirMust(expDiffDir)
-		u.RemoveFilesInDirMust(gotDiffDir)
+		removeFilesInDirMust(expDiffDir)
+		removeFilesInDirMust(gotDiffDir)
 	}
 	nDifferent := 0
 

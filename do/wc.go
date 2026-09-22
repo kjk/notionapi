@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/kjk/u"
+	"github.com/kjk/common/u"
 )
 
 var srcFiles = u.MakeAllowedFileFilterForExts(".go", ".js", ".html", ".css")

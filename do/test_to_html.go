@@ -8,10 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kjk/fmthtml"
 	"github.com/kjk/notionapi"
 	"github.com/kjk/notionapi/tohtml"
-	"github.com/kjk/u"
+	"github.com/yosssi/gohtml"
 )
 
 // detect location of https://winmerge.org/
@@ -112,8 +111,8 @@ func testToHTML(startPageID string) {
 	gotDiffDir := filepath.Join(diffDir, "got")
 	must(os.MkdirAll(expDiffDir, 0755))
 	must(os.MkdirAll(gotDiffDir, 0755))
-	u.RemoveFilesInDirMust(expDiffDir)
-	u.RemoveFilesInDirMust(gotDiffDir)
+	removeFilesInDirMust(expDiffDir)
+	removeFilesInDirMust(gotDiffDir)
 
 	nDifferent := 0
 
@@ -222,6 +221,6 @@ func testToHTML(startPageID string) {
 }
 
 func ppHTML(d []byte) []byte {
-	s := fmthtml.Format(d)
+	s := []byte(gohtml.Format(string(d)))
 	return s
 }

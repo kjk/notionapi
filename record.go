@@ -35,6 +35,19 @@ func parseRecord(table string, r *Record) error {
 	if len(r.Value) == 0 {
 		return nil
 	}
+	// newer versions of the API (e.g. syncRecordValues) wrap the record
+	// as {"value": {"value": {...}, "role": "reader"}, "spaceId": ...}
+	// instead of {"value": {...}, "role": "reader"}
+	{
+		var wrapped struct {
+			Value json.RawMessage `json:"value"`
+			Role  string          `json:"role"`
+		}
+		if err := json.Unmarshal(r.Value, &wrapped); err == nil && wrapped.Role != "" && len(wrapped.Value) > 0 {
+			r.Role = wrapped.Role
+			r.Value = wrapped.Value
+		}
+	}
 	if r.Table == "" {
 		r.Table = table
 	} else {

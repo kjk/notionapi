@@ -4,8 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/kjk/u"
 )
 
 /*
@@ -45,12 +43,12 @@ func loadCSS() string {
 	currDir, err := filepath.Abs(".")
 	must(err)
 	path1 := filepath.Join("main.css")
-	cssFromFile = u.ReadFileMust(path1)
+	cssFromFile = readFileMust(path1)
 	if len(cssFromFile) > 0 {
 		return string(cssFromFile)
 	}
 	path2 := filepath.Join("do", "main.css")
-	cssFromFile = u.ReadFileMust(path2)
+	cssFromFile = readFileMust(path2)
 	if len(cssFromFile) > 0 {
 		return string(cssFromFile)
 	}

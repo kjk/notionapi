@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kjk/common/u"
 	"github.com/kjk/notionapi"
-	"github.com/kjk/u"
 )
 
 var (
@@ -114,8 +114,8 @@ func traceNotionAPI() {
 var toText = notionapi.TextSpansToString
 
 func main() {
-	u.CdUpDir("notionapi")
-	logf("currDirAbs: '%s'\n", u.CurrDirAbsMust())
+	cdUpDir("notionapi")
+	logf("currDirAbs: '%s'\n", currDirAbsMust())
 
 	var (
 		//flgToken string
@@ -210,7 +210,7 @@ func main() {
 				logf("Client.DownloadPage('%s') failed with '%s'\n", pageID, err)
 				return
 			}
-			logf("Client.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, page.Root().GetTitle(), time.Since(timeStart))
+			logf("Client.DownloadPage('%s') downloaded page '%s' in %s\n", pageID, toText(page.Root().GetTitle()), time.Since(timeStart))
 		}
 		// try with empty cache
 		cacheDir, err := filepath.Abs("cached_notion")
@@ -276,12 +276,12 @@ func main() {
 			dir := filepath.Join(dataDir, "smoke")
 			os.RemoveAll(dir)
 		}
-		u.RemoveFilesInDirMust(cacheDir)
+		removeFilesInDirMust(cacheDir)
 	}
 
 	if flgBench {
 		cmd := exec.Command("go", "test", "-bench=.")
-		u.RunCmdMust(cmd)
+		runCmdMust(cmd)
 		return
 	}
 
