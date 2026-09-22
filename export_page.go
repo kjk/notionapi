@@ -22,15 +22,21 @@ type exportPageTask struct {
 	Request   *exportPageRequest `json:"request"`
 }
 
+type exportPageBlock struct {
+	ID string `json:"id"`
+}
+
 type exportPageRequest struct {
-	BlockID       string             `json:"blockId"`
-	Recursive     bool               `json:"recursive"`
-	ExportOptions *exportPageOptions `json:"exportOptions"`
+	Block                exportPageBlock    `json:"block"`
+	Recursive            bool               `json:"recursive"`
+	ShouldExportComments bool               `json:"shouldExportComments"`
+	ExportOptions        *exportPageOptions `json:"exportOptions"`
 }
 
 type exportPageOptions struct {
 	ExportType string `json:"exportType"`
 	TimeZone   string `json:"timeZone"`
+	Locale     string `json:"locale"`
 }
 
 type enqueueTaskResponse struct {
@@ -57,6 +63,13 @@ type exportPageStatus struct {
 	PagesExported int64  `json:"pagesExported"`
 }
 
+const (
+	taskStateSuccess = "success"
+	taskStateFailure = "failure"
+	// how long to wait for export task to complete
+	exportTaskTimeout = 5 * time.Minute
+)
+
 type getTasksRequest struct {
 	TaskIDS []string `json:"taskIds"`
 }
@@ -73,11 +86,12 @@ func (c *Client) RequestPageExportURL(id string, exportType string, recursive bo
 		Task: &exportPageTask{
 			EventName: eventExportBlock,
 			Request: &exportPageRequest{
-				BlockID:   id,
+				Block:     exportPageBlock{ID: id},
 				Recursive: recursive,
 				ExportOptions: &exportPageOptions{
 					ExportType: exportType,
 					TimeZone:   defaultExportTimeZone,
+					Locale:     "en",
 				},
 			},
 		},
@@ -93,7 +107,11 @@ func (c *Client) RequestPageExportURL(id string, exportType string, recursive bo
 
 	var exportURL string
 	taskID := rsp.TaskID
+	timeStart := time.Now()
 	for {
+		if time.Since(timeStart) > exportTaskTimeout {
+			return "", fmt.Errorf("export task '%s' didn't complete in %s", taskID, exportTaskTimeout)
+		}
 		time.Sleep(250 * time.Millisecond)
 		req := getTasksRequest{
 			TaskIDS: []string{taskID},
@@ -105,8 +123,15 @@ func (c *Client) RequestPageExportURL(id string, exportType string, recursive bo
 		if err != nil {
 			return "", err
 		}
-		status := rsp.Results[0].Status
-		if status != nil && status.Type == statusComplete {
+		if len(rsp.Results) == 0 {
+			return "", fmt.Errorf("getTasks returned no results for task '%s'", taskID)
+		}
+		res := rsp.Results[0]
+		if res.State == taskStateFailure {
+			return "", fmt.Errorf("export task '%s' failed", taskID)
+		}
+		status := res.Status
+		if status != nil && status.ExportURL != "" && (status.Type == statusComplete || res.State == taskStateSuccess) {
 			exportURL = status.ExportURL
 			break
 		}
@@ -116,7 +141,8 @@ func (c *Client) RequestPageExportURL(id string, exportType string, recursive bo
 	return exportURL, nil
 }
 
-// ExportPages exports a page as html or markdown, potentially recursively
+// ExportPages exports a page as html or markdown, potentially recursively.
+// Requires Client.AuthToken.
 func (c *Client) ExportPages(id string, exportType string, recursive bool) ([]byte, error) {
 	exportURL, err := c.RequestPageExportURL(id, exportType, recursive)
 	if err != nil {

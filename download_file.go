@@ -2,6 +2,7 @@ package notionapi
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +19,51 @@ type DownloadFileResponse struct {
 	FromCache     bool
 }
 
+// GetFileToken returns the value of file_token cookie, needed to
+// download files from file.notion.so (e.g. exported pages).
+// Requires AuthToken. The result is cached in FileToken.
+func (c *Client) GetFileToken() (string, error) {
+	if c.FileToken != "" {
+		return c.FileToken, nil
+	}
+	if c.AuthToken == "" {
+		return "", errors.New("AuthToken is required to get file token")
+	}
+	// loadUserContent sets file_token cookie in the response
+	uri := notionHost + "/api/v3/loadUserContent"
+	req, err := http.NewRequest("POST", uri, strings.NewReader("{}"))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("cookie", "token_v2="+c.AuthToken)
+	rsp, err := c.getHTTPClient().Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer closeNoError(rsp.Body)
+	if rsp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("http POST '%s' failed with status %s", uri, rsp.Status)
+	}
+	for _, cookie := range rsp.Cookies() {
+		if cookie.Name == "file_token" && cookie.Value != "" {
+			c.FileToken = cookie.Value
+			return c.FileToken, nil
+		}
+	}
+	return "", fmt.Errorf("file_token cookie not found in response from '%s'", uri)
+}
+
+// urls like https://file.notion.so/... require file_token cookie
+func isNotionFileURL(uri string) bool {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(u.Host, "file.notion.")
+}
+
 // DownloadURLStream downloads a given url with possibly authenticated client and returns a stream
 // The caller is responsible for closing the Response.Body when done
 func (c *Client) DownloadURLStream(uri string) (*http.Response, error) {
@@ -25,8 +71,13 @@ func (c *Client) DownloadURLStream(uri string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	if c.AuthToken != "" {
-		req.Header.Set("cookie", fmt.Sprintf("token_v2=%v", c.AuthToken))
+	if c.AuthToken != "" && c.FileToken == "" && isNotionFileURL(uri) {
+		// best effort: if this fails, the download will most likely
+		// fail with 403 and report that
+		_, _ = c.GetFileToken()
+	}
+	if cookie := c.downloadCookie(); cookie != "" {
+		req.Header.Set("cookie", cookie)
 	}
 	httpClient := c.getHTTPClient()
 	resp, err := httpClient.Do(req)
@@ -41,6 +92,20 @@ func (c *Client) DownloadURLStream(uri string) (*http.Response, error) {
 	}
 
 	return resp, nil
+}
+
+// downloadCookie returns the cookie header used when downloading files.
+// Downloads from file.notion.so (e.g. exported pages) require file_token
+// cookie in addition to token_v2
+func (c *Client) downloadCookie() string {
+	var parts []string
+	if c.AuthToken != "" {
+		parts = append(parts, "token_v2="+c.AuthToken)
+	}
+	if c.FileToken != "" {
+		parts = append(parts, "file_token="+c.FileToken)
+	}
+	return strings.Join(parts, "; ")
 }
 
 // DownloadURL downloads a given url with possibly authenticated client

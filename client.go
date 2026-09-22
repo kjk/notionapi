@@ -21,7 +21,15 @@ const (
 // Client is client for invoking Notion API
 type Client struct {
 	// AuthToken allows accessing non-public pages.
+	// It's the value of token_v2 cookie in the browser.
 	AuthToken string
+
+	// FileToken is needed to download files from file.notion.so,
+	// e.g. the result of ExportPages().
+	// It's the value of file_token cookie in the browser.
+	// If not set, we get it automatically (via GetFileToken())
+	// when AuthToken is set.
+	FileToken string
 	// HTTPClient allows over-riding http.Client
 	HTTPClient *http.Client
 	// Logger is used to log requests and responses for debugging.
