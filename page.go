@@ -267,6 +267,10 @@ func (p *Page) GetSubPages() []*NotionID {
 }
 
 func makeUserName(user *NotionUser) string {
+	// newer API only returns "name"
+	if user.Name != "" {
+		return user.Name
+	}
 	s := user.GivenName
 	if len(s) > 0 {
 		s += " "
