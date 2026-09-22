@@ -329,8 +329,8 @@ type Block struct {
 	LastEditedByTable string `json:"last_edited_by_table"` // e.g. "notion_user"
 	LastEditedByID    string `json:"last_edited_by_id"`    // e.g. "bb760e2d-d679-4b64-b2a9-03005b21870a"
 
-	// List of block ids with discussion content
-	DiscussionIDs []string `json:"discussion,omitempty"`
+	// List of discussion ids (comment threads) attached to this block
+	DiscussionIDs []string `json:"discussions,omitempty"`
 	// those ids seem to map to storage in s3
 	// https://s3-us-west-2.amazonaws.com/secure.notion-static.com/${id}/${name}
 	FileIDs []string `json:"file_ids,omitempty"`
