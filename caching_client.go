@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kjk/siser"
+	"github.com/kjk/common/siser"
 )
 
 const (
@@ -102,7 +102,7 @@ func (c *CachingClient) logf(format string, args ...interface{}) {
 	c.Client.logf(format, args...)
 }
 
-func recGetKey(r *siser.Record, key string, pErr *error) string {
+func recGetKey(r *siser.ReadRecord, key string, pErr *error) string {
 	if *pErr != nil {
 		return ""
 	}
@@ -113,7 +113,7 @@ func recGetKey(r *siser.Record, key string, pErr *error) string {
 	return v
 }
 
-func recGetKeyBytes(r *siser.Record, key string, pErr *error) []byte {
+func recGetKeyBytes(r *siser.ReadRecord, key string, pErr *error) []byte {
 	return []byte(recGetKey(r, key, pErr))
 }
 
